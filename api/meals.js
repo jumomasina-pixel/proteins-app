@@ -5,10 +5,15 @@ import Anthropic from '@anthropic-ai/sdk'
 function buildProfileSection(p) {
   if (!p) return ''
 
-  const goalMap = {
-    lose:     `lose ${p.goalAmount ? `${p.goalAmount}kg of fat` : 'weight'}`,
-    build:    'build muscle',
-    maintain: 'maintain weight and eat better',
+  const goalLabelMap = {
+    lose:      p.goalAmount ? `lose ${p.goalAmount}kg of fat` : 'lose weight',
+    build:     'build muscle',
+    maintain:  'maintain weight',
+    eat_clean: 'eat cleaner',
+    energy:    'improve energy and performance',
+    fitness:   'improve fitness and endurance',
+    sleep:     'improve sleep and recovery',
+    stress:    'reduce stress eating',
   }
   const freqMap = {
     rarely:  'rarely or never trains',
@@ -23,15 +28,20 @@ function buildProfileSection(p) {
   }
 
   const types = (p.trainingTypes || []).filter(t => t !== 'None').join(', ')
-  const goal  = goalMap[p.goal]     || p.goal
+
+  // Support old single-goal profiles (p.goal) and new multi-goal ones (p.goals)
+  const activeGoals = Array.isArray(p.goals) ? p.goals : (p.goal ? [p.goal] : [])
+  const primaryGoal = activeGoals[0] || 'maintain'
+  const goal = activeGoals.map(g => goalLabelMap[g] || g).join(', ') || 'maintain weight and eat better'
+
   const freq  = freqMap[p.trainingFreq] || p.trainingFreq
   const skill = kitchenMap[p.kitchenLevel] || p.kitchenLevel
 
-  // Derive sensible calorie target from goal + training
+  // Derive sensible calorie target from primary goal + training
   const isActive   = ['3-4x','5-6x'].includes(p.trainingFreq)
-  const calTarget  = p.goal === 'build'    ? '2,200–2,600' :
-                     p.goal === 'maintain' ? '2,000–2,200' :
-                     isActive              ? '1,800–2,100' : '1,500–1,800'
+  const calTarget  = primaryGoal === 'build'    ? '2,200–2,600' :
+                     primaryGoal === 'maintain' ? '2,000–2,200' :
+                     isActive                   ? '1,800–2,100' : '1,500–1,800'
   const protTarget = p.weight ? Math.round(Number(p.weight) * 1.8) : 160
 
   return `CURRENT USER PROFILE — tailor everything to this person:

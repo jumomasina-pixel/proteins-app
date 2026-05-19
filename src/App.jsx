@@ -5,9 +5,9 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 // Any existing storage that doesn't carry a matching version will be wiped and
 // the user will restart from the welcome screen as a new user.
 
-const PROFILE_VERSION = 2
+const PROFILE_VERSION = 3
 
-const LS_KEYS = ['lhc_profile', 'lhc_saved_recipes', 'lhc_sessions']
+const LS_KEYS = ['lhc_profile', 'lhc_saved_recipes', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
 
 function loadProfileOrEvict() {
   try {
@@ -251,9 +251,14 @@ function PaperTexture() {
 // ── Onboarding option constants ───────────────────────────────────────────────
 
 const GOAL_OPTIONS = [
-  { value: 'lose',     label: 'Lose fat',             emoji: '🔥' },
-  { value: 'build',    label: 'Build muscle',          emoji: '💪' },
-  { value: 'maintain', label: 'Maintain & eat better', emoji: '🥗' },
+  { value: 'lose',      label: 'Lose fat',                    emoji: '🔥' },
+  { value: 'build',     label: 'Build muscle',                emoji: '💪' },
+  { value: 'maintain',  label: 'Maintain weight',             emoji: '⚖️' },
+  { value: 'eat_clean', label: 'Eat cleaner',                 emoji: '🥗' },
+  { value: 'energy',    label: 'Improve energy & performance', emoji: '⚡' },
+  { value: 'fitness',   label: 'Improve fitness & endurance', emoji: '🏃' },
+  { value: 'sleep',     label: 'Better sleep & recovery',     emoji: '😴' },
+  { value: 'stress',    label: 'Reduce stress eating',        emoji: '🧠' },
 ]
 const FREQ_OPTIONS = [
   { value: 'rarely', label: 'Rarely or never' },
@@ -318,13 +323,260 @@ const TIME_CARDS = [
   { value: 'all the time in the world', label: 'All the time in the world', emoji: '🌟' },
 ]
 
+// ── Health insights data ──────────────────────────────────────────────────────
+
+const HEALTH_INSIGHTS = [
+  {
+    tag: 'PROTEIN TIMING',
+    headline: 'Hit 20–40g within 30 min post-workout',
+    body: 'Muscle protein synthesis spikes in the hour after training. Get protein in while the window is open.',
+  },
+  {
+    tag: 'SLEEP & HORMONES',
+    headline: 'Poor sleep raises hunger hormones by ~15%',
+    body: 'Ghrelin goes up, leptin drops. Under 7 hours and your body actively fights the deficit.',
+  },
+  {
+    tag: 'COOKING SCIENCE',
+    headline: 'Browning = flavour fat used to give you',
+    body: 'The Maillard reaction creates hundreds of flavour compounds. High heat first replaces what you save in calories.',
+  },
+  {
+    tag: 'FAT LOSS',
+    headline: '~500 kcal deficit = ~0.5 kg/week',
+    body: 'Sustainable rate. Faster than 1 kg/week and you start losing muscle alongside fat.',
+  },
+  {
+    tag: 'PERFORMANCE',
+    headline: 'Don\'t go below 100g carbs on training days',
+    body: 'Glycogen is your fuel for high-intensity work. Drop too low and you\'re running on fumes.',
+  },
+  {
+    tag: 'MUSCLE BUILDING',
+    headline: 'Leucine is the key MPS trigger',
+    body: 'You need ~2–3g of leucine per meal to switch on muscle protein synthesis. Eggs, fish, and dairy hit this easily.',
+  },
+  {
+    tag: 'CALORIE BURN',
+    headline: 'NEAT burns 200–400 kcal/day',
+    body: 'Non-exercise activity thermogenesis — walking, fidgeting, standing — adds up fast. Stay moving outside the gym.',
+  },
+  {
+    tag: 'HYDRATION',
+    headline: '2–3L/day supports fat oxidation',
+    body: 'Even mild dehydration blunts metabolism. Drink before you\'re thirsty.',
+  },
+  {
+    tag: 'METABOLISM',
+    headline: 'Chilli temporarily boosts burn by ~5%',
+    body: 'Capsaicin creates thermogenic effect for 30–60 min post-meal. Small edge, but free calories.',
+  },
+  {
+    tag: 'STRESS & CORTISOL',
+    headline: 'Chronic stress shifts fat storage to your abdomen',
+    body: 'Cortisol redirects fat to visceral stores. Managing stress is as important as the food.',
+  },
+  {
+    tag: 'RECOVERY',
+    headline: 'Omega-3s reduce training inflammation',
+    body: 'Salmon, sardines, and walnuts reduce DOMS and support joint health. 2–3 serves of fatty fish a week is enough.',
+  },
+  {
+    tag: 'MEAL TIMING',
+    headline: 'Eat most carbs around your training window',
+    body: 'Pre-workout carbs fuel performance. Post-workout carbs replenish glycogen. Keep dinner lighter on carbs.',
+  },
+  {
+    tag: 'GUT HEALTH',
+    headline: '25–30g fibre/day keeps you full longer',
+    body: 'Fibre slows gastric emptying, stabilises blood sugar, and feeds gut bacteria. Vegetables, legumes, oats.',
+  },
+  {
+    tag: 'CAFFEINE',
+    headline: 'Up to 6mg/kg improves performance',
+    body: 'Pre-workout caffeine is one of the few evidence-backed ergogenic aids. Time it 45–60 min before training.',
+  },
+  {
+    tag: 'BODY COMPOSITION',
+    headline: 'Scale weight is a lagging indicator',
+    body: 'You can lose fat and gain muscle simultaneously at similar rates — especially if you\'re new to training. Trust the mirror and the energy levels.',
+  },
+]
+
+// ── Insight card component ─────────────────────────────────────────────────────
+
+function InsightCard({ insight, compact = false }) {
+  if (compact) {
+    return (
+      <div
+        className="shrink-0 rounded-xl px-3.5 py-3 space-y-1"
+        style={{
+          backgroundColor: '#FAF6EE',
+          border: '1px solid #C8B090',
+          width: 220,
+        }}
+      >
+        <span
+          className="text-[9px] font-bold uppercase tracking-widest"
+          style={{ color: '#C1683A' }}
+        >
+          {insight.tag}
+        </span>
+        <p className="text-[12px] font-semibold leading-snug" style={{ color: '#1A1108' }}>
+          {insight.headline}
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div
+      className="rounded-2xl px-5 py-4 space-y-2"
+      style={{
+        backgroundColor: '#FAF6EE',
+        border: '1px solid #C8B090',
+        boxShadow: '0 1px 6px rgba(26,17,8,0.06)',
+      }}
+    >
+      <span
+        className="text-[9px] font-bold uppercase tracking-widest"
+        style={{ color: '#C1683A' }}
+      >
+        {insight.tag}
+      </span>
+      <p className="text-sm font-semibold leading-snug" style={{ color: '#1A1108' }}>
+        {insight.headline}
+      </p>
+      <p className="text-xs leading-relaxed" style={{ color: '#7A6548' }}>
+        {insight.body}
+      </p>
+    </div>
+  )
+}
+
+// ── Insights sidebar (desktop) + strip (mobile) ───────────────────────────────
+
+function useInsights() {
+  const dayIndex = Math.floor(Date.now() / 86400000)
+  return [0,1,2,3].map(i => HEALTH_INSIGHTS[(dayIndex + i) % HEALTH_INSIGHTS.length])
+}
+
+function InsightsDesktopSidebar() {
+  const visible = useInsights()
+  return (
+    <aside
+      className="hidden lg:flex flex-col gap-3 w-[280px] shrink-0 overflow-y-auto py-6 pr-4 pl-2"
+      style={{ maxHeight: '100dvh' }}
+    >
+      <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: '#7A6548' }}>
+        Today's Insights
+      </p>
+      {visible.map((ins, i) => (
+        <InsightCard key={i} insight={ins} />
+      ))}
+    </aside>
+  )
+}
+
+function InsightsMobileStrip() {
+  const visible = useInsights()
+  return (
+    <div
+      className="shrink-0 border-b px-4 py-2.5"
+      style={{ borderColor: '#C8B090', backgroundColor: '#EDE0C8' }}
+    >
+      <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#7A6548' }}>
+        Today's Insights
+      </p>
+      <div
+        className="flex gap-2.5 overflow-x-auto pb-1"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
+        {visible.map((ins, i) => (
+          <InsightCard key={i} insight={ins} compact />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Mobile bottom nav ─────────────────────────────────────────────────────────
+
+function BottomNav({ activeView, onNavigate }) {
+  const NAV_ITEMS = [
+    {
+      id: 'chat',
+      label: 'Home',
+      icon: (active) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+      ),
+    },
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: (active) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'saved',
+      label: 'My Recipes',
+      icon: (active) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'onboarding',
+      label: 'Profile',
+      icon: (active) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-50 flex"
+      style={{
+        backgroundColor: '#FAF6EE',
+        borderTop: '1px solid #C8B090',
+        paddingBottom: 'env(safe-area-inset-bottom, 0)',
+      }}
+    >
+      {NAV_ITEMS.map(item => {
+        const active = activeView === item.id ||
+          (item.id === 'chat' && (activeView === 'cards' || activeView === 'chat'))
+        return (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors"
+            style={{ color: active ? '#C1683A' : '#7A6548' }}
+            aria-label={item.label}
+          >
+            {item.icon(active)}
+            <span className="text-[9px] font-semibold uppercase tracking-wider">{item.label}</span>
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
 // ── Avatars ───────────────────────────────────────────────────────────────────
 
 function ChefAvatar() {
   return (
     <div
       className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-base select-none"
-      style={{ backgroundColor: '#FDF0E8', border: '1.5px solid #D4B896' }}
+      style={{ backgroundColor: '#FDF0E8', border: '1.5px solid #C8B090' }}
       aria-hidden
     >
       🧑‍🍳
@@ -377,7 +629,7 @@ function SkeletonCard() {
     <div
       className="rounded-2xl p-5 sm:p-6 space-y-4 animate-pulse"
       style={{
-        backgroundColor: '#FFFDF7',
+        backgroundColor: '#FAF6EE',
         borderTop: '4px solid #C1683A',
         boxShadow: '0 2px 12px rgba(44,36,22,0.07), 0 1px 3px rgba(44,36,22,0.05)',
       }}
@@ -411,17 +663,17 @@ function ChatBubble({ role, content, isStreaming, userName }) {
               fontSize: '0.875rem',
             }
           : {
-              backgroundColor: '#FFFDF7',
-              color: '#2C2416',
+              backgroundColor: '#FAF6EE',
+              color: '#1A1108',
               borderLeft: '3px solid #C1683A',
               borderRadius: '0 16px 16px 16px',
-              boxShadow: '0 1px 6px rgba(44,36,22,0.07)',
+              boxShadow: '0 1px 6px rgba(26,17,8,0.07)',
             }
         }
       >
         {content}
         {isStreaming && (
-          <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse align-text-bottom rounded-sm" style={{ backgroundColor: '#8B7355', opacity: 0.5 }} />
+          <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse align-text-bottom rounded-sm" style={{ backgroundColor: '#7A6548', opacity: 0.5 }} />
         )}
       </div>
     </div>
@@ -434,7 +686,7 @@ function TypingIndicator() {
       <ChefAvatar />
       <div
         className="flex items-center gap-1.5 px-4 py-3.5"
-        style={{ backgroundColor: '#FFFDF7', borderLeft: '3px solid #C1683A', borderRadius: '0 16px 16px 16px', boxShadow: '0 1px 6px rgba(44,36,22,0.07)' }}
+        style={{ backgroundColor: '#FAF6EE', borderLeft: '3px solid #C1683A', borderRadius: '0 16px 16px 16px', boxShadow: '0 1px 6px rgba(26,17,8,0.07)' }}
       >
         {[0, 1, 2].map(i => (
           <span
@@ -454,9 +706,9 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   const [selected, setSelected] = useState([])
 
   const chipStyle = (sel) => ({
-    backgroundColor: sel ? '#FDF0E8' : '#FFFDF7',
-    borderColor:     sel ? '#C1683A' : '#D4B896',
-    color:           sel ? '#C1683A' : '#5C4A2A',
+    backgroundColor: sel ? '#FDF0E8' : '#FAF6EE',
+    borderColor:     sel ? '#C1683A' : '#C8B090',
+    color:           sel ? '#C1683A' : '#4A3728',
   })
 
   // "Something else" focuses the textarea rather than just vanishing the row
@@ -469,7 +721,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
     <button
       onClick={handleSomethingElse}
       className="shrink-0 py-2 px-4 rounded-xl text-sm font-medium transition-colors"
-      style={{ color: '#8B7355', backgroundColor: '#FAF3E4', border: '1px solid #D4B896' }}
+      style={{ color: '#7A6548', backgroundColor: '#FAF3E4', border: '1px solid #C8B090' }}
     >
       Something else →
     </button>
@@ -658,7 +910,7 @@ function DishCard({ dish, onClick, onImageResolved }) {
             {dish.dietician.cookTime !== '—' && (
               <span
                 className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896', color: '#5C4A2A' }}
+                style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090', color: '#4A3728' }}
               >
                 <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -669,7 +921,7 @@ function DishCard({ dish, onClick, onImageResolved }) {
             {dish.dietician.difficulty && (
               <span
                 className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896', color: '#5C4A2A' }}
+                style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090', color: '#4A3728' }}
               >
                 <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-6-6-12-6-12zm0 16a2 2 0 110-4 2 2 0 010 4z"/>
@@ -710,11 +962,23 @@ function BookmarkIcon({ filled }) {
 }
 
 function CookStepsList({ steps, accentColor }) {
+  const [hovered, setHovered] = useState(null)
   return (
     <ol className="space-y-3">
       {steps.map((step, i) => (
-        <li key={i} className="flex gap-4 text-sm leading-relaxed rounded-xl px-4 py-3.5"
-          style={{ backgroundColor: '#FFFDF7', border: '1px solid #D4B896', color: '#2C2416' }}>
+        <li
+          key={i}
+          className="flex gap-4 text-sm leading-relaxed rounded-xl px-4 py-3.5 transition-all duration-200"
+          style={{
+            backgroundColor: '#FAF6EE',
+            border: '1px solid #C8B090',
+            borderLeft: hovered === i ? `4px solid ${accentColor}` : `1px solid #C8B090`,
+            color: '#1A1108',
+            cursor: 'default',
+          }}
+          onMouseEnter={() => setHovered(i)}
+          onMouseLeave={() => setHovered(null)}
+        >
           <span className="shrink-0 w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold mt-0.5"
             style={{ backgroundColor: accentColor, color: '#FFFFFF' }}>
             {i + 1}
@@ -749,7 +1013,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       showToast('✕ Removed from My Recipes')
     } else {
       onSave()
-      showToast('✓ Saved to My Recipes — view in Dashboard', onNavigateDashboard)
+      showToast('✓ Saved — view in Dashboard', onNavigateDashboard)
     }
   }
 
@@ -757,12 +1021,12 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
   const chefAccent = '#D4900A'
 
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy pb-28 sm:pb-12">
+    <div className="animate-fade-in min-h-screen bg-sandy pb-44 sm:pb-28">
       <PaperTexture />
 
       {/* Toast — tappable when action exists */}
       <div
-        className="fixed bottom-28 sm:bottom-20 left-1/2 z-[1000] transition-all duration-300"
+        className="fixed bottom-44 sm:bottom-32 left-1/2 z-[1000] transition-all duration-300"
         style={{
           transform: `translateX(-50%) translateY(${toast.visible ? 0 : 8}px)`,
           opacity: toast.visible ? 1 : 0,
@@ -771,8 +1035,8 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       >
         <button
           onClick={toast.action ?? undefined}
-          className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg flex items-center gap-1.5"
-          style={{ backgroundColor: '#2C2416', cursor: toast.action ? 'pointer' : 'default' }}
+          className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg flex items-center gap-1.5 whitespace-nowrap"
+          style={{ backgroundColor: '#1A1108', cursor: toast.action ? 'pointer' : 'default' }}
         >
           {toast.message}
           {toast.action && <span className="opacity-60 text-xs">→</span>}
@@ -781,16 +1045,13 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
       {/* ── Hero image ── */}
       {imgUrl ? (
-        <div className="relative w-full h-72 sm:h-[30rem] overflow-hidden">
+        <div className="relative w-full h-72 sm:h-[50vh] overflow-hidden">
           <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }} />
-          <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto flex items-center justify-between">
+          <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto">
             <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors drop-shadow">
               {BACK_ARROW} Back to dishes
-            </button>
-            <button onClick={handleBookmark} className="text-white/90 hover:text-white transition-colors drop-shadow">
-              <BookmarkIcon filled={isSaved} />
             </button>
           </div>
           <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 max-w-2xl mx-auto">
@@ -803,12 +1064,9 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
         </div>
       ) : (
         <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#C1683A' }}>
-          <div className="px-4 pb-5 max-w-2xl mx-auto w-full flex items-center justify-between">
+          <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
             <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors">
               {BACK_ARROW} Back to dishes
-            </button>
-            <button onClick={handleBookmark} className="text-white/90 hover:text-white transition-colors">
-              <BookmarkIcon filled={isSaved} />
             </button>
           </div>
         </div>
@@ -830,8 +1088,8 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
             <button key={opt.value} onClick={() => setMode(opt.value)}
               className="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200"
               style={mode === opt.value
-                ? { backgroundColor: '#FFFDF7', color: '#2C2416', boxShadow: '0 1px 6px rgba(44,36,22,0.14)' }
-                : { color: '#8B7355' }
+                ? { backgroundColor: '#FAF6EE', color: '#1A1108', boxShadow: '0 1px 6px rgba(26,17,8,0.14)' }
+                : { color: '#7A6548' }
               }>
               {opt.label}
             </button>
@@ -865,7 +1123,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
             {chef.calories && (
               <div className="inline-flex items-center gap-1.5 text-xs border px-3 py-1.5 rounded-full"
-                style={{ backgroundColor: '#FFF8E7', borderColor: `${chefAccent}40`, color: '#5C4A2A' }}>
+                style={{ backgroundColor: '#FFF8E7', borderColor: `${chefAccent}40`, color: '#4A3728' }}>
                 <span className="font-bold" style={{ color: chefAccent }}>~{chef.calories}</span>
                 <span>kcal · full version</span>
               </div>
@@ -873,7 +1131,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
             {chef.steps?.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#8B7355' }}>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#7A6548' }}>
                   Chef's method
                 </h3>
                 <CookStepsList steps={chef.steps} accentColor={chefAccent} />
@@ -909,7 +1167,14 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
             {dietician.cookSteps.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-4">Quick cook steps</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted">Quick cook steps</h3>
+                  {dietician.cookTime && dietician.cookTime !== '—' && (
+                    <span className="text-xs font-medium" style={{ color: '#7A6548' }}>
+                      Total: ~{dietician.cookTime} mins
+                    </span>
+                  )}
+                </div>
                 <CookStepsList steps={dietician.cookSteps} accentColor="#C1683A" />
               </div>
             )}
@@ -924,12 +1189,44 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       </div>
 
       {/* ── Action bar ── */}
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-6 sm:px-4">
-        <button onClick={handleCopy}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-opacity active:opacity-80"
-          style={{ backgroundColor: copied ? '#7A9E7E' : '#C1683A', color: '#FFFFFF' }}>
-          {copied ? '✓ Copied!' : 'Copy Recipe 📋'}
-        </button>
+      <div className="fixed bottom-0 inset-x-0 z-50 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-8 sm:px-4">
+        {/* Divider (mobile only — desktop uses mt-8 spacing above) */}
+        <div className="sm:hidden h-px mx-4 mt-0" style={{ backgroundColor: '#C8B090' }} />
+        <div className="p-4 space-y-2.5">
+          {/* Save button */}
+          <button
+            onClick={handleBookmark}
+            className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
+            style={{
+              backgroundColor: isSaved ? '#5C8260' : '#7A9E7E',
+              boxShadow: isSaved ? 'none' : '0 2px 8px rgba(122,158,126,0.35)',
+            }}
+          >
+            {isSaved ? (
+              <>
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6.75 2.25A.75.75 0 016 3v18a.75.75 0 001.28.53L12 17.31l4.72 4.22A.75.75 0 0018 21V3a.75.75 0 00-.75-.75H6.75z"/>
+                </svg>
+                ✓ Saved to My Recipes
+              </>
+            ) : (
+              <>🔖 Save to My Recipes</>
+            )}
+          </button>
+
+          {/* Copy button */}
+          <button
+            onClick={handleCopy}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 active:opacity-80"
+            style={{
+              backgroundColor: copied ? '#C1683A' : 'transparent',
+              color: copied ? '#FFFFFF' : '#7A6548',
+              border: copied ? 'none' : '1.5px solid #C8B090',
+            }}
+          >
+            {copied ? '✓ Copied!' : 'Copy Recipe 📋'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -981,7 +1278,7 @@ function WelcomeScreen({ onStart }) {
               <div
                 key={text}
                 className="flex items-center gap-4 rounded-2xl px-5 py-4 border border-sandy-border shadow-card"
-                style={{ backgroundColor: '#FFFDF7' }}
+                style={{ backgroundColor: '#FAF6EE' }}
               >
                 <span className="text-2xl shrink-0 leading-none">{emoji}</span>
                 <span className="text-sm font-medium text-charcoal">{text}</span>
@@ -1043,7 +1340,7 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
           <button
             onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
             className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal-muted hover:text-terracotta transition-colors"
-            style={{ backgroundColor: 'rgba(255,253,247,0.92)', border: '1px solid #D4B896' }}
+            style={{ backgroundColor: 'rgba(255,253,247,0.92)', border: '1px solid #C8B090' }}
             aria-label="Remove recipe"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1104,7 +1401,7 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQuickStart, onEditProfile, onViewSaved }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved }) {
   const cuisineFreq = useMemo(() => {
     const counts = {}
     savedRecipes.forEach(r => {
@@ -1130,16 +1427,31 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
   const last4Recipes  = [...savedRecipes].reverse().slice(0, 4)
   const last3Sessions = sessions.slice(0, 3)
 
-  const goalInfo = {
-    lose:     { label: 'Fat Loss',         emoji: '🔥' },
-    build:    { label: 'Muscle Build',     emoji: '💪' },
-    maintain: { label: 'Maintain & Thrive',emoji: '🥗' },
-  }[profile?.goal] ?? { label: 'Set a goal', emoji: '🎯' }
+  const GOAL_LABEL_MAP = {
+    lose:      { label: 'Fat Loss',                  emoji: '🔥' },
+    build:     { label: 'Muscle Build',              emoji: '💪' },
+    maintain:  { label: 'Maintain Weight',           emoji: '⚖️' },
+    eat_clean: { label: 'Eat Cleaner',               emoji: '🥗' },
+    energy:    { label: 'Energy & Performance',      emoji: '⚡' },
+    fitness:   { label: 'Fitness & Endurance',       emoji: '🏃' },
+    sleep:     { label: 'Better Sleep & Recovery',   emoji: '😴' },
+    stress:    { label: 'Reduce Stress Eating',      emoji: '🧠' },
+  }
+  // Support both old single-goal profiles and new multi-goal ones
+  const activeGoals = Array.isArray(profile?.goals)
+    ? profile.goals
+    : (profile?.goal ? [profile.goal] : [])
+  const primaryGoal = activeGoals[0]
+  const goalInfo = primaryGoal
+    ? (GOAL_LABEL_MAP[primaryGoal] ?? { label: primaryGoal, emoji: '🎯' })
+    : { label: 'Set a goal', emoji: '🎯' }
+  // Extra goal chips beyond the first
+  const extraGoals = activeGoals.slice(1).map(g => GOAL_LABEL_MAP[g]?.label ?? g)
 
   const isActive  = ['3-4x', '5-6x'].includes(profile?.trainingFreq)
-  const calTarget = profile?.goal === 'build'    ? '2,200–2,600' :
-                    profile?.goal === 'maintain' ? '2,000–2,200' :
-                    isActive                     ? '1,800–2,100' : '1,500–1,800'
+  const calTarget = primaryGoal === 'build'    ? '2,200–2,600' :
+                    primaryGoal === 'maintain' ? '2,000–2,200' :
+                    isActive                   ? '1,800–2,100' : '1,500–1,800'
   const protTarget = profile?.weight ? Math.round(Number(profile.weight) * 1.8) : 160
 
   function fmtDate(iso) {
@@ -1150,51 +1462,138 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
     return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   }
 
-  const sectionCard = { backgroundColor: '#FFFDF7', border: '1px solid #D4B896', boxShadow: '0 2px 8px rgba(44,36,22,0.07)' }
+  const sectionCard = { backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 2px 8px rgba(26,17,8,0.07)' }
+
+  // Time-of-day greeting
+  const hour = new Date().getHours()
+  const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
+
+  // Goal bar: only shown for fat-loss goal with both weight and goalAmount
+  const showGoalBar = activeGoals.includes('lose') &&
+    profile?.weight && profile?.goalAmount &&
+    Number(profile.goalAmount) > 0
 
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14 relative">
+    <div className="animate-fade-in min-h-screen bg-sandy px-4 pt-10 pb-24 lg:pb-14 sm:pt-14 relative">
       <PaperTexture />
       <div className="max-w-2xl mx-auto space-y-5 relative">
 
-        {/* Header */}
+        {/* Header — back button only on desktop; mobile uses BottomNav */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="font-serif text-4xl font-extrabold tracking-wide text-charcoal">
-              {profile?.name ? `${profile.name}'s Kitchen` : 'Dashboard'} 📊
+            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#7A6548' }}>
+              Good {timeOfDay}
+            </p>
+            <h1 className="font-serif text-4xl font-extrabold leading-none" style={{ color: '#1A1108' }}>
+              {profile?.name ?? 'Chef'}.
             </h1>
-            <p className="text-charcoal-muted text-sm mt-1">Your personal nutrition hub</p>
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors mt-1.5"
+            className="hidden sm:block shrink-0 text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors mt-1.5"
           >
             ← Back
           </button>
         </div>
 
+        {/* ── Hero calorie stat ── */}
+        <div
+          className="rounded-2xl p-6 text-center space-y-1"
+          style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 2px 8px rgba(26,17,8,0.07)' }}
+        >
+          <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Daily calorie target</p>
+          <p className="font-serif font-extrabold leading-none" style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', color: '#C1683A' }}>
+            {calTarget}
+          </p>
+          <p className="text-sm font-medium" style={{ color: '#7A6548' }}>kcal · {protTarget}g+ protein</p>
+        </div>
+
+        {/* ── 3-up stats ── */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Day streak', value: streak?.count ?? 0, unit: streak?.count === 1 ? 'day' : 'days', icon: '🔥' },
+            { label: 'Recipes saved', value: stats?.totalRecipes ?? 0, unit: 'total', icon: '📖' },
+            { label: 'Kcal saved', value: stats?.totalCalSaved ? (stats.totalCalSaved >= 1000 ? `${(stats.totalCalSaved / 1000).toFixed(1)}k` : stats.totalCalSaved) : 0, unit: 'vs full version', icon: '💪' },
+          ].map(({ label, value, unit, icon }) => (
+            <div
+              key={label}
+              className="rounded-2xl px-3 py-4 text-center space-y-1"
+              style={sectionCard}
+            >
+              <span className="text-xl leading-none">{icon}</span>
+              <p className="font-serif text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#1A1108' }}>
+                {value}
+              </p>
+              <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: '#7A6548' }}>
+                {label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Goal bar ── */}
+        {showGoalBar && (() => {
+          const start  = Number(profile.weight)
+          const target = start - Number(profile.goalAmount)
+          return (
+            <div className="rounded-2xl p-5 space-y-3" style={sectionCard}>
+              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Fat loss target</p>
+              <div className="flex items-center justify-between text-xs font-semibold" style={{ color: '#1A1108' }}>
+                <span>{start} kg</span>
+                <span style={{ color: '#C1683A' }}>→ {target} kg</span>
+              </div>
+              <div className="relative h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: '#D4C4A0' }}>
+                {/* Progress = sessions count as proxy (capped at 100%) */}
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${Math.min(100, (sessions.length / 30) * 100)}%`,
+                    background: 'linear-gradient(90deg, #C1683A, #D4845A)',
+                  }}
+                />
+              </div>
+              <p className="text-xs" style={{ color: '#7A6548' }}>
+                Goal: lose {profile.goalAmount} kg · {sessions.length} session{sessions.length !== 1 ? 's' : ''} completed
+              </p>
+            </div>
+          )
+        })()}
+
         {/* ── Goal card ── */}
+        <p className="text-[9px] font-bold uppercase tracking-widest pt-2" style={{ color: '#7A6548' }}>Your Goals</p>
         <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
           <div className="flex items-center gap-3">
             <span className="text-3xl leading-none">{goalInfo.emoji}</span>
-            <div className="flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-0.5">Current Goal</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-0.5">
+                {activeGoals.length > 1 ? 'Goals' : 'Goal'}
+              </p>
               <p className="font-serif text-xl font-bold text-charcoal">{goalInfo.label}</p>
+              {extraGoals.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {extraGoals.map(g => (
+                    <span key={g} className="text-[11px] px-2.5 py-0.5 rounded-full font-medium"
+                      style={{ backgroundColor: '#FAF3E4', color: '#4A3728', border: '1px solid #C8B090' }}>
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               onClick={onEditProfile}
-              className="text-xs font-medium transition-colors"
+              className="text-xs font-medium transition-colors shrink-0"
               style={{ color: '#C1683A' }}
             >
               Edit →
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896' }}>
+            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090' }}>
               <p className="text-base font-bold tabular-nums" style={{ color: '#C1683A' }}>{calTarget}</p>
               <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">kcal / day</p>
             </div>
-            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896' }}>
+            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090' }}>
               <p className="text-base font-bold tabular-nums" style={{ color: '#7A9E7E' }}>{protTarget}g+</p>
               <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">protein / day</p>
             </div>
@@ -1211,7 +1610,7 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
         {last4Recipes.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif text-lg font-bold text-charcoal">Saved Recipes</h2>
+              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Saved Recipes</p>
               <button
                 onClick={onViewSaved}
                 className="text-xs font-medium transition-colors"
@@ -1226,7 +1625,7 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
                   key={recipe._id}
                   onClick={() => onOpenRecipe(recipe)}
                   className="rounded-xl overflow-hidden text-left active:opacity-80 transition-opacity"
-                  style={{ backgroundColor: '#FFFDF7', border: '1px solid #D4B896' }}
+                  style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090' }}
                 >
                   <div className="relative w-full h-24 overflow-hidden" style={{ backgroundColor: '#C1683A' }}>
                     {recipe._imgUrl && (
@@ -1254,7 +1653,7 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
         {/* ── Favourite cuisines ── */}
         {cuisineFreq.length > 0 && (
           <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
-            <h2 className="font-serif text-lg font-bold text-charcoal">Favourite Cuisines</h2>
+            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Favourite Cuisines</p>
             <div className="space-y-3">
               {cuisineFreq.map(([cuisine, count], i) => {
                 const pct = Math.round((count / cuisineFreq[0][1]) * 100)
@@ -1279,7 +1678,7 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
         {/* ── Go-to protein ── */}
         {topProtein && (
           <div className="rounded-2xl p-5" style={sectionCard}>
-            <h2 className="font-serif text-lg font-bold text-charcoal mb-3">Go-to Protein</h2>
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: '#7A6548' }}>Go-to Protein</p>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0"
                 style={{ backgroundColor: '#FDF0E8', border: '2px solid #C1683A' }}>
@@ -1298,7 +1697,7 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
         {/* ── Recent sessions ── */}
         {last3Sessions.length > 0 && (
           <div className="space-y-3">
-            <h2 className="font-serif text-lg font-bold text-charcoal">Recent Sessions</h2>
+            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Recent Sessions</p>
             <div className="space-y-2">
               {last3Sessions.map(session => (
                 <div key={session.id} className="rounded-xl px-4 py-3.5 space-y-2" style={sectionCard}>
@@ -1308,7 +1707,7 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
                     </span>
                     {session.cuisine && (
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: '#FAF3E4', color: '#8B7355', border: '1px solid #D4B896' }}>
+                        style={{ backgroundColor: '#FDF0E8', color: '#7A6548', border: '1px solid #C8B090' }}>
                         {session.cuisine}
                       </span>
                     )}
@@ -1321,12 +1720,26 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
                   )}
                   {session.dishes?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {session.dishes.map((d, i) => (
-                        <span key={i} className="text-[11px] px-2.5 py-1 rounded-full"
-                          style={{ backgroundColor: '#FAF3E4', color: '#5C4A2A', border: '1px solid #D4B896' }}>
-                          {d}
-                        </span>
-                      ))}
+                      {session.dishes.map((d, i) => {
+                        // d may be a full dish object (new) or a string (old)
+                        const dishName = typeof d === 'object' ? d.name : d
+                        const isClickable = typeof d === 'object'
+                        return isClickable ? (
+                          <button
+                            key={i}
+                            onClick={() => onOpenSessionDish?.(d)}
+                            className="text-[11px] px-2.5 py-1 rounded-full transition-all hover:shadow-sm active:opacity-80"
+                            style={{ backgroundColor: '#FDF0E8', color: '#C1683A', border: '1px solid #D4845A', fontWeight: 600 }}
+                          >
+                            {dishName} →
+                          </button>
+                        ) : (
+                          <span key={i} className="text-[11px] px-2.5 py-1 rounded-full"
+                            style={{ backgroundColor: '#FDF0E8', color: '#4A3728', border: '1px solid #C8B090' }}>
+                            {dishName}
+                          </span>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -1361,7 +1774,7 @@ function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQ
 // ── Onboarding ────────────────────────────────────────────────────────────────
 
 const EMPTY_PROFILE = {
-  name: '', weight: '', goal: '', goalAmount: '',
+  name: '', weight: '', goals: [], goalAmount: '',
   trainingFreq: '', trainingTypes: [], avoidFoods: '', kitchenLevel: '',
 }
 
@@ -1369,7 +1782,8 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
   const [step, setStep]       = useState(1)
   const [profile, setProfile] = useState({ ...EMPTY_PROFILE, ...initialProfile })
 
-  const skipStep4  = profile.goal === 'maintain'
+  // Only show step 4 (how much to lose) when fat-loss is one of the selected goals
+  const skipStep4  = !(profile.goals ?? []).includes('lose')
   const stepList   = skipStep4 ? [1,2,3,5,6,7,8] : [1,2,3,4,5,6,7,8]
   const stepIndex  = stepList.indexOf(step)
   const totalSteps = stepList.length
@@ -1391,7 +1805,7 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
   function canProceed() {
     if (step === 1) return profile.name.trim().length > 0
     if (step === 2) return String(profile.weight).trim().length > 0
-    if (step === 3) return profile.goal !== ''
+    if (step === 3) return (profile.goals ?? []).length > 0
     if (step === 4) return String(profile.goalAmount).trim().length > 0
     if (step === 5) return profile.trainingFreq !== ''
     if (step === 6) return profile.trainingTypes.length > 0
@@ -1406,9 +1820,9 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
                  : 'Next →'
 
   const cardStyle = (selected) => ({
-    backgroundColor: selected ? '#FDF0E8' : '#FFFDF7',
-    borderColor:     selected ? '#C1683A' : '#D4B896',
-    color:           '#2C2416',
+    backgroundColor: selected ? '#FDF0E8' : '#FAF6EE',
+    borderColor:     selected ? '#C1683A' : '#C8B090',
+    color:           '#1A1108',
   })
 
   function renderStep() {
@@ -1440,23 +1854,37 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
       )
       case 3: return (
         <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What's your goal?</h2>
-          <div className="space-y-3">
-            {GOAL_OPTIONS.map(o => (
-              <button key={o.value} onClick={() => set('goal', o.value)}
-                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
-                style={cardStyle(profile.goal === o.value)}
-              >
-                <span className="text-2xl">{o.emoji}</span>{o.label}
-              </button>
-            ))}
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What are your goals?</h2>
+          <p className="text-sm text-charcoal-muted">Select all that apply</p>
+          <div className="space-y-2.5">
+            {GOAL_OPTIONS.map(o => {
+              const sel = (profile.goals ?? []).includes(o.value)
+              return (
+                <button
+                  key={o.value}
+                  onClick={() => {
+                    const current = profile.goals ?? []
+                    set('goals', sel ? current.filter(v => v !== o.value) : [...current, o.value])
+                  }}
+                  className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
+                  style={cardStyle(sel)}
+                >
+                  <span className="text-2xl leading-none shrink-0">{o.emoji}</span>
+                  <span>{o.label}</span>
+                  {sel && (
+                    <span className="ml-auto shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs"
+                      style={{ backgroundColor: '#C1683A' }}>✓</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
       )
       case 4: return (
         <div className="space-y-4">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">
-            How much do you want to {profile.goal === 'lose' ? 'lose' : 'gain'}?
+            How much fat do you want to lose?
           </h2>
           <div className="flex items-center gap-3">
             <input autoFocus type="number" value={profile.goalAmount}
@@ -1499,7 +1927,7 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
                     set('trainingTypes', sel ? filtered.filter(t => t !== value) : [...filtered, value])
                   }}
                   className="flex items-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left"
-                  style={{ backgroundColor: sel ? '#FDF0E8' : '#FFFDF7', borderColor: sel ? '#C1683A' : '#D4B896', color: sel ? '#C1683A' : '#5C4A2A' }}
+                  style={{ backgroundColor: sel ? '#FDF0E8' : '#FAF6EE', borderColor: sel ? '#C1683A' : '#C8B090', color: sel ? '#C1683A' : '#4A3728' }}
                 >
                   <span className="text-lg leading-none shrink-0">{emoji}</span>
                   <span className="leading-snug">{label}</span>
@@ -1555,7 +1983,7 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
             <div className="flex gap-1.5 flex-1">
               {stepList.map((s, idx) => (
                 <div key={s} className="h-1.5 rounded-full transition-all duration-300"
-                  style={{ flex: idx === stepIndex ? 2 : 1, backgroundColor: idx <= stepIndex ? '#C1683A' : '#D4B896' }}
+                  style={{ flex: idx === stepIndex ? 2 : 1, backgroundColor: idx <= stepIndex ? '#C1683A' : '#C8B090' }}
                 />
               ))}
             </div>
@@ -1600,7 +2028,7 @@ function ProfileComplete({ profile, onEnter }) {
           ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
           : <div className="w-full h-full" style={{ backgroundColor: '#C1683A' }} />
         }
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, #F5ECD7 100%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, #EDE0C8 100%)' }} />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 relative z-10 -mt-8">
         <div className="w-full max-w-xs sm:max-w-sm text-center space-y-6">
@@ -1642,6 +2070,12 @@ export default function App() {
   })
   const [sessions,       setSessions]       = useState(() => {
     try { const s = localStorage.getItem('lhc_sessions'); return s ? JSON.parse(s) : [] } catch { return [] }
+  })
+  const [streak,         setStreak]         = useState(() => {
+    try { const s = localStorage.getItem('lhc_streak'); return s ? JSON.parse(s) : { count: 0, lastDate: null } } catch { return { count: 0, lastDate: null } }
+  })
+  const [stats,          setStats]          = useState(() => {
+    try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
   const [view,           setView]           = useState(
     () => loadProfileOrEvict() !== null ? 'chat' : 'welcome'
@@ -1725,7 +2159,7 @@ export default function App() {
             if (parsed.length > 0) {
               setDishes(parsed)
               setDishImages([])
-              saveSession(parsed.map(d => d.name))
+              saveSession(parsed)
               setView('cards')
             } else {
               setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: accumulated }])
@@ -1794,24 +2228,54 @@ export default function App() {
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
-  function saveSession(dishNames) {
+  function saveSession(parsedDishes) {
     const data = sessionDataRef.current
-    // Only save if there's at least something meaningful
-    if (!data.proteins?.length && !dishNames?.length) return
+    if (!data.proteins?.length && !parsedDishes?.length) return
     const session = {
       id:       Date.now(),
       date:     new Date().toISOString(),
       proteins: data.proteins || [],
       cuisine:  data.cuisine  || '',
       time:     data.time     || '',
-      dishes:   dishNames     || [],
+      dishes:   parsedDishes  || [],   // full dish objects
     }
     setSessions(prev => {
       const next = [session, ...prev].slice(0, 10)
       localStorage.setItem('lhc_sessions', JSON.stringify(next))
       return next
     })
+    // Update streak
+    updateStreak()
+    // Update stats
+    updateStats(parsedDishes || [])
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
+  }
+
+  function updateStreak() {
+    const today = new Date().toDateString()
+    setStreak(prev => {
+      if (prev?.lastDate === today) return prev  // already counted today
+      const yesterday = new Date(Date.now() - 86400000).toDateString()
+      const newCount = prev?.lastDate === yesterday ? (prev.count ?? 0) + 1 : 1
+      const next = { count: newCount, lastDate: today }
+      localStorage.setItem('lhc_streak', JSON.stringify(next))
+      return next
+    })
+  }
+
+  function updateStats(dishes) {
+    const calSaved = dishes.reduce((sum, d) => {
+      const s = calorieSavings(d)
+      return sum + (s || 0)
+    }, 0)
+    setStats(prev => {
+      const next = {
+        totalRecipes:  (prev?.totalRecipes  ?? 0) + dishes.length,
+        totalCalSaved: (prev?.totalCalSaved ?? 0) + calSaved,
+      }
+      localStorage.setItem('lhc_stats', JSON.stringify(next))
+      return next
+    })
   }
 
   function handleSaveRecipe(dish, imgUrl) {
@@ -1864,37 +2328,58 @@ export default function App() {
   // ── View: Dashboard ──────────────────────────────────────────────────────────
   if (view === 'dashboard') {
     return (
-      <Dashboard
-        profile={profile}
-        savedRecipes={savedRecipes}
-        sessions={sessions}
-        onClose={() => setView('chat')}
-        onOpenRecipe={recipe => {
-          setViewingDish(recipe)
-          setViewingDishImg(recipe._imgUrl ?? null)
-          setSavedBackTo('dashboard')
-          setView('detail')
-        }}
-        onQuickStart={handleReset}
-        onEditProfile={() => setView('onboarding')}
-        onViewSaved={() => { setSavedBackTo('dashboard'); setView('saved') }}
-      />
+      <>
+        <Dashboard
+          profile={profile}
+          savedRecipes={savedRecipes}
+          sessions={sessions}
+          streak={streak}
+          stats={stats}
+          onClose={() => setView('chat')}
+          onOpenRecipe={recipe => {
+            setViewingDish(recipe)
+            setViewingDishImg(recipe._imgUrl ?? null)
+            setSavedBackTo('dashboard')
+            setView('detail')
+          }}
+          onOpenSessionDish={dish => {
+            setViewingDish(dish)
+            setViewingDishImg(dish._imgUrl ?? null)
+            setSavedBackTo('dashboard')
+            setView('detail')
+          }}
+          onQuickStart={handleReset}
+          onEditProfile={() => setView('onboarding')}
+          onViewSaved={() => { setSavedBackTo('dashboard'); setView('saved') }}
+        />
+        <BottomNav activeView="dashboard" onNavigate={v => {
+          if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
+          else setView(v)
+        }} />
+      </>
     )
   }
 
   // ── View: Saved recipes ──────────────────────────────────────────────────────
   if (view === 'saved') {
     return (
-      <SavedRecipesView
-        savedRecipes={savedRecipes}
-        onClose={() => setView(savedBackTo)}
-        onRemove={handleRemoveRecipe}
-        onOpen={recipe => {
-          setViewingDish(recipe)
-          setViewingDishImg(recipe._imgUrl ?? null)
-          setView('detail')
-        }}
-      />
+      <>
+        <SavedRecipesView
+          savedRecipes={savedRecipes}
+          onClose={() => setView(savedBackTo)}
+          onRemove={handleRemoveRecipe}
+          onOpen={recipe => {
+            setViewingDish(recipe)
+            setViewingDishImg(recipe._imgUrl ?? null)
+            setView('detail')
+          }}
+        />
+        <BottomNav activeView="saved" onNavigate={v => {
+          if (v === 'saved') return
+          setSavedBackTo('saved')
+          setView(v)
+        }} />
+      </>
     )
   }
 
@@ -1919,61 +2404,74 @@ export default function App() {
   // ── View: Cards ──────────────────────────────────────────────────────────────
   if (view === 'cards' && dishes) {
     return (
-      <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14">
-        <PaperTexture />
-        <div className="max-w-3xl mx-auto space-y-8 relative">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="font-serif text-4xl sm:text-5xl font-extrabold tracking-wider text-charcoal">
-                Let Him Cook
-              </h1>
-              <p className="text-charcoal-muted text-sm mt-1.5">
-                Tap a card to open the full recipe.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 mt-1.5 shrink-0 items-end">
-              <button
-                onClick={() => setView('dashboard')}
-                className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                📊 Dashboard
-              </button>
-              <div className="flex gap-2">
-                {savedRecipes.length > 0 && (
+      <>
+        <div className="animate-fade-in flex h-[100dvh] bg-sandy">
+          <PaperTexture />
+          {/* Main content */}
+          <div className="flex-1 min-w-0 overflow-y-auto px-4 py-10 sm:py-14 pb-20 lg:pb-14">
+            <div className="max-w-3xl mx-auto space-y-8 relative">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="font-serif text-4xl sm:text-5xl font-extrabold tracking-wider text-charcoal">
+                    Let Him Cook
+                  </h1>
+                  <p className="text-charcoal-muted text-sm mt-1.5">
+                    Tap a card to open the full recipe.
+                  </p>
+                </div>
+                {/* Desktop nav buttons only */}
+                <div className="hidden sm:flex flex-col gap-2 mt-1.5 shrink-0 items-end">
                   <button
-                    onClick={() => { setSavedBackTo('cards'); setView('saved') }}
-                    className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                    onClick={() => setView('dashboard')}
+                    className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    📖 My Recipes
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#C1683A' }}>
-                      {savedRecipes.length}
-                    </span>
+                    Dashboard
                   </button>
-                )}
-                <button
-                  onClick={handleReset}
-                  className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  Start over
-                </button>
+                  <div className="flex gap-2">
+                    {savedRecipes.length > 0 && (
+                      <button
+                        onClick={() => { setSavedBackTo('cards'); setView('saved') }}
+                        className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        My Recipes
+                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#C1683A' }}>
+                          {savedRecipes.length}
+                        </span>
+                      </button>
+                    )}
+                    <button
+                      onClick={handleReset}
+                      className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Start over
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                {dishes.map((dish, i) => (
+                  <DishCard
+                    key={i}
+                    dish={dish}
+                    onClick={() => { setSelectedDish(i); setView('detail') }}
+                    onImageResolved={url => setDishImages(prev => {
+                      const next = [...prev]; next[i] = url; return next
+                    })}
+                  />
+                ))}
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {dishes.map((dish, i) => (
-              <DishCard
-                key={i}
-                dish={dish}
-                onClick={() => { setSelectedDish(i); setView('detail') }}
-                onImageResolved={url => setDishImages(prev => {
-                  const next = [...prev]; next[i] = url; return next
-                })}
-              />
-            ))}
-          </div>
+          {/* Desktop insights sidebar */}
+          <InsightsSidebar />
         </div>
-      </div>
+        <BottomNav activeView="cards" onNavigate={v => {
+          if (v === 'saved') { setSavedBackTo('cards'); setView('saved') }
+          else if (v === 'chat') handleReset()
+          else setView(v)
+        }} />
+      </>
     )
   }
 
@@ -2001,117 +2499,138 @@ export default function App() {
 
   // ── View: Chat ───────────────────────────────────────────────────────────────
   return (
-    <div className="animate-fade-in flex flex-col h-[100dvh] bg-sandy relative">
-      <PaperTexture />
+    <>
+      <div className="animate-fade-in flex h-[100dvh] bg-sandy relative">
+        <PaperTexture />
 
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3.5 border-b border-sandy-border bg-sandy-light/80 backdrop-blur-sm flex items-center justify-between">
-        <h1 className="font-serif text-xl font-extrabold tracking-wider text-charcoal">Let Him Cook</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setView('dashboard')}
-            className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-transparent hover:border-sandy-border"
-          >
-            📊 <span className="hidden sm:inline">Dashboard</span>
-          </button>
-          <button
-            onClick={() => setView('onboarding')}
-            className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
-            </svg>
-            {profile?.name ?? 'Profile'}
-          </button>
-        </div>
-      </div>
+        {/* ── Main chat column ── */}
+        <div className="flex flex-col flex-1 min-w-0">
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-3 relative z-10">
-        {displayMessages.map(msg => (
-          <ChatBubble key={msg.id} role={msg.role} content={msg.content} userName={profile?.name} />
-        ))}
-        {streaming && streamContent && (
-          <ChatBubble role="assistant" content={streamContent} isStreaming userName={profile?.name} />
-        )}
-        {streaming && !streamContent && <TypingIndicator />}
-        <div className="h-2" />
-      </div>
+          {/* Header */}
+          <div className="shrink-0 px-4 py-3.5 border-b border-sandy-border bg-sandy-light/80 backdrop-blur-sm flex items-center justify-between">
+            <h1 className="font-serif text-xl font-extrabold tracking-wider text-charcoal">Let Him Cook</h1>
+            {/* Desktop nav only — mobile uses BottomNav */}
+            <div className="hidden sm:flex items-center gap-2">
+              <button
+                onClick={() => setView('dashboard')}
+                className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-transparent hover:border-sandy-border"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => setView('onboarding')}
+                className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
+                </svg>
+                {profile?.name ?? 'Profile'}
+              </button>
+            </div>
+          </div>
 
-      {/* Error banner */}
-      {error && (
-        <div className="shrink-0 mx-4 mb-2 rounded-xl border border-terracotta/30 bg-terracotta-pale px-4 py-2.5 text-xs text-terracotta relative z-10">
-          {error}
-        </div>
-      )}
+          {/* Mobile insights strip — only shown below lg breakpoint */}
+          <div className="lg:hidden">
+            <InsightsMobileStrip />
+          </div>
 
-      {/* Quick reply area */}
-      {quickReplyType && !streaming && (
-        <div className="shrink-0 border-t border-sandy-border px-4 pt-3 pb-2 bg-sandy-light relative z-10">
-          <QuickReplyRow
-            type={quickReplyType}
-            onSubmit={(text, data) => handleQuickReply(text, data, quickReplyType)}
-            onDismiss={() => setQuickReplyType(null)}
-            onFocusInput={() => setTimeout(() => inputRef.current?.focus(), 50)}
-          />
-        </div>
-      )}
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-3 relative z-10 pb-20 lg:pb-5">
+            {displayMessages.map(msg => (
+              <ChatBubble key={msg.id} role={msg.role} content={msg.content} userName={profile?.name} />
+            ))}
+            {streaming && streamContent && (
+              <ChatBubble role="assistant" content={streamContent} isStreaming userName={profile?.name} />
+            )}
+            {streaming && !streamContent && <TypingIndicator />}
+            <div className="h-2" />
+          </div>
 
-      {/* Input bar */}
-      <div className="shrink-0 border-t border-sandy-border px-4 pt-2.5 pb-3 bg-sandy-light relative z-10">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-1.5">Your answer</p>
-        <form onSubmit={handleSubmit} className="flex gap-2 items-end">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onInput={e => {
-              const ta = e.target
-              ta.style.height = 'auto'
-              ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                if (!streaming && input.trim()) submitMessage(input)
-              }
-            }}
-            placeholder="Type here or tap an option above..."
-            rows={1}
-            disabled={streaming}
-            className="flex-1 rounded-2xl bg-cream border border-sandy-border px-4 py-3 text-charcoal placeholder-charcoal-muted/70 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta disabled:opacity-50 transition leading-snug"
-            style={{ fontSize: 16, minHeight: 44, maxHeight: 120, resize: 'none', overflowY: 'auto' }}
-          />
-          {streaming ? (
-            <button
-              type="button"
-              onClick={handleStop}
-              style={{ backgroundColor: '#C1683A', width: 44, height: 44, flexShrink: 0 }}
-              className="flex items-center justify-center rounded-full text-white text-xs font-semibold active:opacity-80 transition-opacity"
-              aria-label="Stop"
-            >
-              ■
-            </button>
-          ) : (
-            <button
-              type="submit"
-              style={{
-                backgroundColor: input.trim() ? '#C1683A' : '#D4B896',
-                width: 44,
-                height: 44,
-                flexShrink: 0,
-                transition: 'background-color 0.15s',
-              }}
-              className="flex items-center justify-center rounded-full text-white active:opacity-80"
-              aria-label="Send"
-            >
-              <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5" style={{ marginLeft: 2 }}>
-                <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-              </svg>
-            </button>
+          {/* Error banner */}
+          {error && (
+            <div className="shrink-0 mx-4 mb-2 rounded-xl border border-terracotta/30 bg-terracotta-pale px-4 py-2.5 text-xs text-terracotta relative z-10">
+              {error}
+            </div>
           )}
-        </form>
+
+          {/* Quick reply area */}
+          {quickReplyType && !streaming && (
+            <div className="shrink-0 border-t border-sandy-border px-4 pt-3 pb-2 bg-sandy-light relative z-10">
+              <QuickReplyRow
+                type={quickReplyType}
+                onSubmit={(text, data) => handleQuickReply(text, data, quickReplyType)}
+                onDismiss={() => setQuickReplyType(null)}
+                onFocusInput={() => setTimeout(() => inputRef.current?.focus(), 50)}
+              />
+            </div>
+          )}
+
+          {/* Input bar */}
+          <div className="shrink-0 border-t border-sandy-border px-4 pt-2.5 pb-3 bg-sandy-light relative z-10">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-1.5">Your answer</p>
+            <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onInput={e => {
+                  const ta = e.target
+                  ta.style.height = 'auto'
+                  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (!streaming && input.trim()) submitMessage(input)
+                  }
+                }}
+                placeholder="Type here or tap an option above..."
+                rows={1}
+                disabled={streaming}
+                className="flex-1 rounded-2xl bg-cream border border-sandy-border px-4 py-3 text-charcoal placeholder-charcoal-muted/70 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta disabled:opacity-50 transition leading-snug"
+                style={{ fontSize: 16, minHeight: 44, maxHeight: 120, resize: 'none', overflowY: 'auto' }}
+              />
+              {streaming ? (
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  style={{ backgroundColor: '#C1683A', width: 44, height: 44, flexShrink: 0 }}
+                  className="flex items-center justify-center rounded-full text-white text-xs font-semibold active:opacity-80 transition-opacity"
+                  aria-label="Stop"
+                >
+                  ■
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  style={{
+                    backgroundColor: input.trim() ? '#C1683A' : '#C8B090',
+                    width: 44,
+                    height: 44,
+                    flexShrink: 0,
+                    transition: 'background-color 0.15s',
+                  }}
+                  className="flex items-center justify-center rounded-full text-white active:opacity-80"
+                  aria-label="Send"
+                >
+                  <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5" style={{ marginLeft: 2 }}>
+                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                  </svg>
+                </button>
+              )}
+            </form>
+          </div>
+        </div>
+
+        {/* Desktop insights sidebar */}
+        <InsightsDesktopSidebar />
       </div>
-    </div>
+
+      {/* Mobile bottom nav */}
+      <BottomNav activeView="chat" onNavigate={v => {
+        if (v === 'saved') { setSavedBackTo('chat'); setView('saved') }
+        else setView(v)
+      }} />
+    </>
   )
 }

@@ -5,12 +5,12 @@ export default {
     extend: {
       colors: {
         sandy: {
-          DEFAULT: '#F5ECD7',
-          light:   '#FAF3E4',
-          dark:    '#E0CFA8',
-          border:  '#D4B896',
+          DEFAULT: '#EDE0C8',
+          light:   '#F5ECD7',
+          dark:    '#D4C4A0',
+          border:  '#C8B090',
         },
-        cream: '#FFFDF7',
+        cream: '#FAF6EE',
         terracotta: {
           DEFAULT: '#C1683A',
           light:   '#D4845A',
@@ -24,9 +24,9 @@ export default {
           pale:    '#EEF5EF',
         },
         charcoal: {
-          DEFAULT: '#2C2416',
-          light:   '#5C4A2A',
-          muted:   '#8B7355',
+          DEFAULT: '#1A1108',
+          light:   '#4A3728',
+          muted:   '#7A6548',
         },
       },
       fontFamily: {
@@ -45,7 +45,7 @@ export default {
         },
       },
       animation: {
-        'fade-in': 'fadeIn 0.35s ease-out both',
+        'fade-in': 'fadeIn 0.2s ease-out both',
       },
     },
   },

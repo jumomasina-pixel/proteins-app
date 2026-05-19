@@ -4,8 +4,10 @@
 
 @layer base {
   html, body, #root {
-    background-color: #F5ECD7;
-    color: #2C2416;
+    background-color: #EDE0C8;
+    color: #1A1108;
+    font-size: 16px;
+    line-height: 1.6;
   }
   body {
     font-family: 'DM Sans', system-ui, sans-serif;
