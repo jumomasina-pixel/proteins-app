@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 // Any existing storage that doesn't carry a matching version will be wiped and
 // the user will restart from the welcome screen as a new user.
 
-const PROFILE_VERSION = 3
+const PROFILE_VERSION = 4
 
 const LS_KEYS = ['lhc_profile', 'lhc_saved_recipes', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
 
