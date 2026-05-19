@@ -60,6 +60,13 @@ function parseDishChunk(chunk) {
     /est[^:\n]*cal[^:\n]*:\s*~?\s*(\d[\d,]*)/i,
     /~\s*(\d[\d,]*)\s*kcal/i,
   )
+  const chefStepsRaw = grab(chefPart,
+    /chef.{0,5}s?\s*method[^:\n]*:\s*([\s\S]+?)(?=\nest\.|$)/i,
+  )
+  const chefSteps = chefStepsRaw
+    .split('\n')
+    .map(l => l.replace(/^\d+[.)]\s*/, '').trim())
+    .filter(Boolean)
 
   // ── Dietician fields ─────────────────────────────────────────────────────────
   const changesRaw = grab(dietPart,
@@ -116,6 +123,7 @@ function parseDishChunk(chunk) {
       flavour:    clean(flavour),
       restaurant: clean(restaurant),
       calories:   chefCal,
+      steps:      chefSteps.map(clean),
     },
     dietician: {
       whatChanges: whatChanges.map(clean),
@@ -207,6 +215,53 @@ function PaperTexture() {
   )
 }
 
+// ── Onboarding option constants ───────────────────────────────────────────────
+
+const GOAL_OPTIONS = [
+  { value: 'lose',     label: 'Lose fat',             emoji: '🔥' },
+  { value: 'build',    label: 'Build muscle',          emoji: '💪' },
+  { value: 'maintain', label: 'Maintain & eat better', emoji: '🥗' },
+]
+const FREQ_OPTIONS = [
+  { value: 'rarely', label: 'Rarely or never' },
+  { value: '1-2x',   label: '1–2x a week'    },
+  { value: '3-4x',   label: '3–4x a week'    },
+  { value: '5-6x',   label: '5–6x a week'    },
+]
+const TRAINING_TYPES = ['Weights', 'Cardio', 'Boxing', 'Running', 'Sport', 'None']
+const KITCHEN_OPTIONS = [
+  { value: 'beginner',    label: 'Beginner'         },
+  { value: 'home cook',   label: 'Home cook'        },
+  { value: 'confident',   label: 'Pretty confident' },
+]
+
+// ── Avatars ───────────────────────────────────────────────────────────────────
+
+function ChefAvatar() {
+  return (
+    <div
+      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-base select-none"
+      style={{ backgroundColor: '#FDF0E8', border: '1.5px solid #D4B896' }}
+      aria-hidden
+    >
+      🧑‍🍳
+    </div>
+  )
+}
+
+function UserAvatar({ name }) {
+  const initial = name ? name[0].toUpperCase() : 'Y'
+  return (
+    <div
+      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white select-none"
+      style={{ backgroundColor: '#A8522A' }}
+      aria-hidden
+    >
+      {initial}
+    </div>
+  )
+}
+
 // ── Macro stat row ────────────────────────────────────────────────────────────
 
 const MACROS = [
@@ -263,15 +318,27 @@ function SkeletonCard() {
 
 // ── Chat bubbles ──────────────────────────────────────────────────────────────
 
-function ChatBubble({ role, content, isStreaming }) {
+function ChatBubble({ role, content, isStreaming, userName }) {
   const isUser = role === 'user'
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-end gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+      {isUser ? <UserAvatar name={userName} /> : <ChefAvatar />}
       <div
-        className="max-w-[82%] sm:max-w-[68%] px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap rounded-2xl shadow-sm"
+        className="max-w-[75%] sm:max-w-[65%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
         style={isUser
-          ? { backgroundColor: '#C1683A', color: '#FFFFFF', borderBottomRightRadius: 4 }
-          : { backgroundColor: '#FFFDF7', color: '#2C2416', border: '1px solid #D4B896', borderBottomLeftRadius: 4 }
+          ? {
+              backgroundColor: '#C1683A',
+              color: '#FFFFFF',
+              borderRadius: '16px 16px 4px 16px',
+              fontSize: '0.875rem',
+            }
+          : {
+              backgroundColor: '#FFFDF7',
+              color: '#2C2416',
+              borderLeft: '3px solid #C1683A',
+              borderRadius: '0 16px 16px 16px',
+              boxShadow: '0 1px 6px rgba(44,36,22,0.07)',
+            }
         }
       >
         {content}
@@ -285,8 +352,12 @@ function ChatBubble({ role, content, isStreaming }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex justify-start">
-      <div className="flex items-center gap-1.5 px-4 py-3.5 rounded-2xl rounded-tl-sm bg-cream border border-sandy-border shadow-sm">
+    <div className="flex items-end gap-2.5">
+      <ChefAvatar />
+      <div
+        className="flex items-center gap-1.5 px-4 py-3.5"
+        style={{ backgroundColor: '#FFFDF7', borderLeft: '3px solid #C1683A', borderRadius: '0 16px 16px 16px', boxShadow: '0 1px 6px rgba(44,36,22,0.07)' }}
+      >
         {[0, 1, 2].map(i => (
           <span
             key={i}
@@ -301,11 +372,12 @@ function TypingIndicator() {
 
 // ── Compact dish card ─────────────────────────────────────────────────────────
 
-function CardImageHeader({ dishName, cuisine, onImageResolved }) {
-  const [imgUrl,    setImgUrl]    = useState(null)
-  const [imgLoaded, setImgLoaded] = useState(false)
+function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
+  const [imgUrl,    setImgUrl]    = useState(initialUrl ?? null)
+  const [imgLoaded, setImgLoaded] = useState(!!initialUrl)
 
   useEffect(() => {
+    if (initialUrl) return  // already have URL — skip fetch
     let cancelled = false
     const params = new URLSearchParams({ query: dishName })
     if (cuisine) params.set('cuisine', cuisine)
@@ -436,178 +508,220 @@ const BACK_ARROW = (
   </svg>
 )
 
-function DetailView({ dish, onBack, imgUrl }) {
-  const [copied, setCopied] = useState(false)
+// Bookmark SVG icons
+function BookmarkIcon({ filled }) {
+  return filled
+    ? <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6.75 2.25A.75.75 0 016 3v18a.75.75 0 001.28.53L12 17.31l4.72 4.22A.75.75 0 0018 21V3a.75.75 0 00-.75-.75H6.75z"/></svg>
+    : <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 3H6.75A.75.75 0 006 3.75v16.5a.75.75 0 001.28.53L12 16.81l4.72 4.22A.75.75 0 0018 20.25V3.75A.75.75 0 0017.25 3z"/></svg>
+}
+
+// Reusable cook steps list
+function CookStepsList({ steps, accentColor }) {
+  return (
+    <ol className="space-y-3">
+      {steps.map((step, i) => (
+        <li key={i} className="flex gap-4 text-sm leading-relaxed rounded-xl px-4 py-3.5"
+          style={{ backgroundColor: '#FFFDF7', border: '1px solid #D4B896', color: '#2C2416' }}>
+          <span className="shrink-0 w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold mt-0.5"
+            style={{ backgroundColor: accentColor, color: '#FFFFFF' }}>
+            {i + 1}
+          </span>
+          <span>{step}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove }) {
+  const [mode,    setMode]   = useState('diet')   // 'diet' | 'chef'
+  const [copied,  setCopied] = useState(false)
+  const [toast,   setToast]  = useState({ visible: false, message: '' })
   const { chef, dietician } = dish
+
+  function showToast(message) {
+    setToast({ visible: true, message })
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), 2000)
+  }
 
   function handleCopy() {
     navigator.clipboard.writeText(formatRecipe(dish)).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
     })
   }
+
+  function handleBookmark() {
+    if (isSaved) { onRemove(); showToast('✕ Removed from My Recipes') }
+    else         { onSave();  showToast('✓ Saved to My Recipes')       }
+  }
+
+  const isChef = mode === 'chef'
+  const chefAccent = '#D4900A'   // amber/gold for indulgent mode
 
   return (
     <div className="animate-fade-in min-h-screen bg-sandy pb-28 sm:pb-12">
       <PaperTexture />
 
-      {/* ── Hero image (full-width, edge-to-edge) ── */}
+      {/* Toast */}
+      <div className="fixed bottom-28 sm:bottom-20 left-1/2 z-[1000] pointer-events-none transition-all duration-300"
+        style={{ transform: `translateX(-50%) translateY(${toast.visible ? 0 : 8}px)`, opacity: toast.visible ? 1 : 0 }}>
+        <div className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg"
+          style={{ backgroundColor: '#2C2416' }}>
+          {toast.message}
+        </div>
+      </div>
+
+      {/* ── Hero image ── */}
       {imgUrl ? (
         <div className="relative w-full h-72 sm:h-[30rem] overflow-hidden">
-          <img
-            src={imgUrl}
-            alt={dish.name}
-            className="w-full h-full object-cover"
-          />
-          {/* Gradient: dark at bottom so name reads clearly, fades to transparent */}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }}
-          />
-          {/* Back button — overlaid top-left */}
-          <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto">
-            <button
-              onClick={onBack}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors drop-shadow"
-            >
-              {BACK_ARROW}
-              Back to dishes
+          <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
+          <div className="absolute inset-0"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }} />
+          {/* Top bar: back + bookmark */}
+          <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto flex items-center justify-between">
+            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors drop-shadow">
+              {BACK_ARROW} Back to dishes
+            </button>
+            <button onClick={handleBookmark} className="text-white/90 hover:text-white transition-colors drop-shadow">
+              <BookmarkIcon filled={isSaved} />
             </button>
           </div>
-          {/* Dish name + cuisine — overlaid bottom */}
+          {/* Dish name overlaid */}
           <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 max-w-2xl mx-auto">
-            {chef.cuisine && (
-              <p className="text-xs font-medium text-white/65 uppercase tracking-widest mb-2">
-                {chef.cuisine}
-              </p>
-            )}
-            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white leading-tight" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
+            {chef.cuisine && <p className="text-xs font-medium text-white/65 uppercase tracking-widest mb-2">{chef.cuisine}</p>}
+            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white leading-tight"
+              style={{ textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
               {dish.name}
             </h1>
           </div>
         </div>
       ) : (
-        /* No image — terracotta placeholder bar so layout stays consistent */
         <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#C1683A' }}>
-          <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
-            <button
-              onClick={onBack}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors"
-            >
-              {BACK_ARROW}
-              Back to dishes
+          <div className="px-4 pb-5 max-w-2xl mx-auto w-full flex items-center justify-between">
+            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors">
+              {BACK_ARROW} Back to dishes
+            </button>
+            <button onClick={handleBookmark} className="text-white/90 hover:text-white transition-colors">
+              <BookmarkIcon filled={isSaved} />
             </button>
           </div>
         </div>
       )}
 
       {/* ── Content ── */}
-      <div className="max-w-2xl mx-auto px-4 pt-8 space-y-8 relative">
+      <div className="max-w-2xl mx-auto px-4 pt-6 space-y-8 relative">
 
-        {/* Title only when no hero image */}
         {!imgUrl && (
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-tight">
-            {dish.name}
-          </h1>
+          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-tight">{dish.name}</h1>
         )}
 
-        {/* ── Chef Version ── */}
-        <section className="space-y-4 pl-5 border-l-4 border-terracotta">
-          <h2 className="font-serif text-lg font-bold text-charcoal">🍽️ Chef Version</h2>
+        {/* ── Mode toggle ── */}
+        <div className="p-1 rounded-2xl flex gap-1" style={{ backgroundColor: '#E0CFA8' }}>
+          {[
+            { value: 'diet', label: "I'm being good 🥗" },
+            { value: 'chef', label: 'Cheat meal 🍔'     },
+          ].map(opt => (
+            <button key={opt.value} onClick={() => setMode(opt.value)}
+              className="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200"
+              style={mode === opt.value
+                ? { backgroundColor: '#FFFDF7', color: '#2C2416', boxShadow: '0 1px 6px rgba(44,36,22,0.14)' }
+                : { color: '#8B7355' }
+              }>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {isChef && (
+          <p className="text-center text-sm italic" style={{ color: chefAccent, marginTop: '-1.5rem' }}>
+            No judgment. Enjoy every bite.
+          </p>
+        )}
 
-          {(chef.cuisine || chef.flavour) && (
+        {/* ── CHEF MODE ── */}
+        {isChef && (
+          <section className="space-y-6 pl-5 border-l-4" style={{ borderColor: chefAccent }}>
             <div className="flex flex-wrap gap-2">
               {chef.cuisine && (
-                <span className="text-xs px-3 py-1 rounded-full bg-terracotta-pale text-terracotta border border-terracotta/25">
+                <span className="text-xs px-3 py-1 rounded-full border font-medium"
+                  style={{ backgroundColor: '#FFF8E7', color: chefAccent, borderColor: `${chefAccent}40` }}>
                   {chef.cuisine}
                 </span>
               )}
               {chef.flavour && (
-                <span className="text-xs px-3 py-1 rounded-full bg-terracotta-pale text-terracotta border border-terracotta/25">
+                <span className="text-xs px-3 py-1 rounded-full border font-medium"
+                  style={{ backgroundColor: '#FFF8E7', color: chefAccent, borderColor: `${chefAccent}40` }}>
                   {chef.flavour}
                 </span>
               )}
             </div>
-          )}
 
-          {chef.restaurant && (
-            <p className="text-sm text-charcoal leading-relaxed">{chef.restaurant}</p>
-          )}
+            {chef.restaurant && <p className="text-sm text-charcoal leading-relaxed">{chef.restaurant}</p>}
 
-          {chef.calories && (
-            <div className="inline-flex items-center gap-1.5 text-xs text-charcoal-muted bg-sandy-light border border-sandy-border px-3 py-1.5 rounded-full">
-              <span className="text-terracotta font-bold">~{chef.calories}</span>
-              <span>kcal · restaurant version</span>
-            </div>
-          )}
-        </section>
+            {chef.calories && (
+              <div className="inline-flex items-center gap-1.5 text-xs border px-3 py-1.5 rounded-full"
+                style={{ backgroundColor: '#FFF8E7', borderColor: `${chefAccent}40`, color: '#5C4A2A' }}>
+                <span className="font-bold" style={{ color: chefAccent }}>~{chef.calories}</span>
+                <span>kcal · full version</span>
+              </div>
+            )}
 
-        <div className="border-t border-sandy-border" />
+            {chef.steps?.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#8B7355' }}>
+                  Chef's method
+                </h3>
+                <CookStepsList steps={chef.steps} accentColor={chefAccent} />
+              </div>
+            )}
+          </section>
+        )}
 
-        {/* ── Dietician Version ── */}
-        <section className="space-y-6 pl-5 border-l-4 border-sage">
-          <h2 className="font-serif text-lg font-bold text-charcoal">✅ Dietician Version</h2>
+        {/* ── DIETICIAN MODE ── */}
+        {!isChef && (
+          <section className="space-y-6 pl-5 border-l-4 border-sage">
+            <MacroRow macros={dietician.macros} />
 
-          <MacroRow macros={dietician.macros} />
+            {dietician.whatChanges.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-3">What changes</h3>
+                <ul className="space-y-2">
+                  {dietician.whatChanges.map((item, i) => (
+                    <li key={i} className="flex gap-2.5 text-sm text-charcoal leading-snug">
+                      <span className="text-sage font-bold shrink-0 mt-px">✓</span>{item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          {dietician.whatChanges.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-3">
-                What changes
-              </h3>
-              <ul className="space-y-2">
-                {dietician.whatChanges.map((item, i) => (
-                  <li key={i} className="flex gap-2.5 text-sm text-charcoal leading-snug">
-                    <span className="text-sage font-bold shrink-0 mt-px">✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {dietician.keyTechnique && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-2">Key technique</h3>
+                <p className="text-sm text-charcoal leading-relaxed">{dietician.keyTechnique}</p>
+              </div>
+            )}
 
-          {dietician.keyTechnique && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-2">
-                Key technique
-              </h3>
-              <p className="text-sm text-charcoal leading-relaxed">{dietician.keyTechnique}</p>
-            </div>
-          )}
+            {dietician.cookSteps.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-4">Quick cook steps</h3>
+                <CookStepsList steps={dietician.cookSteps} accentColor="#C1683A" />
+              </div>
+            )}
 
-          {dietician.cookSteps.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-4">
-                Quick cook steps
-              </h3>
-              <ol className="space-y-3">
-                {dietician.cookSteps.map((step, i) => (
-                  <li key={i} className="flex gap-4 text-sm leading-snug rounded-xl px-4 py-3.5" style={{ backgroundColor: '#FFFDF7', border: '1px solid #D4B896', color: '#2C2416' }}>
-                    <span className="shrink-0 w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold mt-px" style={{ backgroundColor: '#C1683A', color: '#FFFFFF' }}>
-                      {i + 1}
-                    </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-
-          {dietician.note && (
-            <div className="rounded-xl bg-sage-pale border border-sage/25 px-5 py-4">
-              <p className="text-sm text-sage-dark leading-relaxed">{dietician.note}</p>
-            </div>
-          )}
-        </section>
+            {dietician.note && (
+              <div className="rounded-xl bg-sage-pale border border-sage/25 px-5 py-4">
+                <p className="text-sm text-sage-dark leading-relaxed">{dietician.note}</p>
+              </div>
+            )}
+          </section>
+        )}
       </div>
 
-      {/* ── Copy Recipe button — fixed on mobile, inline on sm+ ── */}
+      {/* ── Action bar ── */}
       <div className="fixed bottom-0 inset-x-0 p-4 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-6 sm:px-4">
-        <button
-          onClick={handleCopy}
+        <button onClick={handleCopy}
           className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-opacity active:opacity-80"
-          style={{ backgroundColor: copied ? '#7A9E7E' : '#C1683A', color: '#FFFFFF' }}
-        >
+          style={{ backgroundColor: copied ? '#7A9E7E' : '#C1683A', color: '#FFFFFF' }}>
           {copied ? '✓ Copied!' : 'Copy Recipe 📋'}
         </button>
       </div>
@@ -624,46 +738,440 @@ const VALUE_PROPS = [
 ]
 
 function WelcomeScreen({ onStart }) {
+  const [heroUrl, setHeroUrl] = useState(null)
+
+  useEffect(() => {
+    fetch('/api/unsplash?query=healthy+food+preparation+kitchen')
+      .then(r => r.json())
+      .then(d => { if (d.url) setHeroUrl(d.url) })
+      .catch(() => {})
+  }, [])
+
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col items-center justify-center px-6 py-16 relative">
+    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col relative">
       <PaperTexture />
-      <div className="relative z-10 w-full max-w-xs sm:max-w-sm space-y-10 text-center">
 
-        {/* Title */}
-        <div className="space-y-3">
-          <h1
-            className="font-serif font-extrabold text-charcoal leading-none"
-            style={{ fontSize: 'clamp(3rem, 12vw, 4.5rem)', letterSpacing: '0.03em' }}
-          >
-            Let Him Cook
-          </h1>
-          <p className="text-sm text-charcoal-muted leading-relaxed">
-            High-protein meals built around what you've got.
-          </p>
-        </div>
+      {/* Scrollable content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
+        <div className="w-full max-w-xs sm:max-w-sm space-y-8 text-center">
 
-        {/* Value props */}
-        <div className="space-y-3 text-left">
-          {VALUE_PROPS.map(({ emoji, text }) => (
-            <div
-              key={text}
-              className="flex items-center gap-4 rounded-2xl px-5 py-4 border border-sandy-border shadow-card"
-              style={{ backgroundColor: '#FFFDF7' }}
+          {/* Title */}
+          <div className="space-y-2">
+            <h1
+              className="font-serif font-extrabold text-charcoal leading-none"
+              style={{ fontSize: 'clamp(3rem, 12vw, 4.5rem)', letterSpacing: '0.03em' }}
             >
-              <span className="text-2xl shrink-0 leading-none">{emoji}</span>
-              <span className="text-sm font-medium text-charcoal">{text}</span>
-            </div>
-          ))}
+              Let Him Cook
+            </h1>
+            <p className="text-sm text-charcoal-muted">
+              High-protein meals built around what you've got.
+            </p>
+          </div>
+
+          {/* Hero image strip */}
+          <div className="relative w-full h-36 sm:h-44 rounded-2xl overflow-hidden">
+            {heroUrl
+              ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
+              : <div className="w-full h-full" style={{ backgroundColor: '#C1683A', opacity: 0.15 }} />
+            }
+            {/* Sandy overlay at 40% */}
+            <div className="absolute inset-0 rounded-2xl" style={{ backgroundColor: 'rgba(245,236,215,0.40)' }} />
+          </div>
+
+          {/* Value props */}
+          <div className="space-y-3 text-left">
+            {VALUE_PROPS.map(({ emoji, text }) => (
+              <div
+                key={text}
+                className="flex items-center gap-4 rounded-2xl px-5 py-4 border border-sandy-border shadow-card"
+                style={{ backgroundColor: '#FFFDF7' }}
+              >
+                <span className="text-2xl shrink-0 leading-none">{emoji}</span>
+                <span className="text-sm font-medium text-charcoal">{text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <button
+            onClick={onStart}
+            className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
+          >
+            Let's Cook →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Saved recipe card ─────────────────────────────────────────────────────────
+
+function SavedDishCard({ dish, onOpen, onRemove }) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  return (
+    <div className="rounded-2xl bg-cream shadow-card overflow-hidden relative">
+      <button onClick={onOpen} className="w-full text-left block">
+        <CardImageHeader dishName={dish.name} cuisine={dish.chef?.cuisine} initialUrl={dish._imgUrl} />
+        <div className="px-5 pb-5 pt-4 space-y-2">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold tabular-nums" style={{ color: '#C1683A' }}>
+              {dish.dietician?.macros?.calories ?? '—'}
+            </span>
+            <span className="text-sm text-charcoal-muted">kcal</span>
+          </div>
+          {(dish.dietician?.cookTime && dish.dietician.cookTime !== '—') && (
+            <p className="text-xs text-charcoal-muted">
+              {dish.dietician.cookTime} mins
+              {dish.dietician.difficulty ? ` · ${dish.dietician.difficulty}` : ''}
+            </p>
+          )}
+        </div>
+      </button>
+
+      {/* Trash / confirm */}
+      <div className="absolute top-2.5 right-2.5 z-10">
+        {confirmDelete ? (
+          <div className="flex gap-1 items-center">
+            <button onClick={() => { onRemove(); setConfirmDelete(false) }}
+              className="text-xs font-semibold px-2.5 py-1 rounded-lg text-white"
+              style={{ backgroundColor: '#C1683A' }}>
+              Remove
+            </button>
+            <button onClick={() => setConfirmDelete(false)}
+              className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-sandy-border bg-sandy text-charcoal">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal-muted hover:text-terracotta transition-colors"
+            style={{ backgroundColor: 'rgba(255,253,247,0.92)', border: '1px solid #D4B896' }}
+            aria-label="Remove recipe"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd"/>
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Saved recipes view ────────────────────────────────────────────────────────
+
+function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
+  return (
+    <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14 relative">
+      <PaperTexture />
+      <div className="max-w-3xl mx-auto space-y-8 relative">
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-4xl font-extrabold tracking-wide text-charcoal">My Recipes 📖</h1>
+            <p className="text-charcoal-muted text-sm mt-1.5">
+              {savedRecipes.length > 0
+                ? `${savedRecipes.length} saved recipe${savedRecipes.length !== 1 ? 's' : ''}`
+                : 'Your bookmarked recipes live here'}
+            </p>
+          </div>
+          <button onClick={onClose}
+            className="shrink-0 text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors mt-1.5">
+            ← Back
+          </button>
         </div>
 
-        {/* CTA */}
-        <button
-          onClick={onStart}
-          className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
-          style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
-        >
-          Let's Cook →
-        </button>
+        {savedRecipes.length === 0 ? (
+          <div className="text-center py-24 space-y-4">
+            <div className="text-6xl leading-none">📚</div>
+            <p className="text-charcoal-muted text-sm max-w-xs mx-auto leading-relaxed">
+              Nothing saved yet. Start cooking and bookmark your favourites.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {savedRecipes.map(recipe => (
+              <SavedDishCard
+                key={recipe._id}
+                dish={recipe}
+                onOpen={() => onOpen(recipe)}
+                onRemove={() => onRemove(recipe._id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Onboarding ────────────────────────────────────────────────────────────────
+
+const EMPTY_PROFILE = {
+  name: '', weight: '', goal: '', goalAmount: '',
+  trainingFreq: '', trainingTypes: [], avoidFoods: '', kitchenLevel: '',
+}
+
+function Onboarding({ initialProfile, onComplete, onBack }) {
+  const [step, setStep]       = useState(1)
+  const [profile, setProfile] = useState({ ...EMPTY_PROFILE, ...initialProfile })
+
+  const skipStep4  = profile.goal === 'maintain'
+  const stepList   = skipStep4 ? [1,2,3,5,6,7,8] : [1,2,3,4,5,6,7,8]
+  const stepIndex  = stepList.indexOf(step)
+  const totalSteps = stepList.length
+  const displayNum = stepIndex + 1
+
+  function set(field, value) { setProfile(p => ({ ...p, [field]: value })) }
+
+  function goNext() {
+    const ni = stepIndex + 1
+    if (ni >= stepList.length) { onComplete(profile); return }
+    setStep(stepList[ni])
+  }
+  function goBack() {
+    const pi = stepIndex - 1
+    if (pi < 0) { onBack?.(); return }
+    setStep(stepList[pi])
+  }
+
+  function canProceed() {
+    if (step === 1) return profile.name.trim().length > 0
+    if (step === 2) return String(profile.weight).trim().length > 0
+    if (step === 3) return profile.goal !== ''
+    if (step === 4) return String(profile.goalAmount).trim().length > 0
+    if (step === 5) return profile.trainingFreq !== ''
+    if (step === 6) return profile.trainingTypes.length > 0
+    if (step === 7) return true  // optional
+    if (step === 8) return profile.kitchenLevel !== ''
+    return true
+  }
+
+  const isLast      = stepIndex === totalSteps - 1
+  const btnLabel    = isLast ? 'Build my profile →'
+                   : (step === 7 && !profile.avoidFoods) ? 'Skip →'
+                   : 'Next →'
+
+  const cardStyle = (selected) => ({
+    backgroundColor: selected ? '#FDF0E8' : '#FFFDF7',
+    borderColor:     selected ? '#C1683A' : '#D4B896',
+    color:           '#2C2416',
+  })
+
+  function renderStep() {
+    switch (step) {
+      case 1: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What's your name?</h2>
+          <input autoFocus type="text" value={profile.name}
+            onChange={e => set('name', e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && canProceed() && goNext()}
+            placeholder="First name"
+            className="w-full rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-base focus:outline-none focus:border-terracotta transition"
+          />
+        </div>
+      )
+      case 2: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What's your current weight?</h2>
+          <div className="flex items-center gap-3">
+            <input autoFocus type="number" value={profile.weight}
+              onChange={e => set('weight', e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && canProceed() && goNext()}
+              placeholder="85"
+              className="flex-1 rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-base focus:outline-none focus:border-terracotta transition"
+            />
+            <span className="font-medium text-charcoal-muted">kg</span>
+          </div>
+        </div>
+      )
+      case 3: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What's your goal?</h2>
+          <div className="space-y-3">
+            {GOAL_OPTIONS.map(o => (
+              <button key={o.value} onClick={() => set('goal', o.value)}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
+                style={cardStyle(profile.goal === o.value)}
+              >
+                <span className="text-2xl">{o.emoji}</span>{o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+      case 4: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">
+            How much do you want to {profile.goal === 'lose' ? 'lose' : 'gain'}?
+          </h2>
+          <div className="flex items-center gap-3">
+            <input autoFocus type="number" value={profile.goalAmount}
+              onChange={e => set('goalAmount', e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && canProceed() && goNext()}
+              placeholder="10"
+              className="flex-1 rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-base focus:outline-none focus:border-terracotta transition"
+            />
+            <span className="font-medium text-charcoal-muted">kg</span>
+          </div>
+        </div>
+      )
+      case 5: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">How often do you train?</h2>
+          <div className="space-y-3">
+            {FREQ_OPTIONS.map(o => (
+              <button key={o.value} onClick={() => set('trainingFreq', o.value)}
+                className="w-full px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
+                style={cardStyle(profile.trainingFreq === o.value)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+      case 6: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What type of training?</h2>
+          <p className="text-sm text-charcoal-muted">Select all that apply</p>
+          <div className="flex flex-wrap gap-2">
+            {TRAINING_TYPES.map(type => {
+              const sel = profile.trainingTypes.includes(type)
+              return (
+                <button key={type}
+                  onClick={() => {
+                    if (type === 'None') { set('trainingTypes', sel ? [] : ['None']); return }
+                    const filtered = profile.trainingTypes.filter(t => t !== 'None')
+                    set('trainingTypes', sel ? filtered.filter(t => t !== type) : [...filtered, type])
+                  }}
+                  className="px-4 py-2.5 rounded-full border-2 text-sm font-medium transition-all"
+                  style={{ backgroundColor: sel ? '#FDF0E8' : '#FFFDF7', borderColor: sel ? '#C1683A' : '#D4B896', color: sel ? '#C1683A' : '#5C4A2A' }}
+                >
+                  {type}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )
+      case 7: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">Any foods you avoid?</h2>
+          <p className="text-sm text-charcoal-muted">Optional — leave blank to skip</p>
+          <textarea autoFocus rows={3} value={profile.avoidFoods}
+            onChange={e => set('avoidFoods', e.target.value)}
+            placeholder="e.g. dairy, gluten, shellfish…"
+            className="w-full rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-sm focus:outline-none focus:border-terracotta transition resize-none"
+          />
+        </div>
+      )
+      case 8: return (
+        <div className="space-y-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">How comfortable are you in the kitchen?</h2>
+          <div className="space-y-3">
+            {KITCHEN_OPTIONS.map(o => (
+              <button key={o.value} onClick={() => set('kitchenLevel', o.value)}
+                className="w-full px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
+                style={cardStyle(profile.kitchenLevel === o.value)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+      default: return null
+    }
+  }
+
+  return (
+    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col px-6 py-8 relative">
+      <PaperTexture />
+      <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col" style={{ minHeight: 'calc(100dvh - 4rem)' }}>
+
+        {/* Progress header */}
+        <div className="flex items-center gap-4 mb-10">
+          <button onClick={goBack} className="text-charcoal-muted hover:text-charcoal transition-colors p-1">
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
+            </svg>
+          </button>
+          <div className="flex-1 flex items-center gap-3">
+            <div className="flex gap-1.5 flex-1">
+              {stepList.map((s, idx) => (
+                <div key={s} className="h-1.5 rounded-full transition-all duration-300"
+                  style={{ flex: idx === stepIndex ? 2 : 1, backgroundColor: idx <= stepIndex ? '#C1683A' : '#D4B896' }}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-charcoal-muted shrink-0 tabular-nums">{displayNum} / {totalSteps}</span>
+          </div>
+        </div>
+
+        {/* Step */}
+        <div className="flex-1">{renderStep()}</div>
+
+        {/* Next */}
+        <div className="mt-8">
+          <button onClick={goNext} disabled={!canProceed()}
+            className="w-full py-4 rounded-xl font-semibold text-base text-white transition-opacity"
+            style={{ backgroundColor: '#C1683A', opacity: canProceed() ? 1 : 0.4, boxShadow: canProceed() ? '0 2px 8px rgba(193,104,58,0.35)' : 'none' }}
+          >
+            {btnLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Profile complete ───────────────────────────────────────────────────────────
+
+function ProfileComplete({ profile, onEnter }) {
+  const [heroUrl, setHeroUrl] = useState(null)
+
+  useEffect(() => {
+    fetch('/api/unsplash?query=athlete+meal+prep+food')
+      .then(r => r.json())
+      .then(d => { if (d.url) setHeroUrl(d.url) })
+      .catch(() => {})
+  }, [])
+
+  return (
+    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col relative overflow-hidden">
+      <PaperTexture />
+
+      {/* Hero image */}
+      <div className="relative w-full h-64 sm:h-80 shrink-0 overflow-hidden">
+        {heroUrl
+          ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
+          : <div className="w-full h-full" style={{ backgroundColor: '#C1683A' }} />
+        }
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, #F5ECD7 100%)' }} />
+      </div>
+
+      {/* Message */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 relative z-10 -mt-8">
+        <div className="w-full max-w-xs sm:max-w-sm text-center space-y-6">
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-snug">
+            Ready, {profile.name}.
+          </h2>
+          <p className="text-charcoal-muted leading-relaxed">
+            Let's build meals that work as hard as you do.
+          </p>
+          <button
+            onClick={onEnter}
+            className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
+          >
+            Enter the kitchen →
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -679,10 +1187,18 @@ export default function App() {
   const [awaitingDishes, setAwaitingDishes] = useState(false)
   const [dishes,         setDishes]         = useState(null)
   const [dishImages,     setDishImages]     = useState([])
-  const [view,           setView]           = useState(          // 'welcome' | 'chat' | 'cards' | 'detail'
-    () => localStorage.getItem('lhc_welcomed') ? 'chat' : 'welcome'
+  const [profile,        setProfile]        = useState(() => {
+    try { const s = localStorage.getItem('lhc_profile'); return s ? JSON.parse(s) : null } catch { return null }
+  })
+  const [savedRecipes,   setSavedRecipes]   = useState(() => {
+    try { const s = localStorage.getItem('lhc_saved_recipes'); return s ? JSON.parse(s) : [] } catch { return [] }
+  })
+  const [view,           setView]           = useState(    // 'welcome'|'onboarding'|'profile-complete'|'chat'|'cards'|'detail'|'saved'
+    () => localStorage.getItem('lhc_profile') ? 'chat' : 'welcome'
   )
   const [selectedDish,   setSelectedDish]   = useState(null)
+  const [viewingDish,    setViewingDish]    = useState(null)   // dish opened from saved view
+  const [viewingDishImg, setViewingDishImg] = useState(null)
   const [error,          setError]          = useState(null)
 
   const scrollRef = useRef(null)
@@ -716,7 +1232,7 @@ export default function App() {
       const res = await fetch('/api/meals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: nextMessages.map(({ role, content }) => ({ role, content })) }),
+        body: JSON.stringify({ messages: nextMessages.map(({ role, content }) => ({ role, content })), profile }),
         signal: abortRef.current.signal,
       })
 
@@ -791,25 +1307,89 @@ export default function App() {
 
   function handleReset() {
     setMessages(SEED); setDishes(null); setDishImages([]); setView('chat')
-    setSelectedDish(null); setError(null); setInput('')
+    setSelectedDish(null); setViewingDish(null); setViewingDishImg(null)
+    setError(null); setInput('')
     setTimeout(() => inputRef.current?.focus(), 50)
+  }
+
+  function handleSaveRecipe(dish, imgUrl) {
+    const entry = { ...dish, _id: `${dish.name}_${Date.now()}`, _savedAt: Date.now(), _imgUrl: imgUrl ?? null }
+    setSavedRecipes(prev => {
+      const next = [...prev.filter(r => r.name !== dish.name), entry]
+      localStorage.setItem('lhc_saved_recipes', JSON.stringify(next))
+      return next
+    })
+  }
+
+  function handleRemoveRecipe(nameOrId) {
+    setSavedRecipes(prev => {
+      const next = prev.filter(r => r._id !== nameOrId && r.name !== nameOrId)
+      localStorage.setItem('lhc_saved_recipes', JSON.stringify(next))
+      return next
+    })
+  }
+
+  function isRecipeSaved(dishName) {
+    return savedRecipes.some(r => r.name === dishName)
   }
 
   // ── Welcome ─────────────────────────────────────────────────────────────────
   if (view === 'welcome') {
+    return <WelcomeScreen onStart={() => setView('onboarding')} />
+  }
+
+  // ── Onboarding ───────────────────────────────────────────────────────────────
+  if (view === 'onboarding') {
     return (
-      <WelcomeScreen
-        onStart={() => {
-          localStorage.setItem('lhc_welcomed', '1')
-          setView('chat')
+      <Onboarding
+        initialProfile={profile}
+        onBack={() => setView(profile ? 'chat' : 'welcome')}
+        onComplete={p => {
+          const saved = { ...p, completedAt: Date.now() }
+          localStorage.setItem('lhc_profile', JSON.stringify(saved))
+          setProfile(saved)
+          setView(profile ? 'chat' : 'profile-complete')  // skip complete screen on edit
+        }}
+      />
+    )
+  }
+
+  // ── Profile complete ─────────────────────────────────────────────────────────
+  if (view === 'profile-complete') {
+    return <ProfileComplete profile={profile} onEnter={() => setView('chat')} />
+  }
+
+  // ── Saved recipes view ───────────────────────────────────────────────────────
+  if (view === 'saved') {
+    return (
+      <SavedRecipesView
+        savedRecipes={savedRecipes}
+        onClose={() => setView('cards')}
+        onRemove={handleRemoveRecipe}
+        onOpen={recipe => {
+          setViewingDish(recipe)
+          setViewingDishImg(recipe._imgUrl ?? null)
+          setView('detail')
         }}
       />
     )
   }
 
   // ── Detail ──────────────────────────────────────────────────────────────────
-  if (view === 'detail' && selectedDish !== null) {
-    return <DetailView dish={dishes[selectedDish]} onBack={() => setView('cards')} imgUrl={dishImages[selectedDish] ?? null} />
+  if (view === 'detail' && (selectedDish !== null || viewingDish !== null)) {
+    const dish   = viewingDish ?? dishes[selectedDish]
+    const imgUrl = viewingDish ? viewingDishImg : (dishImages[selectedDish] ?? null)
+    const backTo = viewingDish ? 'saved' : 'cards'
+    return (
+      <DetailView
+        dish={dish}
+        onBack={() => { setViewingDish(null); setViewingDishImg(null); setView(backTo) }}
+        imgUrl={imgUrl}
+        isSaved={isRecipeSaved(dish.name)}
+        onSave={() => handleSaveRecipe(dish, imgUrl)}
+        onRemove={() => handleRemoveRecipe(dish.name)}
+      />
+    )
   }
 
   // ── Cards ───────────────────────────────────────────────────────────────────
@@ -827,12 +1407,25 @@ export default function App() {
                 Tap a card to open the full recipe.
               </p>
             </div>
-            <button
-              onClick={handleReset}
-              className="shrink-0 text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors mt-1.5"
-            >
-              Start over
-            </button>
+            <div className="flex gap-2 mt-1.5 shrink-0">
+              {savedRecipes.length > 0 && (
+                <button
+                  onClick={() => setView('saved')}
+                  className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  📖 My Recipes
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#C1683A' }}>
+                    {savedRecipes.length}
+                  </span>
+                </button>
+              )}
+              <button
+                onClick={handleReset}
+                className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Start over
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -880,17 +1473,26 @@ export default function App() {
       <PaperTexture />
 
       {/* Header */}
-      <div className="shrink-0 px-4 py-4 border-b border-sandy-border bg-sandy-light/80 backdrop-blur-sm text-center">
-        <h1 className="font-serif text-2xl font-extrabold tracking-wider text-charcoal">Let Him Cook</h1>
+      <div className="shrink-0 px-4 py-3.5 border-b border-sandy-border bg-sandy-light/80 backdrop-blur-sm flex items-center justify-between">
+        <h1 className="font-serif text-xl font-extrabold tracking-wider text-charcoal">Let Him Cook</h1>
+        <button
+          onClick={() => setView('onboarding')}
+          className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
+          </svg>
+          {profile?.name ?? 'Profile'}
+        </button>
       </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-3 relative z-10">
         {displayMessages.map(msg => (
-          <ChatBubble key={msg.id} role={msg.role} content={msg.content} />
+          <ChatBubble key={msg.id} role={msg.role} content={msg.content} userName={profile?.name} />
         ))}
         {streaming && streamContent && (
-          <ChatBubble role="assistant" content={streamContent} isStreaming />
+          <ChatBubble role="assistant" content={streamContent} isStreaming userName={profile?.name} />
         )}
         {streaming && !streamContent && <TypingIndicator />}
         <div className="h-2" />
@@ -904,7 +1506,8 @@ export default function App() {
       )}
 
       {/* Input bar */}
-      <div className="shrink-0 border-t border-sandy-border px-4 py-3 bg-sandy-light relative z-10">
+      <div className="shrink-0 border-t border-sandy-border px-4 pt-2.5 pb-3 bg-sandy-light relative z-10">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-1.5">Your answer</p>
         <form onSubmit={handleSubmit} className="flex gap-2 items-center">
           <input
             ref={inputRef}

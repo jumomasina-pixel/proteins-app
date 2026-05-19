@@ -1,5 +1,55 @@
 import Anthropic from '@anthropic-ai/sdk'
 
+// ── Dynamic profile builder ───────────────────────────────────────────────────
+
+function buildProfileSection(p) {
+  if (!p) return ''
+
+  const goalMap = {
+    lose:     `lose ${p.goalAmount ? `${p.goalAmount}kg of fat` : 'weight'}`,
+    build:    'build muscle',
+    maintain: 'maintain weight and eat better',
+  }
+  const freqMap = {
+    rarely:  'rarely or never trains',
+    '1-2x':  'trains 1–2 times a week',
+    '3-4x':  'trains 3–4 times a week',
+    '5-6x':  'trains 5–6 times a week',
+  }
+  const kitchenMap = {
+    beginner:    'a beginner in the kitchen — keep techniques straightforward',
+    'home cook': 'a capable home cook — comfortable with most techniques',
+    confident:   'quite confident in the kitchen — can handle more complex methods',
+  }
+
+  const types = (p.trainingTypes || []).filter(t => t !== 'None').join(', ')
+  const goal  = goalMap[p.goal]     || p.goal
+  const freq  = freqMap[p.trainingFreq] || p.trainingFreq
+  const skill = kitchenMap[p.kitchenLevel] || p.kitchenLevel
+
+  // Derive sensible calorie target from goal + training
+  const isActive   = ['3-4x','5-6x'].includes(p.trainingFreq)
+  const calTarget  = p.goal === 'build'    ? '2,200–2,600' :
+                     p.goal === 'maintain' ? '2,000–2,200' :
+                     isActive              ? '1,800–2,100' : '1,500–1,800'
+  const protTarget = p.weight ? Math.round(Number(p.weight) * 1.8) : 160
+
+  return `CURRENT USER PROFILE — tailor everything to this person:
+Name: ${p.name || 'Unknown'}
+Weight: ${p.weight || '?'}kg
+Goal: ${goal}
+Training: ${freq}${types ? `, doing ${types}` : ''}
+Foods to avoid: ${p.avoidFoods || 'none specified'}
+Kitchen skill: ${skill}
+Estimated daily targets: ~${calTarget} kcal, ~${protTarget}g+ protein
+
+Address them as ${p.name || 'mate'} naturally — maybe once or twice in a conversation, not every single message. All recipe macros, portion sizes, and advice should reflect their actual body weight and goal above.
+
+`
+}
+
+// ── Static base prompt ────────────────────────────────────────────────────────
+
 const SYSTEM_PROMPT = `You are a dietician and chef with 30 years in clinical nutrition and professional kitchens. You know this person well — you've been working with them for months. You don't introduce yourself, you don't explain what you do, you just get on with it.
 
 WHO YOU'RE TALKING TO
@@ -42,7 +92,13 @@ STRICT OUTPUT FORMAT — follow this exactly, character for character, for every
 🍽️ [Dish Name] — Chef Version
 Cuisine style / inspiration: [e.g. Japanese, Mediterranean, Modern Australian]
 Flavour profile: [e.g. umami-rich, bright and acidic, smoky]
-How it would be made in a restaurant: [2–4 sentences — traditional full-fat preparation, the real version, no recipe just the concept and what makes it indulgent]
+How it would be made in a restaurant: [2–3 sentences — traditional full-fat preparation, what makes it indulgent, no recipe needed]
+Chef's method:
+1. [step]
+2. [step]
+3. [step]
+4. [step]
+5. [step]
 Est. calories (chef version): ~[X] kcal per serve
 
 ✅ [Dish Name] — Dietician Version
@@ -55,10 +111,10 @@ Carbs: ~[X]g
 Fat: ~[X]g
 Cook time: ~[X] mins
 Difficulty: [Easy / Medium / Pro]
-Quick cook steps: [numbered list, max 8 steps, no fluff — write it like someone's reading this in the kitchen with their hands dirty]
+Quick cook steps: [6–8 numbered steps — write like a knowledgeable mate talking someone through it in real time. Each step must include: (1) the action — what to actually do, (2) sensory cues — what it should look, sound, or smell like when it's right, (3) a common mistake to avoid where relevant. Example style: "Heat a non-stick pan on high for 2 full minutes before adding anything — it should feel hot when you hold your hand 10cm above it. Add 1 tsp oil and swirl. When it shimmers and moves fast, the pan is ready. If it smokes heavily, turn it down slightly." Keep steps punchy but complete. Never write dry textbook instructions.]
 Dietician's note: [one sentence — why this meal specifically works for fat loss while maintaining performance. Reference the training if relevant]
 
-CRITICAL: The macro and metadata lines must always appear exactly as shown above — each on its own line. Never put them in a table, never combine them, never skip them. Difficulty must be exactly one of: Easy, Medium, or Pro.
+CRITICAL: The macro and metadata lines must always appear exactly as shown above — each on its own line. Never put them in a table, never combine them, never skip them. Difficulty must be exactly one of: Easy, Medium, or Pro. Chef's method steps must be numbered starting at 1.
 
 COOKING PHILOSOPHY
 
@@ -90,12 +146,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY environment variable is not set' })
   }
 
-  const { messages } = req.body
+  const { messages, profile } = req.body
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages array is required' })
   }
 
   const client = new Anthropic({ apiKey })
+  const system = buildProfileSection(profile) + SYSTEM_PROMPT
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -104,8 +161,8 @@ export default async function handler(req, res) {
   try {
     const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      max_tokens: 4096,
+      system,
       messages: messages.map(({ role, content }) => ({ role, content })),
     })
 
