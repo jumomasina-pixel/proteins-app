@@ -1,7 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic()
-
 const SYSTEM_PROMPT = `You are a Dietician with 30+ years of clinical and culinary experience. Your superpower is taking restaurant and chef-quality dishes and recreating them at home with significantly reduced caloric density — without sacrificing taste, texture, or satisfaction.
 
 User Profile (always apply)
@@ -86,10 +84,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY environment variable is not set' })
+  }
+
   const { messages } = req.body
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages array is required' })
   }
+
+  const client = new Anthropic({ apiKey })
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')

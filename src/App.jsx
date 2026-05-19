@@ -22,9 +22,14 @@ function grabNum(text, ...regexps) {
 
 function parseDishChunk(chunk) {
   // Split the chunk into chef / dietician halves
-  const splitIdx = chunk.search(/\n[^\n]*(?:✅|dietician.{0,8}version)/im)
+  const splitIdx = chunk.search(/\n[^\n]*(?:✅|dietician.{0,8}version|✅\s*\[)/im)
   const chefPart = splitIdx > -1 ? chunk.slice(0, splitIdx) : chunk
   const dietPart = splitIdx > -1 ? chunk.slice(splitIdx) : ''
+
+  console.log('[parseDishChunk] splitIdx:', splitIdx,
+    '| chefPart len:', chefPart.length,
+    '| dietPart len:', dietPart.length)
+  console.log('[parseDishChunk] dietPart preview:', dietPart.slice(0, 300))
 
   // Dish name — first line containing 🍽️, stripped of emoji and "— Chef Version"
   const nameLine = chunk.split('\n').find(l => l.includes('🍽️')) ?? ''
@@ -75,11 +80,13 @@ function parseDishChunk(chunk) {
 
   const note = grab(dietPart, /dietician.{0,5}s?\s*note[^:\n]*:\s*([^\n]+)/i)
 
-  return {
+  const result = {
     name,
     chef: { cuisine, flavour, restaurant, calories: chefCal },
     dietician: { whatChanges, keyTechnique, macros: { calories, protein, carbs, fat }, cookSteps, note },
   }
+  console.log('[parseDishChunk] parsed dish:', JSON.stringify(result, null, 2))
+  return result
 }
 
 function parseDishes(rawText) {
