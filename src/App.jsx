@@ -4,6 +4,21 @@ import { useState, useRef, useEffect } from 'react'
 
 // ── Two small helpers used by parseDishChunk ─────────────────────────────────
 
+// Strip residual markdown from any display string
+function clean(str) {
+  if (!str) return str
+  return str
+    .replace(/\*\*([^*]*)\*\*/g, '$1')       // **bold** → plain
+    .replace(/\*([^*]*)\*/g, '$1')            // *italic* → plain
+    .replace(/^#{1,6}\s*/gm, '')              // ## headers
+    .replace(/^\s*[-–—]{3,}\s*$/gm, '')       // --- hr lines
+    .replace(/\|[-:| ]+\|/g, '')              // |---| table separators
+    .replace(/\|/g, '')                       // remaining pipe chars
+    .replace(/[ \t]{2,}/g, ' ')               // collapse multiple spaces
+    .replace(/\n{3,}/g, '\n\n')               // collapse excess blank lines
+    .trim()
+}
+
 function grab(text, ...regexps) {
   for (const re of regexps) {
     const m = text.match(re)
@@ -25,13 +40,6 @@ function parseDishChunk(chunk) {
   const splitIdx = chunk.search(/\n[^\n]*(?:✅|dietician.{0,8}version|✅\s*\[)/im)
   const chefPart = splitIdx > -1 ? chunk.slice(0, splitIdx) : chunk
   const dietPart = splitIdx > -1 ? chunk.slice(splitIdx) : ''
-
-  console.log('[parseDishChunk] splitIdx:', splitIdx,
-    '| chefPart len:', chefPart.length,
-    '| dietPart len:', dietPart.length)
-  const macroIdx = dietPart.search(/macros/i)
-  console.log('[parseDishChunk] macroIdx in dietPart:', macroIdx)
-  console.log('[parseDishChunk] macros section:', dietPart.slice(Math.max(0, macroIdx - 10), macroIdx + 300))
 
   // Dish name — first line containing 🍽️, stripped of emoji and "— Chef Version"
   const nameLine = chunk.split('\n').find(l => l.includes('🍽️')) ?? ''
@@ -87,12 +95,6 @@ function parseDishChunk(chunk) {
     /\bfat\s*:\s*~?\s*(\d[\d,]*)/i,             // Fat: ~12g
     /(\d[\d,]*)g?\s+fat\b/i,                    // 12g fat (reversed)
   )
-  console.log('[parseDishChunk] raw macro matches — cal:', dietPart.match(/calories\s*:\s*~?\s*(\d[\d,]*)/i),
-    '| prot:', dietPart.match(/protein\s*:\s*~?\s*(\d[\d,]*)/i),
-    '| carbs:', dietPart.match(/carbs?\s*:\s*~?\s*(\d[\d,]*)/i),
-    '| fat:', dietPart.match(/\bfat\s*:\s*~?\s*(\d[\d,]*)/i))
-  console.log('[parseDishChunk] extracted macros:', { calories, protein, carbs, fat })
-
   const cookTime   = grabNum(dietPart, /cook\s*time\s*:\s*~?\s*(\d+)/i)
   const difficulty = grab(dietPart,    /difficulty\s*:\s*(Easy|Medium|Pro)/i)
 
@@ -106,13 +108,25 @@ function parseDishChunk(chunk) {
 
   const note = grab(dietPart, /dietician.{0,5}s?\s*note[^:\n]*:\s*([^\n]+)/i)
 
-  const result = {
-    name,
-    chef: { cuisine, flavour, restaurant, calories: chefCal },
-    dietician: { whatChanges, keyTechnique, macros: { calories, protein, carbs, fat }, cookTime, difficulty, cookSteps, note },
+  // Apply sanitisation to every displayed string field
+  return {
+    name:      clean(name),
+    chef: {
+      cuisine:    clean(cuisine),
+      flavour:    clean(flavour),
+      restaurant: clean(restaurant),
+      calories:   chefCal,
+    },
+    dietician: {
+      whatChanges: whatChanges.map(clean),
+      keyTechnique: clean(keyTechnique),
+      macros: { calories, protein, carbs, fat },
+      cookTime,
+      difficulty,
+      cookSteps: cookSteps.map(clean),
+      note: clean(note),
+    },
   }
-  console.log('[parseDishChunk] parsed dish:', JSON.stringify(result, null, 2))
-  return result
 }
 
 function parseDishes(rawText) {
@@ -601,6 +615,60 @@ function DetailView({ dish, onBack, imgUrl }) {
   )
 }
 
+// ── Welcome screen ────────────────────────────────────────────────────────────
+
+const VALUE_PROPS = [
+  { emoji: '🍳', text: 'Tell me what proteins you have' },
+  { emoji: '👨‍🍳', text: 'Get 3 chef-quality dishes'     },
+  { emoji: '✅', text: 'See the lean version of each'  },
+]
+
+function WelcomeScreen({ onStart }) {
+  return (
+    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col items-center justify-center px-6 py-16 relative">
+      <PaperTexture />
+      <div className="relative z-10 w-full max-w-xs sm:max-w-sm space-y-10 text-center">
+
+        {/* Title */}
+        <div className="space-y-3">
+          <h1
+            className="font-serif font-extrabold text-charcoal leading-none"
+            style={{ fontSize: 'clamp(3rem, 12vw, 4.5rem)', letterSpacing: '0.03em' }}
+          >
+            Let Him Cook
+          </h1>
+          <p className="text-sm text-charcoal-muted leading-relaxed">
+            High-protein meals built around what you've got.
+          </p>
+        </div>
+
+        {/* Value props */}
+        <div className="space-y-3 text-left">
+          {VALUE_PROPS.map(({ emoji, text }) => (
+            <div
+              key={text}
+              className="flex items-center gap-4 rounded-2xl px-5 py-4 border border-sandy-border shadow-card"
+              style={{ backgroundColor: '#FFFDF7' }}
+            >
+              <span className="text-2xl shrink-0 leading-none">{emoji}</span>
+              <span className="text-sm font-medium text-charcoal">{text}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={onStart}
+          className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
+          style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
+        >
+          Let's Cook →
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -611,7 +679,9 @@ export default function App() {
   const [awaitingDishes, setAwaitingDishes] = useState(false)
   const [dishes,         setDishes]         = useState(null)
   const [dishImages,     setDishImages]     = useState([])
-  const [view,           setView]           = useState('chat')  // 'chat' | 'cards' | 'detail'
+  const [view,           setView]           = useState(          // 'welcome' | 'chat' | 'cards' | 'detail'
+    () => localStorage.getItem('lhc_welcomed') ? 'chat' : 'welcome'
+  )
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [error,          setError]          = useState(null)
 
@@ -723,6 +793,18 @@ export default function App() {
     setMessages(SEED); setDishes(null); setDishImages([]); setView('chat')
     setSelectedDish(null); setError(null); setInput('')
     setTimeout(() => inputRef.current?.focus(), 50)
+  }
+
+  // ── Welcome ─────────────────────────────────────────────────────────────────
+  if (view === 'welcome') {
+    return (
+      <WelcomeScreen
+        onStart={() => {
+          localStorage.setItem('lhc_welcomed', '1')
+          setView('chat')
+        }}
+      />
+    )
   }
 
   // ── Detail ──────────────────────────────────────────────────────────────────
