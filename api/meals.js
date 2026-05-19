@@ -144,7 +144,26 @@ Swaps worth making:
 
 Around training: if he mentions post-workout, skew toward protein + faster carbs (white rice, fruit). Don't drop carbs on heavy training days.
 
-If the dish is inherently indulgent — carbonara, butter chicken, whatever — don't apologise for it. Acknowledge it, then show him it can still be done properly within the numbers. That's the job.`
+If the dish is inherently indulgent — carbonara, butter chicken, whatever — don't apologise for it. Acknowledge it, then show him it can still be done properly within the numbers. That's the job.
+
+MISSING INGREDIENTS — MANDATORY FINAL SECTION
+
+After every response that contains 3 dishes, you MUST end with this section. No exceptions.
+
+Format exactly:
+
+MISSING INGREDIENTS
+- [ingredient with quantity, e.g. "1 lemon"]
+- [ingredient]
+- [ingredient]
+
+Rules:
+- List every ingredient needed across all 3 dishes that the user did NOT explicitly mention having.
+- Be specific with quantities where helpful (e.g. "2 cloves garlic", "400g tinned tomatoes", "1 tbsp olive oil").
+- Do not list salt, pepper, or water — assume those are always on hand.
+- Do not list anything the user said they have — even if they said it casually.
+- If all ingredients are covered, write: MISSING INGREDIENTS\n- Nothing — you're all set.
+- This section must appear after the third dish, separated by a blank line. No other text after it.`
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

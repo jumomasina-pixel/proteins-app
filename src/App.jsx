@@ -178,11 +178,21 @@ function parseDishes(rawText) {
   return chunks.map(parseDishChunk).filter(d => d.name)
 }
 
+function parseMissingIngredients(rawText) {
+  // Look for the MISSING INGREDIENTS block after the last dish
+  const m = rawText.match(/MISSING INGREDIENTS\s*\n([\s\S]+?)(?:\n\n|$)/i)
+  if (!m) return []
+  return m[1]
+    .split('\n')
+    .map(l => l.replace(/^[-•*]\s*/, '').trim())
+    .filter(l => l.length > 0 && !/^nothing/i.test(l))
+}
+
 // ── Seed conversation ─────────────────────────────────────────────────────────
 
 const SEED = [
   { id: 'seed-u', role: 'user',      content: 'I want meal ideas', seed: true },
-  { id: 'seed-a', role: 'assistant', content: 'What proteins do you have on hand right now?', seed: true },
+  { id: 'seed-a', role: 'assistant', content: "Quick fridge audit — go ahead and open it up.\n\nWhat proteins do you have? Check the shelves, the freezer drawer, any leftovers. Don't forget eggs.\n\nAnd while you're in there — anything useful in the pantry or veggie drawer? Garlic, onion, grains, tinned stuff, fresh veg — it all shapes what I can build you.", seed: true },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -321,6 +331,22 @@ const TIME_CARDS = [
   { value: '20–40 mins',              label: '20–40 mins',              emoji: '🕐' },
   { value: '40–60 mins',              label: '40–60 mins',              emoji: '👨‍🍳' },
   { value: 'all the time in the world', label: 'All the time in the world', emoji: '🌟' },
+]
+
+const PANTRY_CARDS = [
+  { value: 'garlic',          label: 'Garlic',          emoji: '🧄' },
+  { value: 'onion',           label: 'Onion',           emoji: '🧅' },
+  { value: 'rice',            label: 'Rice',            emoji: '🍚' },
+  { value: 'pasta',           label: 'Pasta',           emoji: '🍝' },
+  { value: 'tinned tomatoes', label: 'Tinned tomatoes', emoji: '🍅' },
+  { value: 'spinach',         label: 'Spinach',         emoji: '🥬' },
+  { value: 'broccoli',        label: 'Broccoli',        emoji: '🥦' },
+  { value: 'capsicum',        label: 'Capsicum',        emoji: '🫑' },
+  { value: 'zucchini',        label: 'Zucchini',        emoji: '🥒' },
+  { value: 'sweet potato',    label: 'Sweet potato',    emoji: '🍠' },
+  { value: 'lemon',           label: 'Lemon',           emoji: '🍋' },
+  { value: 'soy sauce',       label: 'Soy sauce',       emoji: '🫙' },
+  { value: 'chilli',          label: 'Chilli',          emoji: '🌶️' },
 ]
 
 // ── Health insights data ──────────────────────────────────────────────────────
@@ -728,24 +754,41 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   )
 
   if (type === 'proteins') {
-    function toggle(val) {
+    const [pantrySelected, setPantrySelected] = useState([])
+
+    function toggleProtein(val) {
       setSelected(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
     }
+    function togglePantry(val) {
+      setPantrySelected(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
+    }
+
+    function buildList(items) {
+      if (items.length === 0) return ''
+      if (items.length === 1) return items[0]
+      return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1]
+    }
+
     function handleSubmit() {
       if (selected.length === 0) return
-      const list = selected.length === 1
-        ? selected[0]
-        : selected.slice(0, -1).join(', ') + ' and ' + selected[selected.length - 1]
-      onSubmit(`I've got ${list}`, selected)
+      const proteinText = `I've got ${buildList(selected)}`
+      const pantryText  = pantrySelected.length > 0
+        ? `. In the pantry I've also got ${buildList(pantrySelected)}.`
+        : '.'
+      onSubmit(proteinText + pantryText, selected, pantrySelected)
     }
+
+    const totalSelected = selected.length + pantrySelected.length
+
     return (
       <div className="space-y-2.5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Select your proteins</p>
+        {/* Proteins row */}
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Proteins</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {PROTEIN_CARDS.map(card => (
             <button
               key={card.value}
-              onClick={() => toggle(card.value)}
+              onClick={() => toggleProtein(card.value)}
               className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all"
               style={chipStyle(selected.includes(card.value))}
             >
@@ -754,6 +797,23 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
             </button>
           ))}
         </div>
+
+        {/* Pantry / veggie row */}
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Also have:</p>
+        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {PANTRY_CARDS.map(card => (
+            <button
+              key={card.value}
+              onClick={() => togglePantry(card.value)}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all"
+              style={chipStyle(pantrySelected.includes(card.value))}
+            >
+              <span>{card.emoji}</span>
+              <span className="whitespace-nowrap">{card.label}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="flex gap-2 items-center">
           {selected.length > 0 && (
             <button
@@ -761,7 +821,10 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
               className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white transition-opacity active:opacity-80"
               style={{ backgroundColor: '#C1683A' }}
             >
-              Use {selected.length > 1 ? `these ${selected.length} proteins` : 'this protein'} →
+              {totalSelected > selected.length
+                ? `Use ${selected.length} protein${selected.length > 1 ? 's' : ''} + ${pantrySelected.length} extra →`
+                : `Use ${selected.length > 1 ? `these ${selected.length} proteins` : 'this protein'} →`
+              }
             </button>
           )}
           {somethingElseBtn}
@@ -1331,8 +1394,8 @@ function WelcomeScreen({ onStart }) {
             Let Him Cook
           </h1>
           <p
-            className="mt-2 font-sans text-white/55 tracking-[0.22em]"
-            style={{ fontSize: '0.6rem', fontWeight: 600, textTransform: 'uppercase' }}
+            className="mt-2 font-sans text-white/85"
+            style={{ fontSize: '0.6rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.25em', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
           >
             Personal Chef · Dietician · Coach
           </p>
@@ -2208,8 +2271,10 @@ export default function App() {
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
   const [viewingDishImg, setViewingDishImg] = useState(null)
-  const [savedBackTo,    setSavedBackTo]    = useState('cards')
-  const [error,          setError]          = useState(null)
+  const [savedBackTo,         setSavedBackTo]         = useState('cards')
+  const [missingIngredients,  setMissingIngredients]  = useState([])
+  const [shoppingListCopied,  setShoppingListCopied]  = useState(false)
+  const [error,               setError]               = useState(null)
 
   const scrollRef      = useRef(null)
   const abortRef       = useRef(null)
@@ -2284,6 +2349,8 @@ export default function App() {
             if (parsed.length > 0) {
               setDishes(parsed)
               setDishImages([])
+              setMissingIngredients(parseMissingIngredients(accumulated))
+              setShoppingListCopied(false)
               saveSession(parsed)
               setView('cards')
             } else {
@@ -2342,6 +2409,8 @@ export default function App() {
     setMessages(SEED)
     setDishes(null)
     setDishImages([])
+    setMissingIngredients([])
+    setShoppingListCopied(false)
     setView('chat')
     setSelectedDish(null)
     setViewingDish(null)
@@ -2422,6 +2491,24 @@ export default function App() {
 
   function isRecipeSaved(dishName) {
     return savedRecipes.some(r => r.name === dishName)
+  }
+
+  function handleCopyShoppingList() {
+    if (missingIngredients.length === 0) return
+    const date = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+    const lines = [
+      'Let Him Cook — Shopping List',
+      date,
+      '',
+      "For tonight's recipes you'll need:",
+      ...missingIngredients.map(i => `• ${i}`),
+      '',
+      'Generated by lethimcook4me.vercel.app',
+    ].join('\n')
+    navigator.clipboard.writeText(lines).then(() => {
+      setShoppingListCopied(true)
+      setTimeout(() => setShoppingListCopied(false), 2000)
+    })
   }
 
   // ── View: Welcome ────────────────────────────────────────────────────────────
@@ -2586,10 +2673,45 @@ export default function App() {
                   />
                 ))}
               </div>
+
+              {/* ── What You'll Need ── */}
+              {missingIngredients.length > 0 && (
+                <div className="space-y-3 animate-fade-in">
+                  <p
+                    className="text-[11px] font-bold uppercase tracking-widest"
+                    style={{ color: '#C1683A' }}
+                  >
+                    What You'll Need
+                  </p>
+                  <div
+                    className="rounded-2xl p-5 space-y-4"
+                    style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 2px 8px rgba(26,17,8,0.07)' }}
+                  >
+                    <ul className="space-y-2">
+                      {missingIngredients.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2.5 text-sm leading-snug" style={{ color: '#1A1108' }}>
+                          <span className="shrink-0 font-bold mt-px" style={{ color: '#C1683A' }}>•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={handleCopyShoppingList}
+                      className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
+                      style={{
+                        backgroundColor: shoppingListCopied ? '#4E7A53' : '#7A9E7E',
+                        boxShadow: shoppingListCopied ? 'none' : '0 2px 8px rgba(122,158,126,0.3)',
+                      }}
+                    >
+                      {shoppingListCopied ? '✓ Copied to clipboard!' : '🛒 Copy Shopping List'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           {/* Desktop insights sidebar */}
-          <InsightsSidebar />
+          <InsightsDesktopSidebar />
         </div>
         <BottomNav activeView="cards" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('cards'); setView('saved') }
@@ -2625,7 +2747,7 @@ export default function App() {
   // ── View: Chat ───────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="animate-fade-in flex h-[100dvh] bg-sandy relative">
+      <div className="animate-fade-in flex bg-sandy relative" style={{ position: 'fixed', inset: 0 }}>
         <PaperTexture />
 
         {/* ── Main chat column ── */}
@@ -2691,7 +2813,7 @@ export default function App() {
           )}
 
           {/* Input bar */}
-          <div className="shrink-0 border-t border-sandy-border px-4 pt-2.5 pb-3 bg-sandy-light relative z-10">
+          <div className="shrink-0 border-t border-sandy-border px-4 pt-2.5 pb-3 bg-sandy-light relative z-10" style={{ touchAction: 'manipulation' }}>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-1.5">Your answer</p>
             <form onSubmit={handleSubmit} className="flex gap-2 items-end">
               <textarea
@@ -2745,6 +2867,13 @@ export default function App() {
               )}
             </form>
           </div>
+
+          {/* Spacer — on mobile, reserves height for the fixed BottomNav so it
+              never overlaps the input bar. Height = BottomNav (56px) + iOS safe area. */}
+          <div
+            className="shrink-0 lg:hidden"
+            style={{ height: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}
+          />
         </div>
 
         {/* Desktop insights sidebar */}

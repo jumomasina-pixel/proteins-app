@@ -14,4 +14,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+  input, textarea, select {
+    font-size: 16px !important;
+    touch-action: manipulation;
+  }
 }
