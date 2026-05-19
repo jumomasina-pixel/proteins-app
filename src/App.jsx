@@ -1234,64 +1234,189 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
 // ── Welcome screen ────────────────────────────────────────────────────────────
 
-const VALUE_PROPS = [
-  { emoji: '🍳', text: 'Tell me what proteins you have' },
-  { emoji: '👨‍🍳', text: 'Get 3 chef-quality dishes'     },
-  { emoji: '✅', text: 'See the lean version of each'  },
+const WELCOME_VALUE_PROPS = [
+  { icon: '⚡', text: 'Built around what you actually have'        },
+  { icon: '🎯', text: 'Personalised to your body and your goals'   },
+  { icon: '🍽️', text: 'Chef quality. Dietician approved.'          },
 ]
 
+// Keyframe styles injected once for welcome-screen animations
+const WELCOME_STYLES = `
+  @keyframes ctaPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(193,104,58,0); }
+    50%       { box-shadow: 0 0 0 10px rgba(193,104,58,0.18); }
+  }
+  .cta-pulse { animation: ctaPulse 2.4s ease-in-out 0.8s 3; }
+  @keyframes taglineFadeIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .tagline-enter { animation: taglineFadeIn 0.4s ease-out both; }
+  @keyframes propFadeIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .prop-enter-0 { animation: propFadeIn 0.35s ease-out 0.05s both; }
+  .prop-enter-1 { animation: propFadeIn 0.35s ease-out 0.15s both; }
+  .prop-enter-2 { animation: propFadeIn 0.35s ease-out 0.25s both; }
+`
+
 function WelcomeScreen({ onStart }) {
-  const [heroUrl, setHeroUrl] = useState(null)
+  const [heroUrl,    setHeroUrl]    = useState(null)
+  const [imgLoaded,  setImgLoaded]  = useState(false)
+  const [showBelow,  setShowBelow]  = useState(false)
 
   useEffect(() => {
-    fetch('/api/unsplash?query=healthy+food+preparation+kitchen')
+    fetch('/api/unsplash?query=meal+prep+athlete+kitchen+dark+moody')
       .then(r => r.json())
       .then(d => { if (d.url) setHeroUrl(d.url) })
       .catch(() => {})
   }, [])
 
+  // Reveal content below the hero once image is loaded (or after 1.2s fallback)
+  useEffect(() => {
+    const t = setTimeout(() => setShowBelow(true), 1200)
+    return () => clearTimeout(t)
+  }, [])
+
+  function handleImgLoad() {
+    setImgLoaded(true)
+    setShowBelow(true)
+  }
+
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col relative">
+    <div className="min-h-screen flex flex-col relative overflow-x-hidden" style={{ backgroundColor: '#1A1108' }}>
+      <style>{WELCOME_STYLES}</style>
       <PaperTexture />
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
-        <div className="w-full max-w-xs sm:max-w-sm space-y-8 text-center">
-          <div className="space-y-2">
-            <h1
-              className="font-serif font-extrabold text-charcoal leading-none"
-              style={{ fontSize: 'clamp(3rem, 12vw, 4.5rem)', letterSpacing: '0.03em' }}
+
+      {/* ── Hero image — full bleed, no rounded corners ── */}
+      <div
+        className="relative w-full shrink-0 overflow-hidden"
+        style={{ height: 'clamp(45vh, 50vw, 55vh)' }}
+      >
+        {/* Warm dark placeholder */}
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: '#2A1A0E' }}
+        />
+
+        {heroUrl && (
+          <img
+            src={heroUrl}
+            alt=""
+            onLoad={handleImgLoad}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+            style={{ opacity: imgLoaded ? 1 : 0 }}
+          />
+        )}
+
+        {/* Gradient — warm sandy fade at bottom */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(26,17,8,0.25) 0%, rgba(26,17,8,0.05) 30%, rgba(26,17,8,0.7) 75%, #1A1108 100%)',
+          }}
+        />
+
+        {/* Wordmark sits at the top of the hero */}
+        <div className="absolute top-0 left-0 right-0 px-6 pt-10 sm:pt-14 text-center">
+          <h1
+            className="font-serif font-extrabold leading-none text-white"
+            style={{
+              fontSize: 'clamp(2.6rem, 9vw, 4rem)',
+              letterSpacing: '0.03em',
+              textShadow: '0 2px 20px rgba(0,0,0,0.55)',
+            }}
+          >
+            Let Him Cook
+          </h1>
+          <p
+            className="mt-2 font-sans text-white/55 tracking-[0.22em]"
+            style={{ fontSize: '0.6rem', fontWeight: 600, textTransform: 'uppercase' }}
+          >
+            Personal Chef · Dietician · Coach
+          </p>
+        </div>
+      </div>
+
+      {/* ── Content below hero ── */}
+      <div
+        className="flex-1 flex flex-col px-6 pb-10 pt-8 sm:pb-14"
+        style={{
+          backgroundColor: '#1A1108',
+          opacity: showBelow ? 1 : 0,
+          transition: 'opacity 0.35s ease-out',
+        }}
+      >
+        <div className="w-full max-w-sm mx-auto flex flex-col gap-8">
+
+          {/* ── Tagline block ── */}
+          <div className={`text-center space-y-3 ${showBelow ? 'tagline-enter' : ''}`}>
+            <h2
+              className="font-serif font-bold text-white leading-tight"
+              style={{ fontSize: 'clamp(1.5rem, 5.5vw, 2rem)' }}
             >
-              Let Him Cook
-            </h1>
-            <p className="text-sm text-charcoal-muted">
-              High-protein meals built around what you've got.
+              Eat like a chef.<br />
+              Train like an athlete.<br />
+              Live like both.
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.50)' }}>
+              Your proteins. Your goals. Three dishes — lean or indulgent — in seconds.
             </p>
           </div>
-          <div className="relative w-full h-36 sm:h-44 rounded-2xl overflow-hidden">
-            {heroUrl
-              ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
-              : <div className="w-full h-full" style={{ backgroundColor: '#C1683A', opacity: 0.15 }} />
-            }
-            <div className="absolute inset-0 rounded-2xl" style={{ backgroundColor: 'rgba(245,236,215,0.40)' }} />
-          </div>
-          <div className="space-y-3 text-left">
-            {VALUE_PROPS.map(({ emoji, text }) => (
+
+          {/* ── Value props ── */}
+          <div className="space-y-3">
+            {WELCOME_VALUE_PROPS.map(({ icon, text }, i) => (
               <div
                 key={text}
-                className="flex items-center gap-4 rounded-2xl px-5 py-4 border border-sandy-border shadow-card"
-                style={{ backgroundColor: '#FAF6EE' }}
+                className={`flex items-center gap-4 prop-enter-${i}`}
               >
-                <span className="text-2xl shrink-0 leading-none">{emoji}</span>
-                <span className="text-sm font-medium text-charcoal">{text}</span>
+                <span
+                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-base"
+                  style={{ backgroundColor: 'rgba(193,104,58,0.15)', border: '1px solid rgba(193,104,58,0.3)' }}
+                >
+                  {icon}
+                </span>
+                <span
+                  className="text-sm font-medium leading-snug"
+                  style={{ color: 'rgba(255,255,255,0.80)' }}
+                >
+                  {text}
+                </span>
               </div>
             ))}
           </div>
-          <button
-            onClick={onStart}
-            className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
-            style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
+
+          {/* ── Social proof ── */}
+          <p
+            className="text-center italic"
+            style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.32)', lineHeight: 1.6 }}
           >
-            Let's Cook →
-          </button>
+            — Trusted by athletes, home cooks, and everyone in between
+          </p>
+
+          {/* ── CTA ── */}
+          <div className="space-y-3">
+            <button
+              onClick={onStart}
+              className="cta-pulse w-full py-4 rounded-xl font-bold text-base text-white transition-opacity active:opacity-80"
+              style={{
+                backgroundColor: '#C1683A',
+                fontSize: '1rem',
+                letterSpacing: '0.01em',
+              }}
+            >
+              Build My Profile →
+            </button>
+            <p
+              className="text-center"
+              style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.30)', letterSpacing: '0.04em' }}
+            >
+              Free · No account needed · Takes 2 minutes
+            </p>
+          </div>
+
         </div>
       </div>
     </div>
