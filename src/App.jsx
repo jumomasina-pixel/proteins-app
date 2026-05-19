@@ -762,6 +762,7 @@ export default function App() {
                 onImageResolved={url => setDishImages(prev => {
                   const next = [...prev]; next[i] = url; return next
                 })}
+              />
             ))}
           </div>
         </div>
