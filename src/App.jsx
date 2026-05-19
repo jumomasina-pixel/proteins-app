@@ -93,6 +93,9 @@ function parseDishChunk(chunk) {
     '| fat:', dietPart.match(/\bfat\s*:\s*~?\s*(\d[\d,]*)/i))
   console.log('[parseDishChunk] extracted macros:', { calories, protein, carbs, fat })
 
+  const cookTime   = grabNum(dietPart, /cook\s*time\s*:\s*~?\s*(\d+)/i)
+  const difficulty = grab(dietPart,    /difficulty\s*:\s*(Easy|Medium|Pro)/i)
+
   const stepsRaw = grab(dietPart,
     /quick\s+cook\s+steps[^:\n]*:\s*([\s\S]+?)(?=\ndietician|$)/i,
   )
@@ -106,7 +109,7 @@ function parseDishChunk(chunk) {
   const result = {
     name,
     chef: { cuisine, flavour, restaurant, calories: chefCal },
-    dietician: { whatChanges, keyTechnique, macros: { calories, protein, carbs, fat }, cookSteps, note },
+    dietician: { whatChanges, keyTechnique, macros: { calories, protein, carbs, fat }, cookTime, difficulty, cookSteps, note },
   }
   console.log('[parseDishChunk] parsed dish:', JSON.stringify(result, null, 2))
   return result
@@ -284,33 +287,118 @@ function TypingIndicator() {
 
 // ── Compact dish card ─────────────────────────────────────────────────────────
 
+function CardImageHeader({ dishName, cuisine }) {
+  const [imgUrl,    setImgUrl]    = useState(null)
+  const [imgLoaded, setImgLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/unsplash?query=${encodeURIComponent(dishName)}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled && d.url) setImgUrl(d.url) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [dishName])
+
+  return (
+    <div className="relative w-full h-44 overflow-hidden rounded-t-2xl">
+      {/* Terracotta placeholder — always behind */}
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={{ backgroundColor: '#C1683A' }}
+      >
+        <svg viewBox="0 0 64 64" className="w-14 h-14 opacity-30" fill="white">
+          <path d="M32 6C18 6 8 16 8 30c0 10 6 18 14 22v4h20v-4c8-4 14-12 14-22C56 16 46 6 32 6zm0 4c11 0 20 9 20 20 0 8-5 15-12 18.5V50H24v-1.5C17 45 12 38 12 30c0-11 9-20 20-20z"/>
+          <rect x="28" y="2" width="8" height="8" rx="2"/>
+          <circle cx="32" cy="30" r="6"/>
+        </svg>
+      </div>
+
+      {/* Real photo */}
+      {imgUrl && (
+        <img
+          src={imgUrl}
+          alt={dishName}
+          onLoad={() => setImgLoaded(true)}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+          style={{ opacity: imgLoaded ? 1 : 0 }}
+        />
+      )}
+
+      {/* Dark gradient so text reads cleanly */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.18) 50%, transparent 100%)' }}
+      />
+
+      {/* Dish name + cuisine overlaid at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6">
+        {cuisine && (
+          <span className="block text-[11px] font-medium text-white/70 mb-0.5 uppercase tracking-wider">
+            {cuisine}
+          </span>
+        )}
+        <h3 className="font-serif text-lg font-bold text-white leading-snug drop-shadow">
+          {dishName}
+        </h3>
+      </div>
+    </div>
+  )
+}
+
 function DishCard({ dish, onClick }) {
   const savings = calorieSavings(dish)
   return (
     <button
       onClick={onClick}
-      className="w-full rounded-2xl bg-cream shadow-card border-t-4 border-terracotta p-5 sm:p-6 text-left transition-all duration-200 hover:-translate-y-1.5 hover:shadow-card-hover group"
+      className="w-full rounded-2xl bg-cream shadow-card overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 hover:shadow-card-hover group"
     >
-      <div className="space-y-3">
-        {dish.chef.cuisine && (
-          <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-sage-pale text-sage-dark border border-sage/30 font-medium">
-            {dish.chef.cuisine}
-          </span>
-        )}
-        <h3 className="font-serif text-xl font-bold text-charcoal leading-snug">
-          {dish.name}
-        </h3>
+      <CardImageHeader dishName={dish.name} cuisine={dish.chef.cuisine} />
+
+      <div className="px-5 pb-5 pt-4 space-y-3">
+        {/* Calorie count */}
         <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-bold text-terracotta tabular-nums">
+          <span className="text-3xl font-bold tabular-nums" style={{ color: '#C1683A' }}>
             {dish.dietician.macros.calories}
           </span>
           <span className="text-sm text-charcoal-muted">kcal</span>
         </div>
+
+        {/* Cook time + difficulty badges */}
+        {(dish.dietician.cookTime !== '—' || dish.dietician.difficulty) && (
+          <div className="flex gap-2 flex-wrap">
+            {dish.dietician.cookTime !== '—' && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896', color: '#5C4A2A' }}
+              >
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                {dish.dietician.cookTime} mins
+              </span>
+            )}
+            {dish.dietician.difficulty && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896', color: '#5C4A2A' }}
+              >
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-6-6-12-6-12zm0 16a2 2 0 110-4 2 2 0 010 4z"/>
+                </svg>
+                {dish.dietician.difficulty}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Calorie savings badge */}
         {savings && (
           <div className="inline-flex items-center gap-1.5 text-xs font-medium text-sage-dark bg-sage-pale rounded-full px-3 py-1 border border-sage/25">
             💪 Save ~{savings} kcal vs restaurant
           </div>
         )}
+
         <div className="pt-1 text-sm font-medium text-terracotta flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200">
           View recipe <span>→</span>
         </div>

@@ -53,10 +53,12 @@ Calories: ~[X] kcal
 Protein: ~[X]g
 Carbs: ~[X]g
 Fat: ~[X]g
+Cook time: ~[X] mins
+Difficulty: [Easy / Medium / Pro]
 Quick cook steps: [numbered list, max 8 steps, no fluff — write it like someone's reading this in the kitchen with their hands dirty]
 Dietician's note: [one sentence — why this meal specifically works for fat loss while maintaining performance. Reference the training if relevant]
 
-CRITICAL: The macro lines must always appear exactly as shown above — each on its own line, with the label, colon, tilde, and number. Never put macros in a table, never combine them on one line, never skip them.
+CRITICAL: The macro and metadata lines must always appear exactly as shown above — each on its own line. Never put them in a table, never combine them, never skip them. Difficulty must be exactly one of: Easy, Medium, or Pro.
 
 COOKING PHILOSOPHY
 
