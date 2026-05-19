@@ -287,15 +287,22 @@ function TypingIndicator() {
 
 // ── Compact dish card ─────────────────────────────────────────────────────────
 
-function CardImageHeader({ dishName, cuisine }) {
+function CardImageHeader({ dishName, cuisine, onImageResolved }) {
   const [imgUrl,    setImgUrl]    = useState(null)
   const [imgLoaded, setImgLoaded] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/unsplash?query=${encodeURIComponent(dishName)}`)
+    const params = new URLSearchParams({ query: dishName })
+    if (cuisine) params.set('cuisine', cuisine)
+    fetch(`/api/unsplash?${params}`)
       .then(r => r.json())
-      .then(d => { if (!cancelled && d.url) setImgUrl(d.url) })
+      .then(d => {
+        if (!cancelled && d.url) {
+          setImgUrl(d.url)
+          onImageResolved?.(d.url)
+        }
+      })
       .catch(() => {})
     return () => { cancelled = true }
   }, [dishName])
@@ -346,14 +353,14 @@ function CardImageHeader({ dishName, cuisine }) {
   )
 }
 
-function DishCard({ dish, onClick }) {
+function DishCard({ dish, onClick, onImageResolved }) {
   const savings = calorieSavings(dish)
   return (
     <button
       onClick={onClick}
       className="w-full rounded-2xl bg-cream shadow-card overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 hover:shadow-card-hover group"
     >
-      <CardImageHeader dishName={dish.name} cuisine={dish.chef.cuisine} />
+      <CardImageHeader dishName={dish.name} cuisine={dish.chef.cuisine} onImageResolved={onImageResolved} />
 
       <div className="px-5 pb-5 pt-4 space-y-3">
         {/* Calorie count */}
@@ -409,7 +416,13 @@ function DishCard({ dish, onClick }) {
 
 // ── Detail view ───────────────────────────────────────────────────────────────
 
-function DetailView({ dish, onBack }) {
+const BACK_ARROW = (
+  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+  </svg>
+)
+
+function DetailView({ dish, onBack, imgUrl }) {
   const [copied, setCopied] = useState(false)
   const { chef, dietician } = dish
 
@@ -421,24 +434,68 @@ function DetailView({ dish, onBack }) {
   }
 
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy pb-28 sm:pb-12 px-4 py-8">
+    <div className="animate-fade-in min-h-screen bg-sandy pb-28 sm:pb-12">
       <PaperTexture />
-      <div className="max-w-2xl mx-auto space-y-8 relative">
 
-        {/* Back */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm font-medium text-charcoal-muted hover:text-terracotta transition-colors"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
-          </svg>
-          Back to dishes
-        </button>
+      {/* ── Hero image (full-width, edge-to-edge) ── */}
+      {imgUrl ? (
+        <div className="relative w-full h-72 sm:h-[30rem] overflow-hidden">
+          <img
+            src={imgUrl}
+            alt={dish.name}
+            className="w-full h-full object-cover"
+          />
+          {/* Gradient: dark at bottom so name reads clearly, fades to transparent */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }}
+          />
+          {/* Back button — overlaid top-left */}
+          <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto">
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors drop-shadow"
+            >
+              {BACK_ARROW}
+              Back to dishes
+            </button>
+          </div>
+          {/* Dish name + cuisine — overlaid bottom */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 max-w-2xl mx-auto">
+            {chef.cuisine && (
+              <p className="text-xs font-medium text-white/65 uppercase tracking-widest mb-2">
+                {chef.cuisine}
+              </p>
+            )}
+            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white leading-tight" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
+              {dish.name}
+            </h1>
+          </div>
+        </div>
+      ) : (
+        /* No image — terracotta placeholder bar so layout stays consistent */
+        <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#C1683A' }}>
+          <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors"
+            >
+              {BACK_ARROW}
+              Back to dishes
+            </button>
+          </div>
+        </div>
+      )}
 
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-tight">
-          {dish.name}
-        </h1>
+      {/* ── Content ── */}
+      <div className="max-w-2xl mx-auto px-4 pt-8 space-y-8 relative">
+
+        {/* Title only when no hero image */}
+        {!imgUrl && (
+          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-tight">
+            {dish.name}
+          </h1>
+        )}
 
         {/* ── Chef Version ── */}
         <section className="space-y-4 pl-5 border-l-4 border-terracotta">
@@ -531,7 +588,7 @@ function DetailView({ dish, onBack }) {
       </div>
 
       {/* ── Copy Recipe button — fixed on mobile, inline on sm+ ── */}
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-4">
+      <div className="fixed bottom-0 inset-x-0 p-4 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-6 sm:px-4">
         <button
           onClick={handleCopy}
           className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-opacity active:opacity-80"
@@ -553,6 +610,7 @@ export default function App() {
   const [streamContent,  setStreamContent]  = useState('')
   const [awaitingDishes, setAwaitingDishes] = useState(false)
   const [dishes,         setDishes]         = useState(null)
+  const [dishImages,     setDishImages]     = useState([])
   const [view,           setView]           = useState('chat')  // 'chat' | 'cards' | 'detail'
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [error,          setError]          = useState(null)
@@ -662,14 +720,14 @@ export default function App() {
   function handleStop()  { abortRef.current?.abort() }
 
   function handleReset() {
-    setMessages(SEED); setDishes(null); setView('chat')
+    setMessages(SEED); setDishes(null); setDishImages([]); setView('chat')
     setSelectedDish(null); setError(null); setInput('')
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
   // ── Detail ──────────────────────────────────────────────────────────────────
   if (view === 'detail' && selectedDish !== null) {
-    return <DetailView dish={dishes[selectedDish]} onBack={() => setView('cards')} />
+    return <DetailView dish={dishes[selectedDish]} onBack={() => setView('cards')} imgUrl={dishImages[selectedDish] ?? null} />
   }
 
   // ── Cards ───────────────────────────────────────────────────────────────────
@@ -701,7 +759,9 @@ export default function App() {
                 key={i}
                 dish={dish}
                 onClick={() => { setSelectedDish(i); setView('detail') }}
-              />
+                onImageResolved={url => setDishImages(prev => {
+                  const next = [...prev]; next[i] = url; return next
+                })}
             ))}
           </div>
         </div>
