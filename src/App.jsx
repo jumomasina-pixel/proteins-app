@@ -1,4 +1,29 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+
+// ── Storage versioning ────────────────────────────────────────────────────────
+// Bump this number whenever the stored data shape changes in a breaking way.
+// Any existing storage that doesn't carry a matching version will be wiped and
+// the user will restart from the welcome screen as a new user.
+
+const PROFILE_VERSION = 2
+
+const LS_KEYS = ['lhc_profile', 'lhc_saved_recipes', 'lhc_sessions']
+
+function loadProfileOrEvict() {
+  try {
+    const raw = localStorage.getItem('lhc_profile')
+    if (!raw) return null
+    const p = JSON.parse(raw)
+    if (p?.version !== PROFILE_VERSION) {
+      LS_KEYS.forEach(k => localStorage.removeItem(k))
+      return null
+    }
+    return p
+  } catch {
+    LS_KEYS.forEach(k => localStorage.removeItem(k))
+    return null
+  }
+}
 
 // ── Parser ────────────────────────────────────────────────────────────────────
 
@@ -197,6 +222,14 @@ function formatRecipe(dish) {
   return lines.filter(l => l !== false && l !== null && l !== undefined).join('\n')
 }
 
+// Detect what quick-reply type to show next based on AI message text
+function detectQuickReplyType(text) {
+  const lower = text.toLowerCase()
+  if (/any particular (cuisine|style)|what (cuisine|style|kind)|go for a style|something specific in mind|prefer.*cuisine|cuisine.*prefer/.test(lower)) return 'cuisine'
+  if (/how (much time|long do)|time (constraint|available|have you got)|how long.*cook|under \d+ min/.test(lower)) return 'time'
+  return null
+}
+
 // ── Paper texture overlay ─────────────────────────────────────────────────────
 
 function PaperTexture() {
@@ -228,11 +261,61 @@ const FREQ_OPTIONS = [
   { value: '3-4x',   label: '3–4x a week'    },
   { value: '5-6x',   label: '5–6x a week'    },
 ]
-const TRAINING_TYPES = ['Weights', 'Cardio', 'Boxing', 'Running', 'Sport', 'None']
+const TRAINING_TYPES = [
+  { value: 'Weights',            label: 'Weights',            emoji: '🏋️' },
+  { value: 'Cardio',             label: 'Cardio',             emoji: '🫀' },
+  { value: 'Boxing & Martial Arts', label: 'Boxing & Martial Arts', emoji: '🥊' },
+  { value: 'Running',            label: 'Running',            emoji: '🏃' },
+  { value: 'Cycling',            label: 'Cycling',            emoji: '🚴' },
+  { value: 'Swimming',           label: 'Swimming',           emoji: '🏊' },
+  { value: 'HIIT & Circuit',     label: 'HIIT & Circuit',     emoji: '💥' },
+  { value: 'Yoga & Pilates',     label: 'Yoga & Pilates',     emoji: '🧘' },
+  { value: 'Team Sports',        label: 'Team Sports',        emoji: '⚽' },
+  { value: 'Hiking & Outdoors',  label: 'Hiking & Outdoors',  emoji: '🥾' },
+  { value: 'CrossFit',           label: 'CrossFit',           emoji: '🔥' },
+  { value: 'Dance & Aerobics',   label: 'Dance & Aerobics',   emoji: '💃' },
+  { value: 'None',               label: 'None',               emoji: '🛋️' },
+]
 const KITCHEN_OPTIONS = [
   { value: 'beginner',    label: 'Beginner'         },
   { value: 'home cook',   label: 'Home cook'        },
   { value: 'confident',   label: 'Pretty confident' },
+]
+
+// ── Quick-reply card data ─────────────────────────────────────────────────────
+
+const PROTEIN_CARDS = [
+  { value: 'chicken',  label: 'Chicken',  emoji: '🍗' },
+  { value: 'beef',     label: 'Beef',     emoji: '🥩' },
+  { value: 'salmon',   label: 'Salmon',   emoji: '🐟' },
+  { value: 'eggs',     label: 'Eggs',     emoji: '🥚' },
+  { value: 'pork',     label: 'Pork',     emoji: '🥓' },
+  { value: 'tofu',     label: 'Tofu',     emoji: '🫘' },
+  { value: 'lamb',     label: 'Lamb',     emoji: '🍖' },
+  { value: 'prawns',   label: 'Prawns',   emoji: '🦐' },
+  { value: 'tuna',     label: 'Tuna',     emoji: '🐟' },
+  { value: 'turkey',   label: 'Turkey',   emoji: '🦃' },
+]
+
+const CUISINE_CARDS = [
+  { value: 'Mexican',           label: 'Mexican',           emoji: '🌮' },
+  { value: 'Asian',             label: 'Asian',             emoji: '🥢' },
+  { value: 'Italian',           label: 'Italian',           emoji: '🍝' },
+  { value: 'Indian',            label: 'Indian',            emoji: '🍛' },
+  { value: 'Modern Australian', label: 'Modern Australian', emoji: '🦘' },
+  { value: 'French',            label: 'French',            emoji: '🥖' },
+  { value: 'American',          label: 'American',          emoji: '🍔' },
+  { value: 'Middle Eastern',    label: 'Middle Eastern',    emoji: '🧆' },
+  { value: 'Japanese',          label: 'Japanese',          emoji: '🍱' },
+  { value: 'Thai',              label: 'Thai',              emoji: '🌿' },
+  { value: 'No preference',     label: 'No preference',     emoji: '🎲' },
+]
+
+const TIME_CARDS = [
+  { value: 'under 20 mins',           label: 'Under 20 mins',           emoji: '⚡' },
+  { value: '20–40 mins',              label: '20–40 mins',              emoji: '🕐' },
+  { value: '40–60 mins',              label: '40–60 mins',              emoji: '👨‍🍳' },
+  { value: 'all the time in the world', label: 'All the time in the world', emoji: '🌟' },
 ]
 
 // ── Avatars ───────────────────────────────────────────────────────────────────
@@ -299,18 +382,13 @@ function SkeletonCard() {
         boxShadow: '0 2px 12px rgba(44,36,22,0.07), 0 1px 3px rgba(44,36,22,0.05)',
       }}
     >
-      {/* cuisine badge */}
       <div className="h-5 w-20 rounded-full" style={{ backgroundColor: SHIMMER }} />
-      {/* dish name */}
       <div className="space-y-2.5">
         <div className="h-6 w-4/5 rounded-lg" style={{ backgroundColor: SHIMMER }} />
         <div className="h-4 w-3/5 rounded-lg" style={{ backgroundColor: SHIMMER, opacity: 0.7 }} />
       </div>
-      {/* calorie number */}
       <div className="h-9 w-20 rounded-lg" style={{ backgroundColor: SHIMMER }} />
-      {/* savings badge */}
       <div className="h-5 w-40 rounded-full" style={{ backgroundColor: SHIMMER, opacity: 0.7 }} />
-      {/* view recipe link */}
       <div className="h-4 w-24 rounded-full" style={{ backgroundColor: SHIMMER, opacity: 0.6 }} />
     </div>
   )
@@ -368,6 +446,123 @@ function TypingIndicator() {
       </div>
     </div>
   )
+}
+
+// ── Quick-reply cards ─────────────────────────────────────────────────────────
+
+function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
+  const [selected, setSelected] = useState([])
+
+  const chipStyle = (sel) => ({
+    backgroundColor: sel ? '#FDF0E8' : '#FFFDF7',
+    borderColor:     sel ? '#C1683A' : '#D4B896',
+    color:           sel ? '#C1683A' : '#5C4A2A',
+  })
+
+  // "Something else" focuses the textarea rather than just vanishing the row
+  function handleSomethingElse() {
+    onDismiss()
+    onFocusInput?.()
+  }
+
+  const somethingElseBtn = (
+    <button
+      onClick={handleSomethingElse}
+      className="shrink-0 py-2 px-4 rounded-xl text-sm font-medium transition-colors"
+      style={{ color: '#8B7355', backgroundColor: '#FAF3E4', border: '1px solid #D4B896' }}
+    >
+      Something else →
+    </button>
+  )
+
+  if (type === 'proteins') {
+    function toggle(val) {
+      setSelected(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
+    }
+    function handleSubmit() {
+      if (selected.length === 0) return
+      const list = selected.length === 1
+        ? selected[0]
+        : selected.slice(0, -1).join(', ') + ' and ' + selected[selected.length - 1]
+      onSubmit(`I've got ${list}`, selected)
+    }
+    return (
+      <div className="space-y-2.5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Select your proteins</p>
+        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {PROTEIN_CARDS.map(card => (
+            <button
+              key={card.value}
+              onClick={() => toggle(card.value)}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all"
+              style={chipStyle(selected.includes(card.value))}
+            >
+              <span>{card.emoji}</span>
+              <span className="whitespace-nowrap">{card.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 items-center">
+          {selected.length > 0 && (
+            <button
+              onClick={handleSubmit}
+              className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white transition-opacity active:opacity-80"
+              style={{ backgroundColor: '#C1683A' }}
+            >
+              Use {selected.length > 1 ? `these ${selected.length} proteins` : 'this protein'} →
+            </button>
+          )}
+          {somethingElseBtn}
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'cuisine') {
+    return (
+      <div className="space-y-2.5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Pick a style</p>
+        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {CUISINE_CARDS.map(card => (
+            <button
+              key={card.value}
+              onClick={() => onSubmit(card.value, [card.value])}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all active:scale-95"
+              style={chipStyle(false)}
+            >
+              <span>{card.emoji}</span>
+              <span className="whitespace-nowrap">{card.label}</span>
+            </button>
+          ))}
+        </div>
+        {somethingElseBtn}
+      </div>
+    )
+  }
+
+  if (type === 'time') {
+    return (
+      <div className="space-y-2.5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">How long have you got?</p>
+        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {TIME_CARDS.map(card => (
+            <button
+              key={card.value}
+              onClick={() => onSubmit(card.value, [card.value])}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all active:scale-95"
+              style={chipStyle(false)}
+            >
+              <span>{card.emoji}</span>
+              <span className="whitespace-nowrap">{card.label}</span>
+            </button>
+          ))}
+        </div>
+        {somethingElseBtn}
+      </div>
+    )
+  }
+
+  return null
 }
 
 // ── Compact dish card ─────────────────────────────────────────────────────────
@@ -508,14 +703,12 @@ const BACK_ARROW = (
   </svg>
 )
 
-// Bookmark SVG icons
 function BookmarkIcon({ filled }) {
   return filled
     ? <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6.75 2.25A.75.75 0 016 3v18a.75.75 0 001.28.53L12 17.31l4.72 4.22A.75.75 0 0018 21V3a.75.75 0 00-.75-.75H6.75z"/></svg>
     : <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 3H6.75A.75.75 0 006 3.75v16.5a.75.75 0 001.28.53L12 16.81l4.72 4.22A.75.75 0 0018 20.25V3.75A.75.75 0 0017.25 3z"/></svg>
 }
 
-// Reusable cook steps list
 function CookStepsList({ steps, accentColor }) {
   return (
     <ol className="space-y-3">
@@ -533,15 +726,15 @@ function CookStepsList({ steps, accentColor }) {
   )
 }
 
-function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove }) {
-  const [mode,    setMode]   = useState('diet')   // 'diet' | 'chef'
-  const [copied,  setCopied] = useState(false)
-  const [toast,   setToast]  = useState({ visible: false, message: '' })
+function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigateDashboard }) {
+  const [mode,   setMode]   = useState('diet')
+  const [copied, setCopied] = useState(false)
+  const [toast,  setToast]  = useState({ visible: false, message: '', action: null })
   const { chef, dietician } = dish
 
-  function showToast(message) {
-    setToast({ visible: true, message })
-    setTimeout(() => setToast(t => ({ ...t, visible: false })), 2000)
+  function showToast(message, action = null) {
+    setToast({ visible: true, message, action })
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), action ? 3500 : 2000)
   }
 
   function handleCopy() {
@@ -551,24 +744,39 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove }) {
   }
 
   function handleBookmark() {
-    if (isSaved) { onRemove(); showToast('✕ Removed from My Recipes') }
-    else         { onSave();  showToast('✓ Saved to My Recipes')       }
+    if (isSaved) {
+      onRemove()
+      showToast('✕ Removed from My Recipes')
+    } else {
+      onSave()
+      showToast('✓ Saved to My Recipes — view in Dashboard', onNavigateDashboard)
+    }
   }
 
   const isChef = mode === 'chef'
-  const chefAccent = '#D4900A'   // amber/gold for indulgent mode
+  const chefAccent = '#D4900A'
 
   return (
     <div className="animate-fade-in min-h-screen bg-sandy pb-28 sm:pb-12">
       <PaperTexture />
 
-      {/* Toast */}
-      <div className="fixed bottom-28 sm:bottom-20 left-1/2 z-[1000] pointer-events-none transition-all duration-300"
-        style={{ transform: `translateX(-50%) translateY(${toast.visible ? 0 : 8}px)`, opacity: toast.visible ? 1 : 0 }}>
-        <div className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg"
-          style={{ backgroundColor: '#2C2416' }}>
+      {/* Toast — tappable when action exists */}
+      <div
+        className="fixed bottom-28 sm:bottom-20 left-1/2 z-[1000] transition-all duration-300"
+        style={{
+          transform: `translateX(-50%) translateY(${toast.visible ? 0 : 8}px)`,
+          opacity: toast.visible ? 1 : 0,
+          pointerEvents: toast.visible && toast.action ? 'auto' : 'none',
+        }}
+      >
+        <button
+          onClick={toast.action ?? undefined}
+          className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg flex items-center gap-1.5"
+          style={{ backgroundColor: '#2C2416', cursor: toast.action ? 'pointer' : 'default' }}
+        >
           {toast.message}
-        </div>
+          {toast.action && <span className="opacity-60 text-xs">→</span>}
+        </button>
       </div>
 
       {/* ── Hero image ── */}
@@ -577,7 +785,6 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove }) {
           <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }} />
-          {/* Top bar: back + bookmark */}
           <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto flex items-center justify-between">
             <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors drop-shadow">
               {BACK_ARROW} Back to dishes
@@ -586,7 +793,6 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove }) {
               <BookmarkIcon filled={isSaved} />
             </button>
           </div>
-          {/* Dish name overlaid */}
           <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 max-w-2xl mx-auto">
             {chef.cuisine && <p className="text-xs font-medium text-white/65 uppercase tracking-widest mb-2">{chef.cuisine}</p>}
             <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white leading-tight"
@@ -750,12 +956,8 @@ function WelcomeScreen({ onStart }) {
   return (
     <div className="animate-fade-in min-h-screen bg-sandy flex flex-col relative">
       <PaperTexture />
-
-      {/* Scrollable content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
         <div className="w-full max-w-xs sm:max-w-sm space-y-8 text-center">
-
-          {/* Title */}
           <div className="space-y-2">
             <h1
               className="font-serif font-extrabold text-charcoal leading-none"
@@ -767,18 +969,13 @@ function WelcomeScreen({ onStart }) {
               High-protein meals built around what you've got.
             </p>
           </div>
-
-          {/* Hero image strip */}
           <div className="relative w-full h-36 sm:h-44 rounded-2xl overflow-hidden">
             {heroUrl
               ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
               : <div className="w-full h-full" style={{ backgroundColor: '#C1683A', opacity: 0.15 }} />
             }
-            {/* Sandy overlay at 40% */}
             <div className="absolute inset-0 rounded-2xl" style={{ backgroundColor: 'rgba(245,236,215,0.40)' }} />
           </div>
-
-          {/* Value props */}
           <div className="space-y-3 text-left">
             {VALUE_PROPS.map(({ emoji, text }) => (
               <div
@@ -791,8 +988,6 @@ function WelcomeScreen({ onStart }) {
               </div>
             ))}
           </div>
-
-          {/* CTA */}
           <button
             onClick={onStart}
             className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
@@ -868,8 +1063,6 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
     <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14 relative">
       <PaperTexture />
       <div className="max-w-3xl mx-auto space-y-8 relative">
-
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-serif text-4xl font-extrabold tracking-wide text-charcoal">My Recipes 📖</h1>
@@ -904,6 +1097,262 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
+function Dashboard({ profile, savedRecipes, sessions, onClose, onOpenRecipe, onQuickStart, onEditProfile, onViewSaved }) {
+  const cuisineFreq = useMemo(() => {
+    const counts = {}
+    savedRecipes.forEach(r => {
+      const raw = r.chef?.cuisine ?? ''
+      const c = raw.split(/[/,]/)[0].trim()
+      if (c.length > 1) counts[c] = (counts[c] || 0) + 1
+    })
+    sessions.forEach(s => {
+      if (s.cuisine) counts[s.cuisine] = (counts[s.cuisine] || 0) + 1
+    })
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3)
+  }, [savedRecipes, sessions])
+
+  const proteinFreq = useMemo(() => {
+    const counts = {}
+    sessions.forEach(s => {
+      ;(s.proteins || []).forEach(p => { counts[p] = (counts[p] || 0) + 1 })
+    })
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])
+  }, [sessions])
+
+  const topProtein    = proteinFreq[0]
+  const last4Recipes  = [...savedRecipes].reverse().slice(0, 4)
+  const last3Sessions = sessions.slice(0, 3)
+
+  const goalInfo = {
+    lose:     { label: 'Fat Loss',         emoji: '🔥' },
+    build:    { label: 'Muscle Build',     emoji: '💪' },
+    maintain: { label: 'Maintain & Thrive',emoji: '🥗' },
+  }[profile?.goal] ?? { label: 'Set a goal', emoji: '🎯' }
+
+  const isActive  = ['3-4x', '5-6x'].includes(profile?.trainingFreq)
+  const calTarget = profile?.goal === 'build'    ? '2,200–2,600' :
+                    profile?.goal === 'maintain' ? '2,000–2,200' :
+                    isActive                     ? '1,800–2,100' : '1,500–1,800'
+  const protTarget = profile?.weight ? Math.round(Number(profile.weight) * 1.8) : 160
+
+  function fmtDate(iso) {
+    const d    = new Date(iso)
+    const days = Math.floor((Date.now() - d) / 86400000)
+    if (days === 0) return 'Today'
+    if (days === 1) return 'Yesterday'
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  }
+
+  const sectionCard = { backgroundColor: '#FFFDF7', border: '1px solid #D4B896', boxShadow: '0 2px 8px rgba(44,36,22,0.07)' }
+
+  return (
+    <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14 relative">
+      <PaperTexture />
+      <div className="max-w-2xl mx-auto space-y-5 relative">
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-4xl font-extrabold tracking-wide text-charcoal">
+              {profile?.name ? `${profile.name}'s Kitchen` : 'Dashboard'} 📊
+            </h1>
+            <p className="text-charcoal-muted text-sm mt-1">Your personal nutrition hub</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors mt-1.5"
+          >
+            ← Back
+          </button>
+        </div>
+
+        {/* ── Goal card ── */}
+        <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl leading-none">{goalInfo.emoji}</span>
+            <div className="flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-0.5">Current Goal</p>
+              <p className="font-serif text-xl font-bold text-charcoal">{goalInfo.label}</p>
+            </div>
+            <button
+              onClick={onEditProfile}
+              className="text-xs font-medium transition-colors"
+              style={{ color: '#C1683A' }}
+            >
+              Edit →
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896' }}>
+              <p className="text-base font-bold tabular-nums" style={{ color: '#C1683A' }}>{calTarget}</p>
+              <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">kcal / day</p>
+            </div>
+            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #D4B896' }}>
+              <p className="text-base font-bold tabular-nums" style={{ color: '#7A9E7E' }}>{protTarget}g+</p>
+              <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">protein / day</p>
+            </div>
+          </div>
+          {profile?.weight && (
+            <p className="text-xs text-charcoal-muted">
+              Based on {profile.weight}kg
+              {profile.trainingFreq ? ` · trains ${profile.trainingFreq}/week` : ''}
+            </p>
+          )}
+        </div>
+
+        {/* ── Saved recipes mini-grid ── */}
+        {last4Recipes.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-lg font-bold text-charcoal">Saved Recipes</h2>
+              <button
+                onClick={onViewSaved}
+                className="text-xs font-medium transition-colors"
+                style={{ color: '#C1683A' }}
+              >
+                See all ({savedRecipes.length}) →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {last4Recipes.map(recipe => (
+                <button
+                  key={recipe._id}
+                  onClick={() => onOpenRecipe(recipe)}
+                  className="rounded-xl overflow-hidden text-left active:opacity-80 transition-opacity"
+                  style={{ backgroundColor: '#FFFDF7', border: '1px solid #D4B896' }}
+                >
+                  <div className="relative w-full h-24 overflow-hidden" style={{ backgroundColor: '#C1683A' }}>
+                    {recipe._imgUrl && (
+                      <img src={recipe._imgUrl} alt={recipe.name} className="w-full h-full object-cover" />
+                    )}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 60%)' }} />
+                    <p className="absolute bottom-0 left-0 right-0 px-2.5 pb-1.5 text-xs font-semibold text-white leading-tight line-clamp-2">
+                      {recipe.name}
+                    </p>
+                  </div>
+                  <div className="px-2.5 py-2 flex items-center justify-between">
+                    <span className="text-sm font-bold tabular-nums" style={{ color: '#C1683A' }}>
+                      {recipe.dietician?.macros?.calories ?? '—'} kcal
+                    </span>
+                    {recipe.dietician?.difficulty && (
+                      <span className="text-[10px] font-medium text-charcoal-muted">{recipe.dietician.difficulty}</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Favourite cuisines ── */}
+        {cuisineFreq.length > 0 && (
+          <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
+            <h2 className="font-serif text-lg font-bold text-charcoal">Favourite Cuisines</h2>
+            <div className="space-y-3">
+              {cuisineFreq.map(([cuisine, count], i) => {
+                const pct = Math.round((count / cuisineFreq[0][1]) * 100)
+                const barColor = i === 0 ? '#C1683A' : i === 1 ? '#D4900A' : '#7A9E7E'
+                return (
+                  <div key={cuisine} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-charcoal">{cuisine}</span>
+                      <span className="text-xs text-charcoal-muted">{count} {count === 1 ? 'time' : 'times'}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E8D9BC' }}>
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, backgroundColor: barColor }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Go-to protein ── */}
+        {topProtein && (
+          <div className="rounded-2xl p-5" style={sectionCard}>
+            <h2 className="font-serif text-lg font-bold text-charcoal mb-3">Go-to Protein</h2>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0"
+                style={{ backgroundColor: '#FDF0E8', border: '2px solid #C1683A' }}>
+                {PROTEIN_CARDS.find(p => p.value === topProtein[0])?.emoji ?? '🍽️'}
+              </div>
+              <div>
+                <p className="font-semibold text-charcoal capitalize">{topProtein[0]}</p>
+                <p className="text-xs text-charcoal-muted mt-0.5">
+                  Used in {topProtein[1]} session{topProtein[1] !== 1 ? 's' : ''} — your most-cooked protein
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Recent sessions ── */}
+        {last3Sessions.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-serif text-lg font-bold text-charcoal">Recent Sessions</h2>
+            <div className="space-y-2">
+              {last3Sessions.map(session => (
+                <div key={session.id} className="rounded-xl px-4 py-3.5 space-y-2" style={sectionCard}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-muted">
+                      {fmtDate(session.date)}
+                    </span>
+                    {session.cuisine && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: '#FAF3E4', color: '#8B7355', border: '1px solid #D4B896' }}>
+                        {session.cuisine}
+                      </span>
+                    )}
+                  </div>
+                  {session.proteins?.length > 0 && (
+                    <p className="text-sm text-charcoal">
+                      <span className="font-medium">Proteins:</span>{' '}
+                      <span className="text-charcoal-muted">{session.proteins.join(', ')}</span>
+                    </p>
+                  )}
+                  {session.dishes?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {session.dishes.map((d, i) => (
+                        <span key={i} className="text-[11px] px-2.5 py-1 rounded-full"
+                          style={{ backgroundColor: '#FAF3E4', color: '#5C4A2A', border: '1px solid #D4B896' }}>
+                          {d}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {last3Sessions.length === 0 && last4Recipes.length === 0 && (
+          <div className="text-center py-16 space-y-4">
+            <div className="text-5xl leading-none">🍽️</div>
+            <p className="text-charcoal-muted text-sm max-w-xs mx-auto leading-relaxed">
+              Your dashboard fills up as you cook. Start a session and get your first recipes.
+            </p>
+          </div>
+        )}
+
+        {/* ── Quick Start CTA ── */}
+        <button
+          onClick={onQuickStart}
+          className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
+          style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
+        >
+          Start cooking →
+        </button>
       </div>
     </div>
   )
@@ -946,15 +1395,15 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
     if (step === 4) return String(profile.goalAmount).trim().length > 0
     if (step === 5) return profile.trainingFreq !== ''
     if (step === 6) return profile.trainingTypes.length > 0
-    if (step === 7) return true  // optional
+    if (step === 7) return true
     if (step === 8) return profile.kitchenLevel !== ''
     return true
   }
 
-  const isLast      = stepIndex === totalSteps - 1
-  const btnLabel    = isLast ? 'Build my profile →'
-                   : (step === 7 && !profile.avoidFoods) ? 'Skip →'
-                   : 'Next →'
+  const isLast   = stepIndex === totalSteps - 1
+  const btnLabel = isLast ? 'Build my profile →'
+                 : (step === 7 && !profile.avoidFoods) ? 'Skip →'
+                 : 'Next →'
 
   const cardStyle = (selected) => ({
     backgroundColor: selected ? '#FDF0E8' : '#FFFDF7',
@@ -1039,20 +1488,21 @@ function Onboarding({ initialProfile, onComplete, onBack }) {
         <div className="space-y-4">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What type of training?</h2>
           <p className="text-sm text-charcoal-muted">Select all that apply</p>
-          <div className="flex flex-wrap gap-2">
-            {TRAINING_TYPES.map(type => {
-              const sel = profile.trainingTypes.includes(type)
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {TRAINING_TYPES.map(({ value, label, emoji }) => {
+              const sel = profile.trainingTypes.includes(value)
               return (
-                <button key={type}
+                <button key={value}
                   onClick={() => {
-                    if (type === 'None') { set('trainingTypes', sel ? [] : ['None']); return }
+                    if (value === 'None') { set('trainingTypes', sel ? [] : ['None']); return }
                     const filtered = profile.trainingTypes.filter(t => t !== 'None')
-                    set('trainingTypes', sel ? filtered.filter(t => t !== type) : [...filtered, type])
+                    set('trainingTypes', sel ? filtered.filter(t => t !== value) : [...filtered, value])
                   }}
-                  className="px-4 py-2.5 rounded-full border-2 text-sm font-medium transition-all"
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left"
                   style={{ backgroundColor: sel ? '#FDF0E8' : '#FFFDF7', borderColor: sel ? '#C1683A' : '#D4B896', color: sel ? '#C1683A' : '#5C4A2A' }}
                 >
-                  {type}
+                  <span className="text-lg leading-none shrink-0">{emoji}</span>
+                  <span className="leading-snug">{label}</span>
                 </button>
               )
             })}
@@ -1145,8 +1595,6 @@ function ProfileComplete({ profile, onEnter }) {
   return (
     <div className="animate-fade-in min-h-screen bg-sandy flex flex-col relative overflow-hidden">
       <PaperTexture />
-
-      {/* Hero image */}
       <div className="relative w-full h-64 sm:h-80 shrink-0 overflow-hidden">
         {heroUrl
           ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
@@ -1154,8 +1602,6 @@ function ProfileComplete({ profile, onEnter }) {
         }
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, #F5ECD7 100%)' }} />
       </div>
-
-      {/* Message */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 relative z-10 -mt-8">
         <div className="w-full max-w-xs sm:max-w-sm text-center space-y-6">
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-snug">
@@ -1181,50 +1627,65 @@ function ProfileComplete({ profile, onEnter }) {
 
 export default function App() {
   const [messages,       setMessages]       = useState(SEED)
-  const [input,          setInput]           = useState('')
+  const [input,          setInput]          = useState('')
   const [streaming,      setStreaming]       = useState(false)
   const [streamContent,  setStreamContent]  = useState('')
   const [awaitingDishes, setAwaitingDishes] = useState(false)
   const [dishes,         setDishes]         = useState(null)
   const [dishImages,     setDishImages]     = useState([])
-  const [profile,        setProfile]        = useState(() => {
-    try { const s = localStorage.getItem('lhc_profile'); return s ? JSON.parse(s) : null } catch { return null }
-  })
+  const [quickReplyType, setQuickReplyType] = useState('proteins')   // 'proteins'|'cuisine'|'time'|null
+  const [profile,        setProfile]        = useState(() => loadProfileOrEvict())
   const [savedRecipes,   setSavedRecipes]   = useState(() => {
+    // loadProfileOrEvict() already cleared storage if version mismatched,
+    // so a missing key here just means a genuine empty list.
     try { const s = localStorage.getItem('lhc_saved_recipes'); return s ? JSON.parse(s) : [] } catch { return [] }
   })
-  const [view,           setView]           = useState(    // 'welcome'|'onboarding'|'profile-complete'|'chat'|'cards'|'detail'|'saved'
-    () => localStorage.getItem('lhc_profile') ? 'chat' : 'welcome'
+  const [sessions,       setSessions]       = useState(() => {
+    try { const s = localStorage.getItem('lhc_sessions'); return s ? JSON.parse(s) : [] } catch { return [] }
+  })
+  const [view,           setView]           = useState(
+    () => loadProfileOrEvict() !== null ? 'chat' : 'welcome'
   )
   const [selectedDish,   setSelectedDish]   = useState(null)
-  const [viewingDish,    setViewingDish]    = useState(null)   // dish opened from saved view
+  const [viewingDish,    setViewingDish]    = useState(null)
   const [viewingDishImg, setViewingDishImg] = useState(null)
+  const [savedBackTo,    setSavedBackTo]    = useState('cards')
   const [error,          setError]          = useState(null)
 
-  const scrollRef = useRef(null)
-  const abortRef  = useRef(null)
-  const inputRef  = useRef(null)
+  const scrollRef      = useRef(null)
+  const abortRef       = useRef(null)
+  const inputRef       = useRef(null)
+  const sessionDataRef = useRef({ proteins: [], cuisine: '', time: '' })
 
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [messages, streamContent])
 
+  // Reset textarea height when input is cleared
+  useEffect(() => {
+    if (!input && inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
+  }, [input])
+
   const displayMessages = messages.filter(m => !(m.seed && m.role === 'user'))
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!input.trim() || streaming) return
+  // ── Core message send ──────────────────────────────────────────────────────
 
-    const userMsg     = { id: Date.now(), role: 'user', content: input.trim() }
+  async function submitMessage(text) {
+    if (!text.trim() || streaming) return
+
+    const userMsg      = { id: Date.now(), role: 'user', content: text.trim() }
     const nextMessages = [...messages, userMsg]
 
     setMessages(nextMessages)
-    setInput('')           // clear immediately
+    setInput('')
     setStreaming(true)
     setStreamContent('')
     setAwaitingDishes(false)
     setError(null)
+    setQuickReplyType(null)
 
     abortRef.current = new AbortController()
 
@@ -1241,8 +1702,8 @@ export default function App() {
         throw new Error(data.error || `Server error ${res.status}`)
       }
 
-      const reader  = res.body.getReader()
-      const decoder = new TextDecoder()
+      const reader    = res.body.getReader()
+      const decoder   = new TextDecoder()
       let sseBuffer   = ''
       let accumulated = ''
       let sawDishes   = false
@@ -1260,25 +1721,26 @@ export default function App() {
           const payload = line.slice(6)
 
           if (payload === '[DONE]') {
-            // Always attempt parsing — safe for non-recipe turns (returns [])
             const parsed = parseDishes(accumulated)
             if (parsed.length > 0) {
               setDishes(parsed)
+              setDishImages([])
+              saveSession(parsed.map(d => d.name))
               setView('cards')
             } else {
-              // Parsing found nothing — treat as a normal conversational reply
               setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: accumulated }])
+              const nextType = detectQuickReplyType(accumulated)
+              setQuickReplyType(nextType)
             }
             break outer
           }
 
           try {
-            const { text, error: chunkErr } = JSON.parse(payload)
+            const { text: chunk, error: chunkErr } = JSON.parse(payload)
             if (chunkErr) throw new Error(chunkErr)
-            if (text) {
-              accumulated += text
+            if (chunk) {
+              accumulated += chunk
               if (!sawDishes) {
-                // Detect recipe output by emoji OR by seeing ≥2 "Chef Version" mentions
                 const looksLikeRecipes =
                   accumulated.includes('🍽️') ||
                   (accumulated.match(/chef\s+version/gi) || []).length >= 2
@@ -1303,13 +1765,53 @@ export default function App() {
     }
   }
 
-  function handleStop()  { abortRef.current?.abort() }
+  function handleSubmit(e) {
+    e?.preventDefault()
+    submitMessage(input)
+  }
+
+  function handleQuickReply(text, data, type) {
+    if (type === 'proteins') sessionDataRef.current.proteins = data
+    else if (type === 'cuisine') sessionDataRef.current.cuisine = data[0] ?? ''
+    else if (type === 'time') sessionDataRef.current.time = data[0] ?? ''
+    submitMessage(text)
+  }
+
+  function handleStop() { abortRef.current?.abort() }
 
   function handleReset() {
-    setMessages(SEED); setDishes(null); setDishImages([]); setView('chat')
-    setSelectedDish(null); setViewingDish(null); setViewingDishImg(null)
-    setError(null); setInput('')
+    setMessages(SEED)
+    setDishes(null)
+    setDishImages([])
+    setView('chat')
+    setSelectedDish(null)
+    setViewingDish(null)
+    setViewingDishImg(null)
+    setError(null)
+    setInput('')
+    setQuickReplyType('proteins')
+    sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
     setTimeout(() => inputRef.current?.focus(), 50)
+  }
+
+  function saveSession(dishNames) {
+    const data = sessionDataRef.current
+    // Only save if there's at least something meaningful
+    if (!data.proteins?.length && !dishNames?.length) return
+    const session = {
+      id:       Date.now(),
+      date:     new Date().toISOString(),
+      proteins: data.proteins || [],
+      cuisine:  data.cuisine  || '',
+      time:     data.time     || '',
+      dishes:   dishNames     || [],
+    }
+    setSessions(prev => {
+      const next = [session, ...prev].slice(0, 10)
+      localStorage.setItem('lhc_sessions', JSON.stringify(next))
+      return next
+    })
+    sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
   }
 
   function handleSaveRecipe(dish, imgUrl) {
@@ -1333,38 +1835,59 @@ export default function App() {
     return savedRecipes.some(r => r.name === dishName)
   }
 
-  // ── Welcome ─────────────────────────────────────────────────────────────────
+  // ── View: Welcome ────────────────────────────────────────────────────────────
   if (view === 'welcome') {
     return <WelcomeScreen onStart={() => setView('onboarding')} />
   }
 
-  // ── Onboarding ───────────────────────────────────────────────────────────────
+  // ── View: Onboarding ─────────────────────────────────────────────────────────
   if (view === 'onboarding') {
     return (
       <Onboarding
         initialProfile={profile}
         onBack={() => setView(profile ? 'chat' : 'welcome')}
         onComplete={p => {
-          const saved = { ...p, completedAt: Date.now() }
+          const saved = { ...p, completedAt: Date.now(), version: PROFILE_VERSION }
           localStorage.setItem('lhc_profile', JSON.stringify(saved))
           setProfile(saved)
-          setView(profile ? 'chat' : 'profile-complete')  // skip complete screen on edit
+          setView(profile ? 'chat' : 'profile-complete')
         }}
       />
     )
   }
 
-  // ── Profile complete ─────────────────────────────────────────────────────────
+  // ── View: Profile complete ───────────────────────────────────────────────────
   if (view === 'profile-complete') {
     return <ProfileComplete profile={profile} onEnter={() => setView('chat')} />
   }
 
-  // ── Saved recipes view ───────────────────────────────────────────────────────
+  // ── View: Dashboard ──────────────────────────────────────────────────────────
+  if (view === 'dashboard') {
+    return (
+      <Dashboard
+        profile={profile}
+        savedRecipes={savedRecipes}
+        sessions={sessions}
+        onClose={() => setView('chat')}
+        onOpenRecipe={recipe => {
+          setViewingDish(recipe)
+          setViewingDishImg(recipe._imgUrl ?? null)
+          setSavedBackTo('dashboard')
+          setView('detail')
+        }}
+        onQuickStart={handleReset}
+        onEditProfile={() => setView('onboarding')}
+        onViewSaved={() => { setSavedBackTo('dashboard'); setView('saved') }}
+      />
+    )
+  }
+
+  // ── View: Saved recipes ──────────────────────────────────────────────────────
   if (view === 'saved') {
     return (
       <SavedRecipesView
         savedRecipes={savedRecipes}
-        onClose={() => setView('cards')}
+        onClose={() => setView(savedBackTo)}
         onRemove={handleRemoveRecipe}
         onOpen={recipe => {
           setViewingDish(recipe)
@@ -1375,11 +1898,11 @@ export default function App() {
     )
   }
 
-  // ── Detail ──────────────────────────────────────────────────────────────────
+  // ── View: Detail ─────────────────────────────────────────────────────────────
   if (view === 'detail' && (selectedDish !== null || viewingDish !== null)) {
     const dish   = viewingDish ?? dishes[selectedDish]
     const imgUrl = viewingDish ? viewingDishImg : (dishImages[selectedDish] ?? null)
-    const backTo = viewingDish ? 'saved' : 'cards'
+    const backTo = viewingDish ? savedBackTo : 'cards'
     return (
       <DetailView
         dish={dish}
@@ -1388,11 +1911,12 @@ export default function App() {
         isSaved={isRecipeSaved(dish.name)}
         onSave={() => handleSaveRecipe(dish, imgUrl)}
         onRemove={() => handleRemoveRecipe(dish.name)}
+        onNavigateDashboard={() => setView('dashboard')}
       />
     )
   }
 
-  // ── Cards ───────────────────────────────────────────────────────────────────
+  // ── View: Cards ──────────────────────────────────────────────────────────────
   if (view === 'cards' && dishes) {
     return (
       <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14">
@@ -1407,24 +1931,32 @@ export default function App() {
                 Tap a card to open the full recipe.
               </p>
             </div>
-            <div className="flex gap-2 mt-1.5 shrink-0">
-              {savedRecipes.length > 0 && (
-                <button
-                  onClick={() => setView('saved')}
-                  className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  📖 My Recipes
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#C1683A' }}>
-                    {savedRecipes.length}
-                  </span>
-                </button>
-              )}
+            <div className="flex flex-col gap-2 mt-1.5 shrink-0 items-end">
               <button
-                onClick={handleReset}
+                onClick={() => setView('dashboard')}
                 className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
               >
-                Start over
+                📊 Dashboard
               </button>
+              <div className="flex gap-2">
+                {savedRecipes.length > 0 && (
+                  <button
+                    onClick={() => { setSavedBackTo('cards'); setView('saved') }}
+                    className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    📖 My Recipes
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#C1683A' }}>
+                      {savedRecipes.length}
+                    </span>
+                  </button>
+                )}
+                <button
+                  onClick={handleReset}
+                  className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Start over
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1445,7 +1977,7 @@ export default function App() {
     )
   }
 
-  // ── Skeleton (streaming dishes) ─────────────────────────────────────────────
+  // ── View: Skeleton (streaming dishes) ───────────────────────────────────────
   if (awaitingDishes) {
     return (
       <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14">
@@ -1467,7 +1999,7 @@ export default function App() {
     )
   }
 
-  // ── Chat ────────────────────────────────────────────────────────────────────
+  // ── View: Chat ───────────────────────────────────────────────────────────────
   return (
     <div className="animate-fade-in flex flex-col h-[100dvh] bg-sandy relative">
       <PaperTexture />
@@ -1475,15 +2007,23 @@ export default function App() {
       {/* Header */}
       <div className="shrink-0 px-4 py-3.5 border-b border-sandy-border bg-sandy-light/80 backdrop-blur-sm flex items-center justify-between">
         <h1 className="font-serif text-xl font-extrabold tracking-wider text-charcoal">Let Him Cook</h1>
-        <button
-          onClick={() => setView('onboarding')}
-          className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1"
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
-          </svg>
-          {profile?.name ?? 'Profile'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setView('dashboard')}
+            className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-transparent hover:border-sandy-border"
+          >
+            📊 <span className="hidden sm:inline">Dashboard</span>
+          </button>
+          <button
+            onClick={() => setView('onboarding')}
+            className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
+            </svg>
+            {profile?.name ?? 'Profile'}
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -1505,18 +2045,42 @@ export default function App() {
         </div>
       )}
 
+      {/* Quick reply area */}
+      {quickReplyType && !streaming && (
+        <div className="shrink-0 border-t border-sandy-border px-4 pt-3 pb-2 bg-sandy-light relative z-10">
+          <QuickReplyRow
+            type={quickReplyType}
+            onSubmit={(text, data) => handleQuickReply(text, data, quickReplyType)}
+            onDismiss={() => setQuickReplyType(null)}
+            onFocusInput={() => setTimeout(() => inputRef.current?.focus(), 50)}
+          />
+        </div>
+      )}
+
       {/* Input bar */}
       <div className="shrink-0 border-t border-sandy-border px-4 pt-2.5 pb-3 bg-sandy-light relative z-10">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-1.5">Your answer</p>
-        <form onSubmit={handleSubmit} className="flex gap-2 items-center">
-          <input
+        <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+          <textarea
             ref={inputRef}
-            type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Type your answer…"
+            onInput={e => {
+              const ta = e.target
+              ta.style.height = 'auto'
+              ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (!streaming && input.trim()) submitMessage(input)
+              }
+            }}
+            placeholder="Type here or tap an option above..."
+            rows={1}
             disabled={streaming}
-            className="flex-1 rounded-full bg-cream border border-sandy-border px-5 py-2.5 text-sm text-charcoal placeholder-charcoal-muted/70 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta disabled:opacity-50 transition min-h-[44px]"
+            className="flex-1 rounded-2xl bg-cream border border-sandy-border px-4 py-3 text-charcoal placeholder-charcoal-muted/70 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta disabled:opacity-50 transition leading-snug"
+            style={{ fontSize: 16, minHeight: 44, maxHeight: 120, resize: 'none', overflowY: 'auto' }}
           />
           {streaming ? (
             <button
@@ -1531,9 +2095,14 @@ export default function App() {
           ) : (
             <button
               type="submit"
-              onClick={handleSubmit}
-              style={{ backgroundColor: '#C1683A', width: 44, height: 44, flexShrink: 0 }}
-              className="flex items-center justify-center rounded-full text-white active:opacity-80 transition-opacity"
+              style={{
+                backgroundColor: input.trim() ? '#C1683A' : '#D4B896',
+                width: 44,
+                height: 44,
+                flexShrink: 0,
+                transition: 'background-color 0.15s',
+              }}
+              className="flex items-center justify-center rounded-full text-white active:opacity-80"
               aria-label="Send"
             >
               <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5" style={{ marginLeft: 2 }}>
