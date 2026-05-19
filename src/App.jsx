@@ -37,6 +37,7 @@ function parseDishChunk(chunk) {
   const nameLine = chunk.split('\n').find(l => l.includes('🍽️')) ?? ''
   const name = nameLine
     .replace(/🍽️\s*/g, '')
+    .replace(/^dish\s*\d+\s*[:\-—–]\s*/i, '')
     .replace(/[-—–]+\s*chef\s+version\s*$/i, '')
     .trim() || 'Dish'
 
