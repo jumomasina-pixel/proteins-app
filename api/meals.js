@@ -180,8 +180,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'messages array is required' })
   }
 
+  // Build system prompt — wrapped so a bad profile never crashes before headers are sent
+  let system
+  try {
+    system = buildProfileSection(profile) + SYSTEM_PROMPT
+  } catch (err) {
+    console.error('[meals] buildProfileSection threw:', err, '| profile:', JSON.stringify(profile))
+    return res.status(500).json({ error: 'Failed to build system prompt' })
+  }
+
+  console.log(`[meals] Request — messages: ${messages.length}, profile.name: ${profile?.name ?? 'null'}`)
+
   const client = new Anthropic({ apiKey })
-  const system = buildProfileSection(profile) + SYSTEM_PROMPT
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -207,8 +217,11 @@ export default async function handler(req, res) {
     res.write('data: [DONE]\n\n')
     res.end()
   } catch (err) {
-    console.error(err)
+    // Always write [DONE] after the error so the client knows the stream is finished
+    // and can surface the error properly instead of hanging or silently resetting.
+    console.error('[meals] Anthropic stream error:', err)
     res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`)
+    res.write('data: [DONE]\n\n')
     res.end()
   }
 }

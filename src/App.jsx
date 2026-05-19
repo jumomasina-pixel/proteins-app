@@ -2313,7 +2313,13 @@ export default function App() {
 
     abortRef.current = new AbortController()
 
+    // Track whether we received the [DONE] sentinel — if the stream closes without
+    // it (server crash, Vercel timeout, network drop) we can surface a proper error.
+    let sawDone = false
+
     try {
+      console.log(`[meals] Sending ${nextMessages.length} messages, profile: ${profile?.name ?? 'null'}`)
+
       const res = await fetch('/api/meals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2322,8 +2328,11 @@ export default function App() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || `Server error ${res.status}`)
+        // Non-200 before streaming starts — safe to read body as JSON
+        let errMsg = `Server error ${res.status}`
+        try { const data = await res.json(); errMsg = data.error || errMsg } catch {}
+        console.error('[meals] Non-OK response:', res.status, errMsg)
+        throw new Error(errMsg)
       }
 
       const reader    = res.body.getReader()
@@ -2345,6 +2354,7 @@ export default function App() {
           const payload = line.slice(6)
 
           if (payload === '[DONE]') {
+            sawDone = true
             const parsed = parseDishes(accumulated)
             if (parsed.length > 0) {
               setDishes(parsed)
@@ -2361,29 +2371,73 @@ export default function App() {
             break outer
           }
 
+          // Parse the SSE JSON payload — keep the JSON parse error separate from
+          // a server-reported error so we can handle each correctly.
+          let chunkData
           try {
-            const { text: chunk, error: chunkErr } = JSON.parse(payload)
-            if (chunkErr) throw new Error(chunkErr)
-            if (chunk) {
-              accumulated += chunk
-              if (!sawDishes) {
-                const looksLikeRecipes =
-                  accumulated.includes('🍽️') ||
-                  (accumulated.match(/chef\s+version/gi) || []).length >= 2
-                if (looksLikeRecipes) {
-                  sawDishes = true
-                  setAwaitingDishes(true)
-                  setStreamContent('')
-                } else {
-                  setStreamContent(accumulated)
-                }
+            chunkData = JSON.parse(payload)
+          } catch {
+            // Truly malformed JSON in the SSE frame — skip silently
+            continue
+          }
+
+          const { text: chunk, error: chunkErr } = chunkData
+          if (chunkErr) {
+            // Server signalled an error inside the stream — propagate it so the
+            // outer catch can surface it to the user instead of swallowing it.
+            console.error('[meals] Server stream error:', chunkErr)
+            throw new Error(chunkErr)
+          }
+
+          if (chunk) {
+            accumulated += chunk
+            if (!sawDishes) {
+              const looksLikeRecipes =
+                accumulated.includes('🍽️') ||
+                (accumulated.match(/chef\s+version/gi) || []).length >= 2
+              if (looksLikeRecipes) {
+                sawDishes = true
+                setAwaitingDishes(true)
+                setStreamContent('')
+              } else {
+                setStreamContent(accumulated)
               }
             }
-          } catch { /* skip malformed SSE chunk */ }
+          }
+        }
+      }
+
+      // Stream closed without [DONE] — the connection dropped or the server timed
+      // out after headers were already sent (so res.ok was true but no sentinel).
+      if (!sawDone) {
+        console.error('[meals] Stream ended without [DONE]. Accumulated length:', accumulated.length, '| Preview:', accumulated.slice(0, 200))
+        // Try to salvage partial content before giving up
+        const parsed = accumulated ? parseDishes(accumulated) : []
+        if (parsed.length > 0) {
+          console.log('[meals] Partial parse succeeded —', parsed.length, 'dishes recovered')
+          setDishes(parsed)
+          setDishImages([])
+          setMissingIngredients(parseMissingIngredients(accumulated))
+          setShoppingListCopied(false)
+          saveSession(parsed)
+          setView('cards')
+        } else {
+          throw new Error('The connection dropped before your recipes arrived. Try again.')
         }
       }
     } catch (err) {
-      if (err.name !== 'AbortError') setError(err.message)
+      if (err.name === 'AbortError') return  // user tapped Stop — no error needed
+
+      console.error('[meals] Request failed:', err)
+
+      // Add error as an assistant message so the user sees it in context, not just
+      // a banner they might miss. Keep the banner too for dev visibility.
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        role: 'assistant',
+        content: 'Something went wrong generating your recipes. Try again — if it keeps happening, start a fresh session.',
+      }])
+      setError(err.message)
     } finally {
       setStreaming(false)
       setStreamContent('')
