@@ -29,7 +29,9 @@ function parseDishChunk(chunk) {
   console.log('[parseDishChunk] splitIdx:', splitIdx,
     '| chefPart len:', chefPart.length,
     '| dietPart len:', dietPart.length)
-  console.log('[parseDishChunk] dietPart preview:', dietPart.slice(0, 300))
+  const macroIdx = dietPart.search(/macros/i)
+  console.log('[parseDishChunk] macroIdx in dietPart:', macroIdx)
+  console.log('[parseDishChunk] macros section:', dietPart.slice(Math.max(0, macroIdx - 10), macroIdx + 300))
 
   // Dish name — first line containing 🍽️, stripped of emoji and "— Chef Version"
   const nameLine = chunk.split('\n').find(l => l.includes('🍽️')) ?? ''
@@ -64,11 +66,31 @@ function parseDishChunk(chunk) {
     /key\s+technique[^:\n]*:\s*([^\n]+)/i,
   )
 
-  // Macros: search the entire dietPart — robust against bullets, indentation, bold
-  const calories = grabNum(dietPart, /calories\s*:\s*~?\s*(\d[\d,]*)/i)
-  const protein  = grabNum(dietPart, /protein\s*:\s*~?\s*(\d[\d,]*)/i)
-  const carbs    = grabNum(dietPart, /carbs?\s*:\s*~?\s*(\d[\d,]*)/i)
-  const fat      = grabNum(dietPart, /\bfat\s*:\s*~?\s*(\d[\d,]*)/i)
+  // Macros: search the entire dietPart — robust against bullets, indentation, bold, table format
+  const calories = grabNum(dietPart,
+    /calories\s*:\s*~?\s*(\d[\d,]*)/i,          // Calories: ~450
+    /\|\s*~?\s*(\d[\d,]*)\s*kcal/i,             // | ~450 kcal  (table)
+    /(\d[\d,]*)\s*kcal\b/i,                     // 450 kcal (bare)
+  )
+  const protein = grabNum(dietPart,
+    /protein\s*:\s*~?\s*(\d[\d,]*)/i,           // Protein: ~45g
+    /\|\s*~?\s*(\d[\d,]*)g[^a-z]/i,            // | ~45g  (first number with g, table)
+    /(\d[\d,]*)g?\s+protein/i,                  // 45g protein (reversed)
+  )
+  const carbs = grabNum(dietPart,
+    /carbs?\s*:\s*~?\s*(\d[\d,]*)/i,            // Carbs: ~30g
+    /carbohydrate\s*:\s*~?\s*(\d[\d,]*)/i,      // Carbohydrate: ~30
+    /(\d[\d,]*)g?\s+carbs?/i,                   // 30g carbs (reversed)
+  )
+  const fat = grabNum(dietPart,
+    /\bfat\s*:\s*~?\s*(\d[\d,]*)/i,             // Fat: ~12g
+    /(\d[\d,]*)g?\s+fat\b/i,                    // 12g fat (reversed)
+  )
+  console.log('[parseDishChunk] raw macro matches — cal:', dietPart.match(/calories\s*:\s*~?\s*(\d[\d,]*)/i),
+    '| prot:', dietPart.match(/protein\s*:\s*~?\s*(\d[\d,]*)/i),
+    '| carbs:', dietPart.match(/carbs?\s*:\s*~?\s*(\d[\d,]*)/i),
+    '| fat:', dietPart.match(/\bfat\s*:\s*~?\s*(\d[\d,]*)/i))
+  console.log('[parseDishChunk] extracted macros:', { calories, protein, carbs, fat })
 
   const stepsRaw = grab(dietPart,
     /quick\s+cook\s+steps[^:\n]*:\s*([\s\S]+?)(?=\ndietician|$)/i,
