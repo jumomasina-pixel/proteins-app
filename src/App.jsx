@@ -1477,12 +1477,8 @@ function WelcomeScreen({ onStart }) {
   const [imgLoaded,  setImgLoaded]  = useState(false)
   const [showBelow,  setShowBelow]  = useState(false)
 
-  useEffect(() => {
-    fetch('/api/unsplash?query=meal+prep+athlete+kitchen+dark+moody')
-      .then(r => r.json())
-      .then(d => { if (d.url) setHeroUrl(d.url) })
-      .catch(() => {})
-  }, [])
+  // Hero image is a fixed Unsplash photo — no fetch needed
+  useEffect(() => { setHeroUrl('https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=1200&q=85') }, [])
 
   // Reveal content below the hero once image is loaded (or after 1.2s fallback)
   useEffect(() => {
@@ -1525,7 +1521,7 @@ function WelcomeScreen({ onStart }) {
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(to bottom, rgba(26,17,8,0.25) 0%, rgba(26,17,8,0.05) 30%, rgba(26,17,8,0.7) 75%, #1A1108 100%)',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 45%, rgba(26,17,8,0.7) 80%, #1A1108 100%)',
           }}
         />
 
@@ -1542,8 +1538,8 @@ function WelcomeScreen({ onStart }) {
             Let Him Cook
           </h1>
           <p
-            className="mt-2 font-sans text-white/85"
-            style={{ fontSize: '0.6rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.25em', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+            className="mt-3 font-sans"
+            style={{ fontSize: '1.125rem', fontWeight: 500, color: '#FAF6EE', textShadow: '0 1px 6px rgba(0,0,0,0.6)', letterSpacing: '0.01em' }}
           >
             Personal Chef · Dietician · Coach
           </p>
