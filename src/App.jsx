@@ -1766,12 +1766,12 @@ function ChefLoader() {
 
         {/* Chef photo */}
         <img
-          src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80"
+          src="https://images.unsplash.com/photo-1629407119384-d42320c3e576?w=800&q=80"
           alt="Chef cooking"
           className="loader-chef"
           style={{
-            width: 200,
-            height: 200,
+            width: 280,
+            height: 280,
             objectFit: 'cover',
             borderRadius: '50%',
             boxShadow: '0 8px 32px rgba(26,17,8,0.18)',
