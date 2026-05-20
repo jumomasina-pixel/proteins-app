@@ -1572,58 +1572,6 @@ function WelcomeScreen({ onStart }) {
             </p>
           </div>
 
-          {/* ── Value props ── */}
-          <div className="space-y-3">
-            {WELCOME_VALUE_PROPS.map(({ icon, text }, i) => (
-              <div
-                key={text}
-                className={`flex items-center gap-4 prop-enter-${i}`}
-              >
-                <span
-                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-base"
-                  style={{ backgroundColor: 'rgba(193,104,58,0.15)', border: '1px solid rgba(193,104,58,0.3)' }}
-                >
-                  {icon}
-                </span>
-                <span
-                  className="text-sm font-medium leading-snug"
-                  style={{ color: 'rgba(255,255,255,0.80)' }}
-                >
-                  {text}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Social proof ── */}
-          <p
-            className="text-center italic"
-            style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.32)', lineHeight: 1.6 }}
-          >
-            — Trusted by athletes, home cooks, and everyone in between
-          </p>
-
-          {/* ── CTA ── */}
-          <div className="space-y-3">
-            <button
-              onClick={onStart}
-              className="cta-pulse w-full py-4 rounded-xl font-bold text-base text-white transition-opacity active:opacity-80"
-              style={{
-                backgroundColor: '#C1683A',
-                fontSize: '1rem',
-                letterSpacing: '0.01em',
-              }}
-            >
-              Build My Profile →
-            </button>
-            <p
-              className="text-center"
-              style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.30)', letterSpacing: '0.04em' }}
-            >
-              Free · No account needed · Takes 2 minutes
-            </p>
-          </div>
-
         </div>
       </div>
 
@@ -1725,6 +1673,60 @@ function WelcomeScreen({ onStart }) {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* ── Value props ── */}
+        <div className="w-full max-w-sm mx-auto flex flex-col gap-8">
+          <div className="space-y-3">
+            {WELCOME_VALUE_PROPS.map(({ icon, text }, i) => (
+              <div
+                key={text}
+                className={`flex items-center gap-4 prop-enter-${i}`}
+              >
+                <span
+                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-base"
+                  style={{ backgroundColor: 'rgba(193,104,58,0.15)', border: '1px solid rgba(193,104,58,0.3)' }}
+                >
+                  {icon}
+                </span>
+                <span
+                  className="text-sm font-medium leading-snug"
+                  style={{ color: 'rgba(255,255,255,0.80)' }}
+                >
+                  {text}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Social proof ── */}
+          <p
+            className="text-center italic"
+            style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.32)', lineHeight: 1.6 }}
+          >
+            — Trusted by athletes, home cooks, and everyone in between
+          </p>
+
+          {/* ── CTA ── */}
+          <div className="space-y-3">
+            <button
+              onClick={onStart}
+              className="cta-pulse w-full py-4 rounded-xl font-bold text-base text-white transition-opacity active:opacity-80"
+              style={{
+                backgroundColor: '#C1683A',
+                fontSize: '1rem',
+                letterSpacing: '0.01em',
+              }}
+            >
+              Build My Profile →
+            </button>
+            <p
+              className="text-center"
+              style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.30)', letterSpacing: '0.04em' }}
+            >
+              Free · No account needed · Takes 2 minutes
+            </p>
+          </div>
         </div>
 
       </div>
