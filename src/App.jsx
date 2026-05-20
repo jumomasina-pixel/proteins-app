@@ -227,7 +227,7 @@ function parseMissingIngredients(rawText) {
 
 const SEED = [
   { id: 'seed-u', role: 'user',      content: 'I want meal ideas', seed: true },
-  { id: 'seed-a', role: 'assistant', content: "Quick fridge audit — go ahead and open it up.\n\nWhat proteins do you have? Check the shelves, the freezer drawer, any leftovers. Don't forget eggs.\n\nAnd while you're in there — anything useful in the pantry or veggie drawer? Garlic, onion, grains, tinned stuff, fresh veg — it all shapes what I can build you.", seed: true },
+  { id: 'seed-a', role: 'assistant', content: "Let's see what we can build. Open your fridge — what proteins do you have? Anything in the freezer, pantry, or veggie drawer counts too.", seed: true },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -650,13 +650,19 @@ function BottomNav({ activeView, onNavigate }) {
 
 function ChefAvatar() {
   return (
-    <div
-      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-base select-none"
-      style={{ backgroundColor: '#FDF0E8', border: '1.5px solid #C8B090' }}
+    <img
+      src="https://images.unsplash.com/photo-1629407119384-d42320c3e576?w=100&q=80"
+      alt=""
       aria-hidden
-    >
-      🧑‍🍳
-    </div>
+      className="shrink-0 select-none"
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: '50%',
+        objectFit: 'cover',
+        border: '2px solid #C1683A',
+      }}
+    />
   )
 }
 
@@ -739,11 +745,14 @@ function ChatBubble({ role, content, isStreaming, userName }) {
               fontSize: '0.875rem',
             }
           : {
-              backgroundColor: '#FAF6EE',
-              color: '#1A1108',
-              borderLeft: '3px solid #C1683A',
-              borderRadius: '0 16px 16px 16px',
-              boxShadow: '0 1px 6px rgba(26,17,8,0.07)',
+              backgroundColor: '#FFFFFF',
+              color: '#2C1810',
+              border: '1px solid rgba(193,104,58,0.12)',
+              borderRadius: '16px',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              fontSize: '15px',
+              lineHeight: 1.7,
+              fontFamily: 'DM Sans, sans-serif',
             }
         }
       >
@@ -762,7 +771,7 @@ function TypingIndicator() {
       <ChefAvatar />
       <div
         className="flex items-center gap-1.5 px-4 py-3.5"
-        style={{ backgroundColor: '#FAF6EE', borderLeft: '3px solid #C1683A', borderRadius: '0 16px 16px 16px', boxShadow: '0 1px 6px rgba(26,17,8,0.07)' }}
+        style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(193,104,58,0.12)', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
       >
         {[0, 1, 2].map(i => (
           <span
@@ -782,9 +791,13 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   const [selected, setSelected] = useState([])
 
   const chipStyle = (sel) => ({
-    backgroundColor: sel ? '#FDF0E8' : '#FAF6EE',
-    borderColor:     sel ? '#C1683A' : '#C8B090',
-    color:           sel ? '#C1683A' : '#4A3728',
+    backgroundColor: sel ? '#FFF5EE' : '#FAF6EE',
+    borderColor:     sel ? '#C1683A' : 'rgba(193,104,58,0.25)',
+    color:           sel ? '#C1683A' : '#2C1810',
+    borderRadius:    20,
+    fontSize:        13,
+    fontFamily:      'DM Sans, sans-serif',
+    fontWeight:      400,
   })
 
   // "Something else" focuses the textarea rather than just vanishing the row
@@ -839,7 +852,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
             <button
               key={card.value}
               onClick={() => toggleProtein(card.value)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all"
               style={chipStyle(selected.includes(card.value))}
             >
               <span>{card.emoji}</span>
@@ -855,7 +868,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
             <button
               key={card.value}
               onClick={() => togglePantry(card.value)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all"
               style={chipStyle(pantrySelected.includes(card.value))}
             >
               <span>{card.emoji}</span>
@@ -892,7 +905,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
             <button
               key={card.value}
               onClick={() => onSubmit(card.value, [card.value])}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all active:scale-95"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all active:scale-95"
               style={chipStyle(false)}
             >
               <span>{card.emoji}</span>
@@ -914,7 +927,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
             <button
               key={card.value}
               onClick={() => onSubmit(card.value, [card.value])}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm font-medium transition-all active:scale-95"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all active:scale-95"
               style={chipStyle(false)}
             >
               <span>{card.emoji}</span>
@@ -3190,8 +3203,11 @@ export default function App() {
         <div className="flex flex-col flex-1 min-w-0">
 
           {/* Header */}
-          <div className="shrink-0 px-4 py-3.5 border-b border-sandy-border bg-sandy-light/80 backdrop-blur-sm flex items-center justify-between">
-            <h1 className="font-serif text-xl font-extrabold tracking-wider text-charcoal">Let Him Cook</h1>
+          <div className="shrink-0 px-4 py-3.5 bg-sandy-light/80 backdrop-blur-sm flex items-center justify-between" style={{ borderBottom: '1px solid rgba(193,104,58,0.15)' }}>
+            <div>
+              <h1 className="font-serif font-extrabold" style={{ fontSize: 22, color: '#1A1108', letterSpacing: '0.03em' }}>Let Him Cook</h1>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, letterSpacing: '0.08em', color: '#C1683A', opacity: 0.8 }}>Personal Chef · Dietician · Coach</p>
+            </div>
             {/* Desktop nav only — mobile uses BottomNav */}
             <div className="hidden sm:flex items-center gap-2">
               <button
