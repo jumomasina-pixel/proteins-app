@@ -1068,10 +1068,12 @@ function CookStepsList({ steps, accentColor }) {
   )
 }
 
-function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigateDashboard }) {
-  const [mode,   setMode]   = useState('diet')
-  const [copied, setCopied] = useState(false)
-  const [toast,  setToast]  = useState({ visible: false, message: '', action: null })
+function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigateDashboard, missingIngredients = [] }) {
+  const [mode,         setMode]         = useState('diet')
+  const [copied,       setCopied]       = useState(false)
+  const [toast,        setToast]        = useState({ visible: false, message: '', action: null })
+  const [checkedItems, setCheckedItems] = useState(new Set())
+  const [listCopied,   setListCopied]   = useState(false)
   const { chef, dietician } = dish
 
   function showToast(message, action = null) {
@@ -1093,6 +1095,23 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       onSave()
       showToast('✓ Saved — view in Dashboard', onNavigateDashboard)
     }
+  }
+
+  function toggleCheckedItem(i) {
+    setCheckedItems(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
+  function handleCopyShoppingList() {
+    const unchecked = missingIngredients.filter((_, i) => !checkedItems.has(i))
+    if (unchecked.length === 0) return
+    navigator.clipboard.writeText(unchecked.join('\n')).then(() => {
+      setListCopied(true)
+      setTimeout(() => setListCopied(false), 2000)
+    })
   }
 
   const isChef = mode === 'chef'
@@ -1263,6 +1282,84 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
               </div>
             )}
           </section>
+        )}
+
+        {/* ── WHAT YOU'LL NEED ── */}
+        {missingIngredients.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted">
+              What You'll Need
+            </h3>
+            <div
+              className="rounded-xl p-5 space-y-4"
+              style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 1px 6px rgba(26,17,8,0.06)' }}
+            >
+              <ul className="space-y-2.5">
+                {missingIngredients.map((item, i) => {
+                  const checked = checkedItems.has(i)
+                  return (
+                    <li
+                      key={i}
+                      className="flex items-center gap-3 text-sm leading-snug cursor-pointer select-none"
+                      style={{
+                        opacity: checked ? 0.4 : 1,
+                        transition: 'opacity 200ms ease',
+                      }}
+                      onClick={() => toggleCheckedItem(i)}
+                    >
+                      {/* Checkbox */}
+                      <span
+                        className="shrink-0 flex items-center justify-center"
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 4,
+                          border: '2px solid #C1683A',
+                          backgroundColor: checked ? '#C1683A' : 'transparent',
+                          transition: 'background-color 200ms ease',
+                        }}
+                      >
+                        {checked && (
+                          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                            <path d="M1 4.5L4 7.5L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </span>
+                      {/* Label */}
+                      <span
+                        style={{
+                          color: '#1A1108',
+                          textDecoration: checked ? 'line-through' : 'none',
+                          transition: 'text-decoration 200ms ease',
+                        }}
+                      >
+                        {item}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+
+              {/* Copy Shopping List button */}
+              {(() => {
+                const allChecked = missingIngredients.every((_, i) => checkedItems.has(i))
+                return (
+                  <button
+                    onClick={handleCopyShoppingList}
+                    disabled={allChecked}
+                    className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
+                    style={{
+                      backgroundColor: listCopied ? '#4E7A53' : allChecked ? '#A8C5AC' : '#7A9E7E',
+                      boxShadow: (listCopied || allChecked) ? 'none' : '0 2px 8px rgba(122,158,126,0.3)',
+                      cursor: allChecked ? 'default' : 'pointer',
+                    }}
+                  >
+                    {listCopied ? '✓ Copied to clipboard!' : allChecked ? '✓ All picked up' : '🛒 Copy Shopping List'}
+                  </button>
+                )
+              })()}
+            </div>
+          </div>
         )}
       </div>
 
@@ -1508,24 +1605,7 @@ const LOADER_STYLES = `
     0%, 100% { transform: translateY(0px); }
     50%       { transform: translateY(-7px); }
   }
-  @keyframes stirSpoon {
-    0%, 100% { transform: rotate(-22deg); }
-    50%       { transform: rotate(22deg); }
-  }
-  @keyframes steamRise {
-    0%   { opacity: 0; transform: translateY(0px); }
-    25%  { opacity: 0.55; }
-    100% { opacity: 0; transform: translateY(-20px); }
-  }
-  .loader-chef  { animation: chefBob 2.6s ease-in-out infinite; }
-  .loader-spoon {
-    animation: stirSpoon 1.1s ease-in-out infinite;
-    transform-box: view-box;
-    transform-origin: 75px 120px;
-  }
-  .loader-s1 { animation: steamRise 2.1s ease-out 0.0s infinite; }
-  .loader-s2 { animation: steamRise 2.1s ease-out 0.7s infinite; }
-  .loader-s3 { animation: steamRise 2.1s ease-out 1.4s infinite; }
+  .loader-chef { animation: chefBob 2.6s ease-in-out infinite; }
 `
 
 function ChefLoader() {
@@ -1548,79 +1628,19 @@ function ChefLoader() {
       <style>{LOADER_STYLES}</style>
       <div className="flex flex-col items-center gap-10">
 
-        {/* Chef illustration */}
-        <div className="loader-chef">
-          <svg width="150" height="175" viewBox="0 0 150 175" fill="none" xmlns="http://www.w3.org/2000/svg">
-
-            {/* ── Toque blanche ── */}
-            {/* Tall puff */}
-            <rect x="52" y="4" width="46" height="26" rx="12" fill="#FAF6EE"/>
-            {/* Brim */}
-            <rect x="44" y="27" width="62" height="11" rx="5" fill="#EDE0C8"/>
-            {/* Band accent */}
-            <rect x="44" y="34" width="62" height="4" rx="2" fill="#C8B090"/>
-
-            {/* ── Head ── */}
-            <circle cx="75" cy="57" r="21" fill="#D4845A"/>
-            {/* Eyes */}
-            <ellipse cx="67" cy="54" rx="2.2" ry="2.8" fill="#1A1108" opacity="0.82"/>
-            <ellipse cx="83" cy="54" rx="2.2" ry="2.8" fill="#1A1108" opacity="0.82"/>
-            {/* Smile */}
-            <path d="M67 62 Q75 69 83 62" stroke="#1A1108" strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.75"/>
-
-            {/* ── Neck ── */}
-            <rect x="68" y="76" width="14" height="8" rx="4" fill="#D4845A"/>
-
-            {/* ── Chef coat ── */}
-            <rect x="42" y="81" width="66" height="48" rx="10" fill="#FAF6EE"/>
-            {/* Apron front panel */}
-            <rect x="57" y="84" width="36" height="44" rx="6" fill="#EDE0C8"/>
-            {/* Centre button strip */}
-            <circle cx="75" cy="99" r="2.2" fill="#C8B090"/>
-            <circle cx="75" cy="111" r="2.2" fill="#C8B090"/>
-            {/* Coat lapel hints */}
-            <rect x="42" y="81" width="15" height="9" rx="4" fill="#EDE0C8"/>
-            <rect x="93" y="81" width="15" height="9" rx="4" fill="#EDE0C8"/>
-
-            {/* ── Left arm (at rest) ── */}
-            <path d="M44 89 Q28 93 20 99" stroke="#D4845A" strokeWidth="11" strokeLinecap="round" fill="none"/>
-            <circle cx="20" cy="99" r="6" fill="#D4845A"/>
-
-            {/* ── Spoon group — rotates ±22° around pot rim centre (75,120) ── */}
-            {/*    Render before right arm so arm appears on top (gripping spoon) */}
-            <g className="loader-spoon">
-              {/* Handle — disappears into pot below y=118 */}
-              <rect x="72.5" y="96" width="5" height="29" rx="2.5" fill="#C1683A"/>
-              {/* Bowl — held by right hand above pot */}
-              <ellipse cx="75" cy="94" rx="8.5" ry="6" fill="#D4845A"/>
-              <ellipse cx="75" cy="94" rx="8.5" ry="6" fill="none" stroke="#C1683A" strokeWidth="1.2"/>
-            </g>
-
-            {/* ── Right arm — curves toward spoon, rendered over spoon bowl ── */}
-            <path d="M106 88 C102 102 90 114 79 121" stroke="#D4845A" strokeWidth="11" strokeLinecap="round" fill="none"/>
-            {/* Hand sits at pivot — appears to grip the spoon */}
-            <circle cx="78" cy="122" r="7" fill="#D4845A"/>
-
-            {/* ── Pot rim — drawn over bottom of spoon handle (hides it inside) ── */}
-            <rect x="26" y="118" width="98" height="12" rx="6" fill="#1A1108"/>
-            {/* ── Pot body ── */}
-            <rect x="32" y="126" width="86" height="44" rx="10" fill="#4A3728"/>
-            {/* Contents surface */}
-            <rect x="32" y="126" width="86" height="8" rx="5" fill="#C1683A" opacity="0.28"/>
-            {/* Inner sheen */}
-            <rect x="40" y="132" width="22" height="4" rx="2" fill="#7A6548" opacity="0.28"/>
-            {/* Left handle */}
-            <path d="M32 129 Q14 129 14 139 Q14 150 32 150" stroke="#4A3728" strokeWidth="7" strokeLinecap="round" fill="none"/>
-            {/* Right handle */}
-            <path d="M118 129 Q136 129 136 139 Q136 150 118 150" stroke="#4A3728" strokeWidth="7" strokeLinecap="round" fill="none"/>
-
-            {/* ── Steam wisps — rendered last, on top of pot ── */}
-            <ellipse className="loader-s1" cx="60" cy="116" rx="3.5" ry="2.5" fill="#C8B090" opacity="0"/>
-            <ellipse className="loader-s2" cx="75" cy="113" rx="3.5" ry="2.5" fill="#C8B090" opacity="0"/>
-            <ellipse className="loader-s3" cx="90" cy="116" rx="3.5" ry="2.5" fill="#C8B090" opacity="0"/>
-
-          </svg>
-        </div>
+        {/* Chef photo */}
+        <img
+          src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80"
+          alt="Chef cooking"
+          className="loader-chef"
+          style={{
+            width: 200,
+            height: 200,
+            objectFit: 'cover',
+            borderRadius: '50%',
+            boxShadow: '0 8px 32px rgba(26,17,8,0.18)',
+          }}
+        />
 
         {/* Rotating fact bubble */}
         <div
@@ -2827,6 +2847,7 @@ export default function App() {
         onSave={() => handleSaveRecipe(dish, imgUrl)}
         onRemove={() => handleRemoveRecipe(dish.name)}
         onNavigateDashboard={() => setView('dashboard')}
+        missingIngredients={viewingDish ? [] : missingIngredients}
       />
     )
   }
