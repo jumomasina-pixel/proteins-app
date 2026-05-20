@@ -1630,6 +1630,108 @@ function WelcomeScreen({ onStart }) {
 
         </div>
       </div>
+
+      {/* ── Mission Section ── */}
+      <div
+        className="w-full px-6 py-14 sm:py-20 space-y-14"
+        style={{ backgroundColor: '#1A1108' }}
+      >
+
+        {/* Founder story */}
+        <div className="mx-auto" style={{ maxWidth: 680 }}>
+          <div
+            className="rounded-2xl p-7 sm:p-9"
+            style={{
+              backgroundColor: '#FAF6EE',
+              borderLeft: '4px solid #C1683A',
+              boxShadow: '0 2px 16px rgba(0,0,0,0.22)',
+            }}
+          >
+            <h2
+              className="font-serif font-bold mb-4"
+              style={{ color: '#1A1108', fontSize: 'clamp(1.25rem, 4vw, 1.6rem)' }}
+            >
+              Why I Built This
+            </h2>
+            <p
+              className="font-sans leading-relaxed"
+              style={{ color: '#4A3728', fontSize: '0.9375rem' }}
+            >
+              I have ADHD. I was constantly throwing out food — either I'd forgotten it was there, or I'd stare at the fridge for 20 minutes trying to figure out what I could make, lose focus, and order takeaway instead. Let Him Cook started as a fix for my own fridge. It became something bigger.
+            </p>
+          </div>
+        </div>
+
+        {/* Impact stat cards */}
+        <div
+          className="mx-auto grid grid-cols-1 sm:grid-cols-3 gap-5"
+          style={{ maxWidth: 680 }}
+        >
+          {[
+            { emoji: '🗑️', stat: '$3,800',      label: 'wasted per Australian household every year on food that never gets eaten' },
+            { emoji: '🧠', stat: '200+',         label: 'food-related decisions the average person makes every single day' },
+            { emoji: '🌍', stat: '17.5M tonnes', label: 'of CO₂ generated annually in Australia from food waste alone' },
+          ].map(({ emoji, stat, label }) => (
+            <div
+              key={stat}
+              className="rounded-2xl p-6 flex flex-col gap-2"
+              style={{
+                backgroundColor: '#FAF6EE',
+                border: '1px solid #C8B090',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.16)',
+              }}
+            >
+              <span className="text-2xl">{emoji}</span>
+              <span
+                className="font-serif font-extrabold leading-none"
+                style={{ color: '#C1683A', fontSize: 'clamp(1.5rem, 5vw, 2rem)' }}
+              >
+                {stat}
+              </span>
+              <p
+                className="font-sans text-xs leading-snug"
+                style={{ color: '#7A6548' }}
+              >
+                {label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Mission statement */}
+        <div
+          className="mx-auto text-center space-y-6"
+          style={{ maxWidth: 600 }}
+        >
+          <h2
+            className="font-serif font-bold text-white"
+            style={{ fontSize: 'clamp(1.25rem, 4vw, 1.6rem)' }}
+          >
+            Our Mission
+          </h2>
+          <ul className="space-y-4 text-left inline-block">
+            {[
+              "Reduce decision fatigue — open your fridge, tell us what's there, eat well in minutes",
+              'Reduce food waste — use what you have before it ends up in the bin',
+              'Improve health through enablement — not restriction, not guilt. Just great food, built around you.',
+            ].map((point) => (
+              <li key={point} className="flex items-start gap-3">
+                <span
+                  className="mt-1.5 shrink-0 w-2 h-2 rounded-full"
+                  style={{ backgroundColor: '#C1683A' }}
+                />
+                <span
+                  className="font-sans leading-relaxed"
+                  style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.9375rem' }}
+                >
+                  {point}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+      </div>
     </div>
   )
 }
