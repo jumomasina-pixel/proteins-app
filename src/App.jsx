@@ -179,13 +179,27 @@ function parseDishes(rawText) {
 }
 
 function parseMissingIngredients(rawText) {
-  // Look for the MISSING INGREDIENTS block after the last dish
-  const m = rawText.match(/MISSING INGREDIENTS\s*\n([\s\S]+?)(?:\n\n|$)/i)
-  if (!m) return []
-  return m[1]
+  // Strip markdown bold/italic/headings first so **MISSING INGREDIENTS** still matches
+  const text = rawText
+    .replace(/\*\*([^*]*)\*\*/g, '$1')
+    .replace(/\*([^*]*)\*/g, '$1')
+    .replace(/^#{1,6}\s*/gm, '')
+
+  // Accept heading variants, optional colon, optional blank line, then the bullet list.
+  // \n+ (not \s*\n) lets a blank line sit between the heading and the first bullet.
+  const m = text.match(
+    /(?:MISSING INGREDIENTS|WHAT\s+YOU(?:'|'|')\s*LL\s+NEED|YOU(?:'|'|')\s*LL\s+NEED|SHOPPING\s+LIST)\s*:?\s*\n+([\s\S]+?)(?:\n{2,}|$)/i
+  )
+  if (!m) {
+    console.log('[shopping] parseMissingIngredients — no match found. Last 500 chars of response:\n', text.slice(-500))
+    return []
+  }
+  const items = m[1]
     .split('\n')
-    .map(l => l.replace(/^[-•*]\s*/, '').trim())
+    .map(l => l.replace(/^[-•*\d.)]+\s*/, '').trim())
     .filter(l => l.length > 0 && !/^nothing/i.test(l))
+  console.log('[shopping] parseMissingIngredients — found', items.length, 'item(s):', items)
+  return items
 }
 
 // ── Seed conversation ─────────────────────────────────────────────────────────
@@ -2538,7 +2552,9 @@ export default function App() {
             if (parsed.length > 0) {
               setDishes(parsed)
               setDishImages([])
-              setMissingIngredients(parseMissingIngredients(accumulated))
+              const _ingredients = parseMissingIngredients(accumulated)
+              console.log('[shopping] [DONE] path — setting missingIngredients:', _ingredients.length, 'item(s)')
+              setMissingIngredients(_ingredients)
               setShoppingListCopied(false)
               setCheckedIngredients(new Set())
               saveSession(parsed)
@@ -2597,7 +2613,9 @@ export default function App() {
           console.log('[meals] Partial parse succeeded —', parsed.length, 'dishes recovered')
           setDishes(parsed)
           setDishImages([])
-          setMissingIngredients(parseMissingIngredients(accumulated))
+          const _ingredients2 = parseMissingIngredients(accumulated)
+          console.log('[shopping] salvage path — setting missingIngredients:', _ingredients2.length, 'item(s)')
+          setMissingIngredients(_ingredients2)
           setShoppingListCopied(false)
           setCheckedIngredients(new Set())
           saveSession(parsed)
@@ -2838,6 +2856,8 @@ export default function App() {
     const dish   = viewingDish ?? dishes[selectedDish]
     const imgUrl = viewingDish ? viewingDishImg : (dishImages[selectedDish] ?? null)
     const backTo = viewingDish ? savedBackTo : 'cards'
+    const detailIngredients = viewingDish ? [] : missingIngredients
+    console.log('[shopping] DetailView — missingIngredients:', detailIngredients.length, 'item(s), viewingDish:', !!viewingDish)
     return (
       <DetailView
         dish={dish}
@@ -2847,7 +2867,7 @@ export default function App() {
         onSave={() => handleSaveRecipe(dish, imgUrl)}
         onRemove={() => handleRemoveRecipe(dish.name)}
         onNavigateDashboard={() => setView('dashboard')}
-        missingIngredients={viewingDish ? [] : missingIngredients}
+        missingIngredients={detailIngredients}
       />
     )
   }
