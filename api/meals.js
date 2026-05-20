@@ -121,6 +121,22 @@ Carbs: ~[X]g
 Fat: ~[X]g
 Cook time: ~[X] mins
 Difficulty: [Easy / Medium / Pro]
+
+⚠️ FOR THE THIRD DISH ONLY — output the MISSING INGREDIENTS section here, BEFORE the quick cook steps:
+
+MISSING INGREDIENTS
+- [ingredient with quantity, e.g. "1 lemon"]
+- [ingredient]
+- [ingredient]
+
+Rules for MISSING INGREDIENTS:
+- List every ingredient needed across all 3 dishes that the user did NOT explicitly mention having.
+- Be specific with quantities where helpful (e.g. "2 cloves garlic", "400g tinned tomatoes", "1 tbsp olive oil").
+- Do not list salt, pepper, or water — assume those are always on hand.
+- Do not list anything the user said they have — even if they said it casually.
+- If all ingredients are covered, write: MISSING INGREDIENTS\n- Nothing — you're all set.
+- Output this section once, for the third dish only, between Difficulty and Quick cook steps.
+
 Quick cook steps: [6–8 numbered steps — write like a knowledgeable mate talking someone through it in real time. Each step must include: (1) the action — what to actually do, (2) sensory cues — what it should look, sound, or smell like when it's right, (3) a common mistake to avoid where relevant. Example style: "Heat a non-stick pan on high for 2 full minutes before adding anything — it should feel hot when you hold your hand 10cm above it. Add 1 tsp oil and swirl. When it shimmers and moves fast, the pan is ready. If it smokes heavily, turn it down slightly." Keep steps punchy but complete. Never write dry textbook instructions.]
 Dietician's note: [one sentence — why this meal specifically works for fat loss while maintaining performance. Reference the training if relevant]
 
@@ -146,24 +162,7 @@ Around training: if he mentions post-workout, skew toward protein + faster carbs
 
 If the dish is inherently indulgent — carbonara, butter chicken, whatever — don't apologise for it. Acknowledge it, then show him it can still be done properly within the numbers. That's the job.
 
-MISSING INGREDIENTS — MANDATORY FINAL SECTION
-
-After every response that contains 3 dishes, you MUST end with this section. No exceptions.
-
-Format exactly:
-
-MISSING INGREDIENTS
-- [ingredient with quantity, e.g. "1 lemon"]
-- [ingredient]
-- [ingredient]
-
-Rules:
-- List every ingredient needed across all 3 dishes that the user did NOT explicitly mention having.
-- Be specific with quantities where helpful (e.g. "2 cloves garlic", "400g tinned tomatoes", "1 tbsp olive oil").
-- Do not list salt, pepper, or water — assume those are always on hand.
-- Do not list anything the user said they have — even if they said it casually.
-- If all ingredients are covered, write: MISSING INGREDIENTS\n- Nothing — you're all set.
-- This section must appear after the third dish, separated by a blank line. No other text after it.`
+`
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

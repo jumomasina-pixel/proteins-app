@@ -190,16 +190,37 @@ function parseMissingIngredients(rawText) {
   const m = text.match(
     /(?:MISSING INGREDIENTS|WHAT\s+YOU(?:'|'|')\s*LL\s+NEED|YOU(?:'|'|')\s*LL\s+NEED|SHOPPING\s+LIST)\s*:?\s*\n+([\s\S]+?)(?:\n{2,}|$)/i
   )
-  if (!m) {
-    console.log('[shopping] parseMissingIngredients — no match found. Last 500 chars of response:\n', text.slice(-500))
-    return []
+  if (m) {
+    const items = m[1]
+      .split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(l => l.length > 0 && !/^nothing/i.test(l))
+    if (items.length > 0) {
+      console.log('[shopping] parseMissingIngredients — found', items.length, 'item(s):', items)
+      return items
+    }
   }
-  const items = m[1]
-    .split('\n')
-    .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
-    .filter(l => l.length > 0 && !/^nothing/i.test(l))
-  console.log('[shopping] parseMissingIngredients — found', items.length, 'item(s):', items)
-  return items
+
+  console.log('[shopping] parseMissingIngredients — no match found, trying fallback. Last 500 chars:\n', text.slice(-500))
+
+  // Fallback: scan for bullet/numbered lines appearing after known section markers
+  const afterMarker = text.match(
+    /(?:what\s+changes|you(?:'|'|')\s*ll\s+need|ingredients?\s*needed|shopping\s+list)\s*:?\s*\n([\s\S]+)/i
+  )
+  if (afterMarker) {
+    const fallbackItems = afterMarker[1]
+      .split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(l => l.length > 0 && /[a-z]/i.test(l) && l.length < 100)
+      .slice(0, 20)
+    if (fallbackItems.length > 0) {
+      console.log('[shopping] fallback found', fallbackItems.length, 'item(s):', fallbackItems)
+      return fallbackItems
+    }
+  }
+
+  // Last resort: surface a helpful message so the section still renders
+  return ['Check the full recipe above for ingredients needed.']
 }
 
 // ── Seed conversation ─────────────────────────────────────────────────────────
