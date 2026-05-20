@@ -1770,10 +1770,10 @@ function ChefLoader() {
           alt="Chef cooking"
           className="loader-chef"
           style={{
-            width: 280,
-            height: 280,
+            width: 320,
+            height: 220,
             objectFit: 'cover',
-            borderRadius: '50%',
+            borderRadius: 16,
             boxShadow: '0 8px 32px rgba(26,17,8,0.18)',
           }}
         />
