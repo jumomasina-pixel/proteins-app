@@ -196,7 +196,7 @@ function parseMissingIngredients(rawText) {
   }
   const items = m[1]
     .split('\n')
-    .map(l => l.replace(/^[-•*\d.)]+\s*/, '').trim())
+    .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
     .filter(l => l.length > 0 && !/^nothing/i.test(l))
   console.log('[shopping] parseMissingIngredients — found', items.length, 'item(s):', items)
   return items
@@ -2963,7 +2963,7 @@ export default function App() {
                             className="flex items-center gap-3 text-sm leading-snug cursor-pointer select-none"
                             style={{
                               color: '#1A1108',
-                              opacity: checked ? 0.5 : 1,
+                              opacity: checked ? 0.4 : 1,
                               transition: 'opacity 200ms ease',
                             }}
                             onClick={toggleChecked}
