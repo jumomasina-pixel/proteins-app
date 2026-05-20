@@ -1089,6 +1089,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
   const [checkedItems, setCheckedItems] = useState(new Set())
   const [listCopied,   setListCopied]   = useState(false)
   const { chef, dietician } = dish
+  console.log('[debug] missingIngredients:', missingIngredients)
 
   function showToast(message, action = null) {
     setToast({ visible: true, message, action })
@@ -2552,6 +2553,7 @@ export default function App() {
             if (parsed.length > 0) {
               setDishes(parsed)
               setDishImages([])
+              console.log('[debug] raw API response:', accumulated)
               const _ingredients = parseMissingIngredients(accumulated)
               console.log('[shopping] [DONE] path — setting missingIngredients:', _ingredients.length, 'item(s)')
               setMissingIngredients(_ingredients)
@@ -2613,6 +2615,7 @@ export default function App() {
           console.log('[meals] Partial parse succeeded —', parsed.length, 'dishes recovered')
           setDishes(parsed)
           setDishImages([])
+          console.log('[debug] raw API response:', accumulated)
           const _ingredients2 = parseMissingIngredients(accumulated)
           console.log('[shopping] salvage path — setting missingIngredients:', _ingredients2.length, 'item(s)')
           setMissingIngredients(_ingredients2)
