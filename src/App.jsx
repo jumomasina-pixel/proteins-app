@@ -349,6 +349,21 @@ const PANTRY_CARDS = [
   { value: 'chilli',          label: 'Chilli',          emoji: '🌶️' },
 ]
 
+// ── Loading screen facts ──────────────────────────────────────────────────────
+
+const LOADING_FACTS = [
+  "Lamb mince has ~25g of protein per 100g — one of the most bioavailable sources going.",
+  "Garlic activates within 10 minutes of being chopped — let it sit before cooking to maximise benefits.",
+  "Eating protein first in a meal blunts the blood sugar spike from carbs.",
+  "Cauliflower rice cuts ~150 calories vs white rice with almost identical volume.",
+  "Your body builds muscle during rest, not during training — the kitchen matters as much as the gym.",
+  "Greek yoghurt has more protein per gram than most protein bars.",
+  "Cooking with olive oil below 180°C preserves most of its polyphenols.",
+  "A high-protein breakfast reduces total daily calorie intake by an average of 400 kcal.",
+  "Capsicum has more Vitamin C than oranges — gram for gram.",
+  "The 30g protein per meal rule is outdated — your body can use significantly more in one sitting.",
+]
+
 // ── Health insights data ──────────────────────────────────────────────────────
 
 const HEALTH_INSIGHTS = [
@@ -1486,6 +1501,149 @@ function WelcomeScreen({ onStart }) {
   )
 }
 
+// ── Loading screen (chef illustration + rotating facts) ───────────────────────
+
+const LOADER_STYLES = `
+  @keyframes chefBob {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-7px); }
+  }
+  @keyframes stirSpoon {
+    0%, 100% { transform: rotate(-22deg); }
+    50%       { transform: rotate(22deg); }
+  }
+  @keyframes steamRise {
+    0%   { opacity: 0; transform: translateY(0px); }
+    25%  { opacity: 0.55; }
+    100% { opacity: 0; transform: translateY(-20px); }
+  }
+  .loader-chef  { animation: chefBob 2.6s ease-in-out infinite; }
+  .loader-spoon {
+    animation: stirSpoon 1.1s ease-in-out infinite;
+    transform-box: view-box;
+    transform-origin: 75px 120px;
+  }
+  .loader-s1 { animation: steamRise 2.1s ease-out 0.0s infinite; }
+  .loader-s2 { animation: steamRise 2.1s ease-out 0.7s infinite; }
+  .loader-s3 { animation: steamRise 2.1s ease-out 1.4s infinite; }
+`
+
+function ChefLoader() {
+  const [factIdx,     setFactIdx]     = useState(0)
+  const [factVisible, setFactVisible] = useState(true)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFactVisible(false)
+      setTimeout(() => {
+        setFactIdx(i => (i + 1) % LOADING_FACTS.length)
+        setFactVisible(true)
+      }, 400)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <>
+      <style>{LOADER_STYLES}</style>
+      <div className="flex flex-col items-center gap-10">
+
+        {/* Chef illustration */}
+        <div className="loader-chef">
+          <svg width="150" height="175" viewBox="0 0 150 175" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+            {/* ── Toque blanche ── */}
+            {/* Tall puff */}
+            <rect x="52" y="4" width="46" height="26" rx="12" fill="#FAF6EE"/>
+            {/* Brim */}
+            <rect x="44" y="27" width="62" height="11" rx="5" fill="#EDE0C8"/>
+            {/* Band accent */}
+            <rect x="44" y="34" width="62" height="4" rx="2" fill="#C8B090"/>
+
+            {/* ── Head ── */}
+            <circle cx="75" cy="57" r="21" fill="#D4845A"/>
+            {/* Eyes */}
+            <ellipse cx="67" cy="54" rx="2.2" ry="2.8" fill="#1A1108" opacity="0.82"/>
+            <ellipse cx="83" cy="54" rx="2.2" ry="2.8" fill="#1A1108" opacity="0.82"/>
+            {/* Smile */}
+            <path d="M67 62 Q75 69 83 62" stroke="#1A1108" strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.75"/>
+
+            {/* ── Neck ── */}
+            <rect x="68" y="76" width="14" height="8" rx="4" fill="#D4845A"/>
+
+            {/* ── Chef coat ── */}
+            <rect x="42" y="81" width="66" height="48" rx="10" fill="#FAF6EE"/>
+            {/* Apron front panel */}
+            <rect x="57" y="84" width="36" height="44" rx="6" fill="#EDE0C8"/>
+            {/* Centre button strip */}
+            <circle cx="75" cy="99" r="2.2" fill="#C8B090"/>
+            <circle cx="75" cy="111" r="2.2" fill="#C8B090"/>
+            {/* Coat lapel hints */}
+            <rect x="42" y="81" width="15" height="9" rx="4" fill="#EDE0C8"/>
+            <rect x="93" y="81" width="15" height="9" rx="4" fill="#EDE0C8"/>
+
+            {/* ── Left arm (at rest) ── */}
+            <path d="M44 89 Q28 93 20 99" stroke="#D4845A" strokeWidth="11" strokeLinecap="round" fill="none"/>
+            <circle cx="20" cy="99" r="6" fill="#D4845A"/>
+
+            {/* ── Spoon group — rotates ±22° around pot rim centre (75,120) ── */}
+            {/*    Render before right arm so arm appears on top (gripping spoon) */}
+            <g className="loader-spoon">
+              {/* Handle — disappears into pot below y=118 */}
+              <rect x="72.5" y="96" width="5" height="29" rx="2.5" fill="#C1683A"/>
+              {/* Bowl — held by right hand above pot */}
+              <ellipse cx="75" cy="94" rx="8.5" ry="6" fill="#D4845A"/>
+              <ellipse cx="75" cy="94" rx="8.5" ry="6" fill="none" stroke="#C1683A" strokeWidth="1.2"/>
+            </g>
+
+            {/* ── Right arm — curves toward spoon, rendered over spoon bowl ── */}
+            <path d="M106 88 C102 102 90 114 79 121" stroke="#D4845A" strokeWidth="11" strokeLinecap="round" fill="none"/>
+            {/* Hand sits at pivot — appears to grip the spoon */}
+            <circle cx="78" cy="122" r="7" fill="#D4845A"/>
+
+            {/* ── Pot rim — drawn over bottom of spoon handle (hides it inside) ── */}
+            <rect x="26" y="118" width="98" height="12" rx="6" fill="#1A1108"/>
+            {/* ── Pot body ── */}
+            <rect x="32" y="126" width="86" height="44" rx="10" fill="#4A3728"/>
+            {/* Contents surface */}
+            <rect x="32" y="126" width="86" height="8" rx="5" fill="#C1683A" opacity="0.28"/>
+            {/* Inner sheen */}
+            <rect x="40" y="132" width="22" height="4" rx="2" fill="#7A6548" opacity="0.28"/>
+            {/* Left handle */}
+            <path d="M32 129 Q14 129 14 139 Q14 150 32 150" stroke="#4A3728" strokeWidth="7" strokeLinecap="round" fill="none"/>
+            {/* Right handle */}
+            <path d="M118 129 Q136 129 136 139 Q136 150 118 150" stroke="#4A3728" strokeWidth="7" strokeLinecap="round" fill="none"/>
+
+            {/* ── Steam wisps — rendered last, on top of pot ── */}
+            <ellipse className="loader-s1" cx="60" cy="116" rx="3.5" ry="2.5" fill="#C8B090" opacity="0"/>
+            <ellipse className="loader-s2" cx="75" cy="113" rx="3.5" ry="2.5" fill="#C8B090" opacity="0"/>
+            <ellipse className="loader-s3" cx="90" cy="116" rx="3.5" ry="2.5" fill="#C8B090" opacity="0"/>
+
+          </svg>
+        </div>
+
+        {/* Rotating fact bubble */}
+        <div
+          className="w-full max-w-sm rounded-xl px-5 py-4"
+          style={{
+            backgroundColor: '#FAF6EE',
+            borderLeft: '3px solid #C1683A',
+            boxShadow: '0 2px 12px rgba(26,17,8,0.09), 0 1px 4px rgba(26,17,8,0.05)',
+            opacity: factVisible ? 1 : 0,
+            transform: factVisible ? 'translateY(0px)' : 'translateY(6px)',
+            transition: 'opacity 400ms ease, transform 400ms ease',
+          }}
+        >
+          <p className="text-sm leading-relaxed" style={{ color: '#4A3728' }}>
+            {LOADING_FACTS[factIdx]}
+          </p>
+        </div>
+
+      </div>
+    </>
+  )
+}
+
 // ── Saved recipe card ─────────────────────────────────────────────────────────
 
 function SavedDishCard({ dish, onOpen, onRemove }) {
@@ -2274,6 +2432,7 @@ export default function App() {
   const [savedBackTo,         setSavedBackTo]         = useState('cards')
   const [missingIngredients,  setMissingIngredients]  = useState([])
   const [shoppingListCopied,  setShoppingListCopied]  = useState(false)
+  const [checkedIngredients,  setCheckedIngredients]  = useState(new Set())
   const [error,               setError]               = useState(null)
 
   const scrollRef      = useRef(null)
@@ -2361,6 +2520,7 @@ export default function App() {
               setDishImages([])
               setMissingIngredients(parseMissingIngredients(accumulated))
               setShoppingListCopied(false)
+              setCheckedIngredients(new Set())
               saveSession(parsed)
               setView('cards')
             } else {
@@ -2419,6 +2579,7 @@ export default function App() {
           setDishImages([])
           setMissingIngredients(parseMissingIngredients(accumulated))
           setShoppingListCopied(false)
+          setCheckedIngredients(new Set())
           saveSession(parsed)
           setView('cards')
         } else {
@@ -2465,6 +2626,7 @@ export default function App() {
     setDishImages([])
     setMissingIngredients([])
     setShoppingListCopied(false)
+    setCheckedIngredients(new Set())
     setView('chat')
     setSelectedDish(null)
     setViewingDish(null)
@@ -2548,14 +2710,16 @@ export default function App() {
   }
 
   function handleCopyShoppingList() {
-    if (missingIngredients.length === 0) return
+    // Only include items that haven't been checked off
+    const unchecked = missingIngredients.filter((_, i) => !checkedIngredients.has(i))
+    if (unchecked.length === 0) return
     const date = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
     const lines = [
       'Let Him Cook — Shopping List',
       date,
       '',
       "For tonight's recipes you'll need:",
-      ...missingIngredients.map(i => `• ${i}`),
+      ...unchecked.map(i => `• ${i}`),
       '',
       'Generated by lethimcook4me.vercel.app',
     ].join('\n')
@@ -2742,23 +2906,75 @@ export default function App() {
                     style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 2px 8px rgba(26,17,8,0.07)' }}
                   >
                     <ul className="space-y-2">
-                      {missingIngredients.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2.5 text-sm leading-snug" style={{ color: '#1A1108' }}>
-                          <span className="shrink-0 font-bold mt-px" style={{ color: '#C1683A' }}>•</span>
-                          {item}
-                        </li>
-                      ))}
+                      {missingIngredients.map((item, i) => {
+                        const checked = checkedIngredients.has(i)
+                        function toggleChecked() {
+                          setCheckedIngredients(prev => {
+                            const next = new Set(prev)
+                            if (next.has(i)) next.delete(i)
+                            else next.add(i)
+                            return next
+                          })
+                        }
+                        return (
+                          <li
+                            key={i}
+                            className="flex items-center gap-3 text-sm leading-snug cursor-pointer select-none"
+                            style={{
+                              color: '#1A1108',
+                              opacity: checked ? 0.5 : 1,
+                              transition: 'opacity 200ms ease',
+                            }}
+                            onClick={toggleChecked}
+                          >
+                            {/* Custom checkbox */}
+                            <span
+                              className="shrink-0 flex items-center justify-center"
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 4,
+                                border: '2px solid #C1683A',
+                                backgroundColor: checked ? '#C1683A' : 'transparent',
+                                transition: 'background-color 200ms ease',
+                              }}
+                            >
+                              {checked && (
+                                <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                                  <path d="M1 4.5L4 7.5L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              )}
+                            </span>
+                            {/* Item text */}
+                            <span
+                              style={{
+                                textDecoration: checked ? 'line-through' : 'none',
+                                transition: 'text-decoration 200ms ease',
+                              }}
+                            >
+                              {item}
+                            </span>
+                          </li>
+                        )
+                      })}
                     </ul>
-                    <button
-                      onClick={handleCopyShoppingList}
-                      className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
-                      style={{
-                        backgroundColor: shoppingListCopied ? '#4E7A53' : '#7A9E7E',
-                        boxShadow: shoppingListCopied ? 'none' : '0 2px 8px rgba(122,158,126,0.3)',
-                      }}
-                    >
-                      {shoppingListCopied ? '✓ Copied to clipboard!' : '🛒 Copy Shopping List'}
-                    </button>
+                    {(() => {
+                      const allChecked = missingIngredients.every((_, i) => checkedIngredients.has(i))
+                      return (
+                        <button
+                          onClick={handleCopyShoppingList}
+                          disabled={allChecked}
+                          className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
+                          style={{
+                            backgroundColor: shoppingListCopied ? '#4E7A53' : allChecked ? '#A8C5AC' : '#7A9E7E',
+                            boxShadow: (shoppingListCopied || allChecked) ? 'none' : '0 2px 8px rgba(122,158,126,0.3)',
+                            cursor: allChecked ? 'default' : 'pointer',
+                          }}
+                        >
+                          {shoppingListCopied ? '✓ Copied to clipboard!' : allChecked ? '✓ All picked up' : '🛒 Copy Shopping List'}
+                        </button>
+                      )
+                    })()}
                   </div>
                 </div>
               )}
@@ -2776,23 +2992,24 @@ export default function App() {
     )
   }
 
-  // ── View: Skeleton (streaming dishes) ───────────────────────────────────────
+  // ── View: Loading (streaming dishes) ────────────────────────────────────────
   if (awaitingDishes) {
     return (
-      <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14">
+      <div className="animate-fade-in min-h-screen bg-sandy flex flex-col items-center justify-center px-6 py-14 relative">
         <PaperTexture />
-        <div className="max-w-3xl mx-auto space-y-8 relative">
-          <div>
-            <h1 className="font-serif text-4xl sm:text-5xl font-extrabold tracking-wider text-charcoal">
+        <div className="flex flex-col items-center gap-8 w-full max-w-sm relative">
+          {/* Loading text — Playfair, same weight/style as app headings */}
+          <div className="text-center space-y-1.5">
+            <h1 className="font-serif text-3xl sm:text-4xl font-extrabold tracking-wide text-charcoal">
               Let Him Cook
             </h1>
-            <p className="text-charcoal-muted text-sm mt-1.5">
+            <p className="font-serif text-base sm:text-lg font-semibold text-charcoal-muted">
               Building 3 high-protein recipes just for you…
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {[0, 1, 2].map(i => <SkeletonCard key={i} />)}
-          </div>
+
+          {/* Chef illustration + fact bubble */}
+          <ChefLoader />
         </div>
       </div>
     )
