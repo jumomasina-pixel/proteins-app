@@ -1478,7 +1478,7 @@ function WelcomeScreen({ onStart }) {
   const [showBelow,  setShowBelow]  = useState(false)
 
   // Hero image is a fixed Unsplash photo — no fetch needed
-  useEffect(() => { setHeroUrl('https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=1200&q=85') }, [])
+  useEffect(() => { setHeroUrl('https://images.unsplash.com/photo-1591205095432-ef9c03c67068?w=1200&q=85') }, [])
 
   // Reveal content below the hero once image is loaded (or after 1.2s fallback)
   useEffect(() => {
