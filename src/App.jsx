@@ -2775,6 +2775,7 @@ export default function App() {
           <PreCookModal
             onConfirm={() => {
               setShowCookModal(false)
+              setView('chat')
               submitMessage(pendingFridgeMsg)
             }}
             onCancel={() => setShowCookModal(false)}
