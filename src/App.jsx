@@ -1555,6 +1555,7 @@ function WelcomeScreen({ onStart }) {
           <div>
             <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F5F2EC', letterSpacing: '0.02em' }}>Remi</h1>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', color: '#6b8a72', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal Chef</p>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', fontStyle: 'italic', color: '#5DCAA5', marginTop: 6, textAlign: 'center' }}>Eat like a chef. Train like an athlete. Live like both.</p>
           </div>
         </div>
         <div className="space-y-3 text-left">
@@ -2510,7 +2511,7 @@ function PTFounderPage({ onClose }) {
 
         <div style={{ backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 16, padding: '1.5rem', marginBottom: '2rem' }}>
           <p style={{ color: '#c8e0cc', fontSize: '0.9375rem', lineHeight: 1.7, marginBottom: '1.25rem' }}>
-            Give your clients a personal AI chef that adjusts every meal to their goals and training. No logging. No meal plans. Just open the fridge and cook.
+            Give your clients a personal chef that adjusts every meal to their goals and training. No logging. No meal plans. Just open the fridge and cook.
           </p>
           <p style={{ color: '#6b8a72', fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
             As a founding PT partner, you get:
