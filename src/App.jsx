@@ -347,8 +347,8 @@ function PaperTexture() {
 function RemiLogo({ size = 32 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 44 44" fill="none">
-      <path d="M22 8C22 8 14 16 14 24C14 28.4 17.6 32 22 32C26.4 32 30 28.4 30 24C30 16 22 8 22 8Z" fill="#1D9E75"/>
-      <path d="M22 14C22 14 18 19 18 24C18 26.2 19.8 28 22 28" stroke="#5DCAA5" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+      <path d="M22 8C22 8 14 16 14 24C14 28.4 17.6 32 22 32C26.4 32 30 28.4 30 24C30 16 22 8 22 8Z" fill="#00E5A0"/>
+      <path d="M22 14C22 14 18 19 18 24C18 26.2 19.8 28 22 28" stroke="#00C080" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
     </svg>
   )
 }
@@ -380,10 +380,10 @@ function classifyIngredient(name) {
 }
 
 const CLASSIFY_COLORS = {
-  protein: { border: '#1D9E75', text: '#5DCAA5' },
-  carb:    { border: '#EF9F27', text: '#EF9F27' },
-  fat:     { border: '#6b8a72', text: '#6b8a72' },
-  veg:     { border: '#5DCAA5', text: '#5DCAA5' },
+  protein: { border: '#00E5A0', text: '#00C080' },
+  carb:    { border: '#C9A84C', text: '#C9A84C' },
+  fat:     { border: '#888888', text: '#888888' },
+  veg:     { border: '#00C080', text: '#00C080' },
 }
 
 // ── Legacy onboarding option constants (kept for Dashboard compatibility) ─────
@@ -580,18 +580,18 @@ function InsightCard({ insight, compact = false }) {
       <div
         className="shrink-0 rounded-xl px-3.5 py-3 space-y-1"
         style={{
-          backgroundColor: '#FAF6EE',
-          border: '1px solid #C8B090',
+          backgroundColor: '#1A1A1A',
+          border: '1px solid #2A2A2A',
           width: 220,
         }}
       >
         <span
           className="text-[9px] font-bold uppercase tracking-widest"
-          style={{ color: '#C1683A' }}
+          style={{ color: '#00E5A0' }}
         >
           {insight.tag}
         </span>
-        <p className="text-[12px] font-semibold leading-snug" style={{ color: '#1A1108' }}>
+        <p className="text-[12px] font-semibold leading-snug" style={{ color: '#F0F0F0' }}>
           {insight.headline}
         </p>
       </div>
@@ -601,21 +601,21 @@ function InsightCard({ insight, compact = false }) {
     <div
       className="rounded-2xl px-5 py-4 space-y-2"
       style={{
-        backgroundColor: '#FAF6EE',
-        border: '1px solid #C8B090',
-        boxShadow: '0 1px 6px rgba(26,17,8,0.06)',
+        backgroundColor: '#1A1A1A',
+        border: '1px solid #2A2A2A',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.3)',
       }}
     >
       <span
         className="text-[9px] font-bold uppercase tracking-widest"
-        style={{ color: '#C1683A' }}
+        style={{ color: '#00E5A0' }}
       >
         {insight.tag}
       </span>
-      <p className="text-sm font-semibold leading-snug" style={{ color: '#1A1108' }}>
+      <p className="text-sm font-semibold leading-snug" style={{ color: '#F0F0F0' }}>
         {insight.headline}
       </p>
-      <p className="text-xs leading-relaxed" style={{ color: '#7A6548' }}>
+      <p className="text-xs leading-relaxed" style={{ color: '#888888' }}>
         {insight.body}
       </p>
     </div>
@@ -636,7 +636,7 @@ function InsightsDesktopSidebar() {
       className="hidden lg:flex flex-col gap-3 w-[280px] shrink-0 overflow-y-auto py-6 pr-4 pl-2"
       style={{ maxHeight: '100dvh' }}
     >
-      <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: '#7A6548' }}>
+      <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: '#888888' }}>
         Today's Insights
       </p>
       {visible.map((ins, i) => (
@@ -651,9 +651,9 @@ function InsightsMobileStrip() {
   return (
     <div
       className="shrink-0 border-b px-4 py-2.5"
-      style={{ borderColor: '#C8B090', backgroundColor: '#EDE0C8' }}
+      style={{ borderColor: '#2A2A2A', backgroundColor: '#0D0D0D' }}
     >
-      <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#7A6548' }}>
+      <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#888888' }}>
         Today's Insights
       </p>
       <div
@@ -714,8 +714,8 @@ function BottomNav({ activeView, onNavigate }) {
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-50 flex"
       style={{
-        backgroundColor: '#0f2318',
-        borderTop: '1px solid #1a3020',
+        backgroundColor: '#1A1A1A',
+        borderTop: '1px solid #2A2A2A',
         paddingBottom: 'env(safe-area-inset-bottom, 0)',
       }}
     >
@@ -727,7 +727,7 @@ function BottomNav({ activeView, onNavigate }) {
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors"
-            style={{ color: active ? '#1D9E75' : '#6b8a72' }}
+            style={{ color: active ? '#00E5A0' : '#888888' }}
             aria-label={item.label}
           >
             {item.icon(active)}
@@ -753,7 +753,7 @@ function ChefAvatar() {
         height: 36,
         borderRadius: '50%',
         objectFit: 'cover',
-        border: '2px solid #C1683A',
+        border: '2px solid #00E5A0',
       }}
     />
   )
@@ -764,7 +764,7 @@ function UserAvatar({ name }) {
   return (
     <div
       className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white select-none"
-      style={{ backgroundColor: '#A8522A' }}
+      style={{ backgroundColor: '#009966' }}
       aria-hidden
     >
       {initial}
@@ -795,18 +795,30 @@ function MacroRow({ macros }) {
   )
 }
 
+// ── Global chat animation styles ─────────────────────────────────────────────
+
+const CHAT_STYLES = `
+  @keyframes mintPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.25; transform: scale(0.55); }
+  }
+  .mint-dot { animation: mintPulse 1.2s ease-in-out infinite; }
+  .mint-dot:nth-child(2) { animation-delay: 0.18s; }
+  .mint-dot:nth-child(3) { animation-delay: 0.36s; }
+`
+
 // ── Skeleton card (warm palette) ──────────────────────────────────────────────
 
-const SHIMMER = '#E8D9BC'
+const SHIMMER = '#2A2A2A'
 
 function SkeletonCard() {
   return (
     <div
       className="rounded-2xl p-5 sm:p-6 space-y-4 animate-pulse"
       style={{
-        backgroundColor: '#FAF6EE',
-        borderTop: '4px solid #C1683A',
-        boxShadow: '0 2px 12px rgba(44,36,22,0.07), 0 1px 3px rgba(44,36,22,0.05)',
+        backgroundColor: '#1A1A1A',
+        borderTop: '4px solid #00E5A0',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2)',
       }}
     >
       <div className="h-5 w-20 rounded-full" style={{ backgroundColor: SHIMMER }} />
@@ -832,26 +844,26 @@ function ChatBubble({ role, content, isStreaming, userName }) {
         className="max-w-[75%] sm:max-w-[65%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
         style={isUser
           ? {
-              backgroundColor: '#C1683A',
-              color: '#FFFFFF',
-              borderRadius: '16px 16px 4px 16px',
+              backgroundColor: '#1C1C1C',
+              color: '#E8E8E8',
+              borderLeft: '3px solid #00E5A0',
+              borderRadius: '2px 16px 16px 2px',
               fontSize: '0.875rem',
             }
           : {
-              backgroundColor: '#FFFFFF',
-              color: '#2C1810',
-              border: '1px solid rgba(193,104,58,0.12)',
+              backgroundColor: '#272727',
+              color: '#E8E8E8',
+              border: '1px solid #2E2E2E',
               borderRadius: '16px',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
               fontSize: '15px',
               lineHeight: 1.7,
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'Inter, sans-serif',
             }
         }
       >
         {content}
         {isStreaming && (
-          <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse align-text-bottom rounded-sm" style={{ backgroundColor: '#7A6548', opacity: 0.5 }} />
+          <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse align-text-bottom rounded-sm" style={{ backgroundColor: '#888888', opacity: 0.5 }} />
         )}
       </div>
     </div>
@@ -863,14 +875,14 @@ function TypingIndicator() {
     <div className="flex items-end gap-2.5">
       <ChefAvatar />
       <div
-        className="flex items-center gap-1.5 px-4 py-3.5"
-        style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(193,104,58,0.12)', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
+        className="flex items-center gap-2.5 px-4 py-3.5"
+        style={{ backgroundColor: '#272727', border: '1px solid #2E2E2E', borderRadius: '16px' }}
       >
         {[0, 1, 2].map(i => (
           <span
             key={i}
-            className="w-1.5 h-1.5 rounded-full bg-charcoal-muted animate-bounce"
-            style={{ animationDelay: `${i * 0.15}s` }}
+            className="mint-dot"
+            style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }}
           />
         ))}
       </div>
@@ -884,13 +896,13 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   const [selected, setSelected] = useState([])
 
   const chipStyle = (sel) => ({
-    backgroundColor: sel ? '#FFF5EE' : '#FAF6EE',
-    borderColor:     sel ? '#C1683A' : 'rgba(193,104,58,0.25)',
-    color:           sel ? '#C1683A' : '#2C1810',
+    backgroundColor: '#141414',
+    borderColor:     sel ? '#00E5A0' : '#2A2A2A',
+    color:           sel ? '#00E5A0' : '#888888',
     borderRadius:    20,
     fontSize:        13,
-    fontFamily:      'DM Sans, sans-serif',
-    fontWeight:      400,
+    fontFamily:      'Inter, sans-serif',
+    fontWeight:      sel ? 500 : 400,
   })
 
   // "Something else" focuses the textarea rather than just vanishing the row
@@ -903,7 +915,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
     <button
       onClick={handleSomethingElse}
       className="shrink-0 py-2 px-4 rounded-xl text-sm font-medium transition-colors"
-      style={{ color: '#7A6548', backgroundColor: '#FAF3E4', border: '1px solid #C8B090' }}
+      style={{ color: '#888888', backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
     >
       Something else →
     </button>
@@ -974,8 +986,8 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
           {selected.length > 0 && (
             <button
               onClick={handleSubmit}
-              className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white transition-opacity active:opacity-80"
-              style={{ backgroundColor: '#C1683A' }}
+              className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition-opacity active:opacity-80"
+              style={{ backgroundColor: '#00E5A0', color: '#0D0D0D' }}
             >
               {totalSelected > selected.length
                 ? `Use ${selected.length} protein${selected.length > 1 ? 's' : ''} + ${pantrySelected.length} extra →`
@@ -1064,7 +1076,7 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
       {/* Terracotta placeholder — always behind */}
       <div
         className="absolute inset-0 flex items-center justify-center"
-        style={{ backgroundColor: '#C1683A' }}
+        style={{ backgroundColor: '#00E5A0' }}
       >
         <svg viewBox="0 0 64 64" className="w-14 h-14 opacity-30" fill="white">
           <path d="M32 6C18 6 8 16 8 30c0 10 6 18 14 22v4h20v-4c8-4 14-12 14-22C56 16 46 6 32 6zm0 4c11 0 20 9 20 20 0 8-5 15-12 18.5V50H24v-1.5C17 45 12 38 12 30c0-11 9-20 20-20z"/>
@@ -1111,7 +1123,7 @@ function DishCard({ dish, onClick, onImageResolved }) {
     <button
       onClick={onClick}
       className="w-full rounded-2xl overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 group"
-      style={{ backgroundColor: '#0f2318', border: '0.5px solid #1a3020', boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
+      style={{ backgroundColor: '#1A1A1A', border: '0.5px solid #2A2A2A', boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
     >
       <CardImageHeader dishName={dish.name} cuisine={dish.chef.cuisine} onImageResolved={onImageResolved} />
 
@@ -1127,7 +1139,7 @@ function DishCard({ dish, onClick, onImageResolved }) {
             <span
               key={chip.key}
               className="text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: 'rgba(93,202,165,0.12)', color: '#5DCAA5', border: '1px solid rgba(93,202,165,0.2)' }}
+              style={{ backgroundColor: 'rgba(0,229,160,0.12)', color: '#00C080', border: '1px solid rgba(0,229,160,0.2)' }}
             >
               {chip.label}
             </span>
@@ -1138,19 +1150,19 @@ function DishCard({ dish, onClick, onImageResolved }) {
         {(dish.dietician.cookTime !== '—' || dish.dietician.difficulty) && (
           <div className="flex gap-2 flex-wrap">
             {dish.dietician.cookTime !== '—' && (
-              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#6b8a72', backgroundColor: '#132b1a' }}>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#888888', backgroundColor: '#1A1A1A' }}>
                 {dish.dietician.cookTime} mins
               </span>
             )}
             {dish.dietician.difficulty && (
-              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#6b8a72', backgroundColor: '#132b1a' }}>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#888888', backgroundColor: '#1A1A1A' }}>
                 {dish.dietician.difficulty}
               </span>
             )}
           </div>
         )}
 
-        <div className="pt-1 text-sm font-medium flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200" style={{ color: '#1D9E75' }}>
+        <div className="pt-1 text-sm font-medium flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200" style={{ color: '#00E5A0' }}>
           View recipe <span>→</span>
         </div>
       </div>
@@ -1181,17 +1193,17 @@ function CookStepsList({ steps, accentColor }) {
           key={i}
           className="flex gap-4 text-sm leading-relaxed rounded-xl px-4 py-3.5 transition-all duration-200"
           style={{
-            backgroundColor: '#FAF6EE',
-            border: '1px solid #C8B090',
-            borderLeft: hovered === i ? `4px solid ${accentColor}` : `1px solid #C8B090`,
-            color: '#1A1108',
+            backgroundColor: '#1A1A1A',
+            border: '1px solid #2A2A2A',
+            borderLeft: hovered === i ? `4px solid ${accentColor}` : `1px solid #2A2A2A`,
+            color: '#F0F0F0',
             cursor: 'default',
           }}
           onMouseEnter={() => setHovered(i)}
           onMouseLeave={() => setHovered(null)}
         >
           <span className="shrink-0 w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold mt-0.5"
-            style={{ backgroundColor: accentColor, color: '#FFFFFF' }}>
+            style={{ backgroundColor: accentColor, color: '#0D0D0D' }}>
             {i + 1}
           </span>
           <span>{step}</span>
@@ -1249,7 +1261,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
   }
 
   const isChef = mode === 'chef'
-  const chefAccent = '#D4900A'
+  const chefAccent = '#C9A84C'
 
   return (
     <div className="animate-fade-in min-h-screen bg-sandy pb-44 sm:pb-28">
@@ -1267,7 +1279,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
         <button
           onClick={toast.action ?? undefined}
           className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg flex items-center gap-1.5 whitespace-nowrap"
-          style={{ backgroundColor: '#1A1108', cursor: toast.action ? 'pointer' : 'default' }}
+          style={{ backgroundColor: '#F0F0F0', cursor: toast.action ? 'pointer' : 'default' }}
         >
           {toast.message}
           {toast.action && <span className="opacity-60 text-xs">→</span>}
@@ -1294,7 +1306,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
           </div>
         </div>
       ) : (
-        <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#C1683A' }}>
+        <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#00E5A0' }}>
           <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
             <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors">
               {BACK_ARROW} Back to dishes
@@ -1311,7 +1323,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
         )}
 
         {/* ── Mode toggle ── */}
-        <div className="p-1 rounded-2xl flex gap-1" style={{ backgroundColor: '#E0CFA8' }}>
+        <div className="p-1 rounded-2xl flex gap-1" style={{ backgroundColor: '#252525' }}>
           {[
             { value: 'diet', label: "I'm being good 🥗" },
             { value: 'chef', label: 'Cheat meal 🍔'     },
@@ -1319,8 +1331,8 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
             <button key={opt.value} onClick={() => setMode(opt.value)}
               className="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200"
               style={mode === opt.value
-                ? { backgroundColor: '#FAF6EE', color: '#1A1108', boxShadow: '0 1px 6px rgba(26,17,8,0.14)' }
-                : { color: '#7A6548' }
+                ? { backgroundColor: '#1A1A1A', color: '#F0F0F0', boxShadow: '0 1px 6px rgba(0,0,0,0.4)' }
+                : { color: '#888888' }
               }>
               {opt.label}
             </button>
@@ -1338,13 +1350,13 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
             <div className="flex flex-wrap gap-2">
               {chef.cuisine && (
                 <span className="text-xs px-3 py-1 rounded-full border font-medium"
-                  style={{ backgroundColor: '#FFF8E7', color: chefAccent, borderColor: `${chefAccent}40` }}>
+                  style={{ backgroundColor: '#252525', color: chefAccent, borderColor: `${chefAccent}40` }}>
                   {chef.cuisine}
                 </span>
               )}
               {chef.flavour && (
                 <span className="text-xs px-3 py-1 rounded-full border font-medium"
-                  style={{ backgroundColor: '#FFF8E7', color: chefAccent, borderColor: `${chefAccent}40` }}>
+                  style={{ backgroundColor: '#252525', color: chefAccent, borderColor: `${chefAccent}40` }}>
                   {chef.flavour}
                 </span>
               )}
@@ -1354,7 +1366,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
             {chef.calories && (
               <div className="inline-flex items-center gap-1.5 text-xs border px-3 py-1.5 rounded-full"
-                style={{ backgroundColor: '#FFF8E7', borderColor: `${chefAccent}40`, color: '#4A3728' }}>
+                style={{ backgroundColor: '#252525', borderColor: `${chefAccent}40`, color: '#888888' }}>
                 <span className="font-bold" style={{ color: chefAccent }}>~{chef.calories}</span>
                 <span>kcal · full version</span>
               </div>
@@ -1362,7 +1374,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
             {chef.steps?.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#7A6548' }}>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#888888' }}>
                   Chef's method
                 </h3>
                 <CookStepsList steps={chef.steps} accentColor={chefAccent} />
@@ -1401,12 +1413,12 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted">Quick cook steps</h3>
                   {dietician.cookTime && dietician.cookTime !== '—' && (
-                    <span className="text-xs font-medium" style={{ color: '#7A6548' }}>
+                    <span className="text-xs font-medium" style={{ color: '#888888' }}>
                       Total: ~{dietician.cookTime} mins
                     </span>
                   )}
                 </div>
-                <CookStepsList steps={dietician.cookSteps} accentColor="#C1683A" />
+                <CookStepsList steps={dietician.cookSteps} accentColor="#00E5A0" />
               </div>
             )}
 
@@ -1426,7 +1438,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
             </h3>
             <div
               className="rounded-xl p-5 space-y-4"
-              style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 1px 6px rgba(26,17,8,0.06)' }}
+              style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }}
             >
               <ul className="space-y-2.5">
                 {missingIngredients.map((item, i) => {
@@ -1448,8 +1460,8 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
                           width: 20,
                           height: 20,
                           borderRadius: 4,
-                          border: '2px solid #C1683A',
-                          backgroundColor: checked ? '#C1683A' : 'transparent',
+                          border: '2px solid #00E5A0',
+                          backgroundColor: checked ? '#00E5A0' : 'transparent',
                           transition: 'background-color 200ms ease',
                         }}
                       >
@@ -1462,7 +1474,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
                       {/* Label */}
                       <span
                         style={{
-                          color: '#1A1108',
+                          color: '#F0F0F0',
                           textDecoration: checked ? 'line-through' : 'none',
                           transition: 'text-decoration 200ms ease',
                         }}
@@ -1483,9 +1495,10 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
                     disabled={allChecked}
                     className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
                     style={{
-                      backgroundColor: listCopied ? '#4E7A53' : allChecked ? '#A8C5AC' : '#7A9E7E',
-                      boxShadow: (listCopied || allChecked) ? 'none' : '0 2px 8px rgba(122,158,126,0.3)',
+                      backgroundColor: listCopied ? '#009966' : allChecked ? '#3A3A3A' : '#00B87A',
+                      boxShadow: (listCopied || allChecked) ? 'none' : '0 2px 8px rgba(0,184,122,0.3)',
                       cursor: allChecked ? 'default' : 'pointer',
+                      color: allChecked ? '#888888' : '#0D0D0D',
                     }}
                   >
                     {listCopied ? '✓ Copied to clipboard!' : allChecked ? '✓ All picked up' : '🛒 Copy Shopping List'}
@@ -1500,15 +1513,16 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       {/* ── Action bar ── */}
       <div className="fixed bottom-0 inset-x-0 z-50 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-8 sm:px-4">
         {/* Divider (mobile only — desktop uses mt-8 spacing above) */}
-        <div className="sm:hidden h-px mx-4 mt-0" style={{ backgroundColor: '#C8B090' }} />
+        <div className="sm:hidden h-px mx-4 mt-0" style={{ backgroundColor: '#2A2A2A' }} />
         <div className="p-4 space-y-2.5">
           {/* Save button */}
           <button
             onClick={handleBookmark}
             className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
             style={{
-              backgroundColor: isSaved ? '#5C8260' : '#7A9E7E',
-              boxShadow: isSaved ? 'none' : '0 2px 8px rgba(122,158,126,0.35)',
+              backgroundColor: isSaved ? '#009966' : '#00B87A',
+              boxShadow: isSaved ? 'none' : '0 2px 8px rgba(0,229,160,0.35)',
+              color: '#0D0D0D',
             }}
           >
             {isSaved ? (
@@ -1528,9 +1542,9 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
             onClick={handleCopy}
             className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 active:opacity-80"
             style={{
-              backgroundColor: copied ? '#C1683A' : 'transparent',
-              color: copied ? '#FFFFFF' : '#7A6548',
-              border: copied ? 'none' : '1.5px solid #C8B090',
+              backgroundColor: copied ? '#00E5A0' : 'transparent',
+              color: copied ? '#0D0D0D' : '#888888',
+              border: copied ? 'none' : '1.5px solid #2A2A2A',
             }}
           >
             {copied ? '✓ Copied!' : 'Copy Recipe 📋'}
@@ -1547,15 +1561,15 @@ const WELCOME_STYLES = ``
 
 function WelcomeScreen({ onStart }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#0A1A12' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#0D0D0D' }}>
       <style>{WELCOME_STYLES}</style>
       <div className="text-center space-y-10 w-full max-w-xs">
         <div className="flex flex-col items-center gap-5">
           <RemiLogo size={56} />
           <div>
-            <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F5F2EC', letterSpacing: '0.02em' }}>Remi</h1>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', color: '#6b8a72', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal Chef</p>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', fontStyle: 'italic', color: '#5DCAA5', marginTop: 6, textAlign: 'center' }}>Eat like a chef. Train like an athlete. Live like both.</p>
+            <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F0F0F0', letterSpacing: '0.02em' }}>Remi</h1>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', color: '#888888', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal Chef</p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', fontStyle: 'italic', color: '#00C080', marginTop: 6, textAlign: 'center' }}>Eat like a chef. Train like an athlete. Live like both.</p>
           </div>
         </div>
         <div className="space-y-3 text-left">
@@ -1565,19 +1579,19 @@ function WelcomeScreen({ onStart }) {
             'Chef quality. Nutritionist approved.',
           ].map(text => (
             <div key={text} className="flex items-center gap-3">
-              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#1D9E75', flexShrink: 0, display: 'inline-block' }} />
-              <span style={{ fontSize: '0.875rem', color: '#c8e0cc' }}>{text}</span>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ fontSize: '0.875rem', color: '#F0F0F0' }}>{text}</span>
             </div>
           ))}
         </div>
         <div className="space-y-3">
           <button
             onClick={onStart}
-            style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem' }}
+            style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem' }}
           >
             Get started →
           </button>
-          <p style={{ fontSize: '0.7rem', color: '#4a6b52', letterSpacing: '0.04em' }}>Free · No account needed</p>
+          <p style={{ fontSize: '0.7rem', color: '#555555', letterSpacing: '0.04em' }}>Free · No account needed</p>
         </div>
       </div>
     </div>
@@ -1594,26 +1608,17 @@ const LOADER_STYLES = `
   .remi-loader-pulse { animation: logoPulse 2s ease-in-out infinite; }
 `
 
-function ChefLoader({ profile }) {
-  const isTrainingDay = profile?.trainingToday !== false
-  const subtext = isTrainingDay
-    ? 'Training day · High protein · Moderate carbs'
-    : 'Rest day · Lean and clean'
+function ChefLoader() {
   return (
-    <>
-      <style>{LOADER_STYLES}</style>
-      <div className="flex flex-col items-center gap-6 text-center">
-        <div className="remi-loader-pulse">
-          <RemiLogo size={56} />
-        </div>
-        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '1.125rem', fontStyle: 'italic', color: '#5DCAA5' }}>
-          Let him cook...
-        </p>
-        {profile && (
-          <p style={{ fontSize: '0.8125rem', color: '#6b8a72' }}>{subtext}</p>
-        )}
-      </div>
-    </>
+    <div className="flex items-center gap-3.5">
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          className="mint-dot"
+          style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -1627,7 +1632,7 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
         <CardImageHeader dishName={dish.name} cuisine={dish.chef?.cuisine} initialUrl={dish._imgUrl} />
         <div className="px-5 pb-5 pt-4 space-y-2">
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold tabular-nums" style={{ color: '#C1683A' }}>
+            <span className="text-2xl font-bold tabular-nums" style={{ color: '#00E5A0' }}>
               {dish.dietician?.macros?.calories ?? '—'}
             </span>
             <span className="text-sm text-charcoal-muted">kcal</span>
@@ -1647,7 +1652,7 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
           <div className="flex gap-1 items-center">
             <button onClick={() => { onRemove(); setConfirmDelete(false) }}
               className="text-xs font-semibold px-2.5 py-1 rounded-lg text-white"
-              style={{ backgroundColor: '#C1683A' }}>
+              style={{ backgroundColor: '#00E5A0' }}>
               Remove
             </button>
             <button onClick={() => setConfirmDelete(false)}
@@ -1659,7 +1664,7 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
           <button
             onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
             className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal-muted hover:text-terracotta transition-colors"
-            style={{ backgroundColor: 'rgba(255,253,247,0.92)', border: '1px solid #C8B090' }}
+            style={{ backgroundColor: 'rgba(26,26,26,0.92)', border: '1px solid #2A2A2A' }}
             aria-label="Remove recipe"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1781,7 +1786,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
     return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   }
 
-  const sectionCard = { backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 2px 8px rgba(26,17,8,0.07)' }
+  const sectionCard = { backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }
 
   // Time-of-day greeting
   const hour = new Date().getHours()
@@ -1800,10 +1805,10 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* Header — back button only on desktop; mobile uses BottomNav */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#7A6548' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#888888' }}>
               Good {timeOfDay}
             </p>
-            <h1 className="font-serif text-4xl font-extrabold leading-none" style={{ color: '#1A1108' }}>
+            <h1 className="font-serif text-4xl font-extrabold leading-none" style={{ color: '#F0F0F0' }}>
               {profile?.name ?? 'Chef'}.
             </h1>
           </div>
@@ -1818,13 +1823,13 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* ── Hero calorie stat ── */}
         <div
           className="rounded-2xl p-6 text-center space-y-1"
-          style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 2px 8px rgba(26,17,8,0.07)' }}
+          style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
         >
-          <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Daily calorie target</p>
-          <p className="font-serif font-extrabold leading-none" style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', color: '#C1683A' }}>
+          <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#888888' }}>Daily calorie target</p>
+          <p className="font-serif leading-none" style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', color: '#00E5A0', fontWeight: 700 }}>
             {calTarget}
           </p>
-          <p className="text-sm font-medium" style={{ color: '#7A6548' }}>kcal · {protTarget}g+ protein</p>
+          <p className="text-sm font-medium" style={{ color: '#888888' }}>kcal · {protTarget}g+ protein</p>
         </div>
 
         {/* ── 3-up stats ── */}
@@ -1840,15 +1845,66 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               style={sectionCard}
             >
               <span className="text-xl leading-none">{icon}</span>
-              <p className="font-serif text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#1A1108' }}>
+              <p className="font-serif text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#C9A84C' }}>
                 {value}
               </p>
-              <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: '#7A6548' }}>
+              <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>
                 {label}
               </p>
             </div>
           ))}
         </div>
+
+        {/* ── Money saved + Weekly progress ring ── */}
+        {(() => {
+          const moneySaved = (stats?.totalRecipes ?? 0) * 14
+          const WEEKLY_GOAL = 5
+          const now = new Date()
+          const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
+          const sessionsThisWeek = sessions.filter(s => new Date(s.date) > weekAgo).length
+          const ringProgress = Math.min(sessionsThisWeek, WEEKLY_GOAL)
+          const radius = 40
+          const circ = 2 * Math.PI * radius
+          const offset = circ * (1 - ringProgress / WEEKLY_GOAL)
+          return (
+            <div className="grid grid-cols-2 gap-3">
+              {/* Money saved */}
+              <div className="rounded-2xl px-4 py-5 flex flex-col items-center justify-center space-y-1 text-center" style={sectionCard}>
+                <span className="text-xl leading-none">💰</span>
+                <p className="font-serif text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#C9A84C' }}>
+                  ${moneySaved}
+                </p>
+                <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>Money saved</p>
+              </div>
+              {/* Weekly progress ring */}
+              <div className="rounded-2xl px-4 py-5 flex flex-col items-center justify-center space-y-2 text-center" style={sectionCard}>
+                <svg width="80" height="80" viewBox="0 0 100 100" className="-rotate-90">
+                  <circle cx="50" cy="50" r={radius} fill="none" stroke="#2A2A2A" strokeWidth="8" />
+                  <circle
+                    cx="50" cy="50" r={radius}
+                    fill="none"
+                    stroke="#00E5A0"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={circ}
+                    strokeDashoffset={offset}
+                    style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                  />
+                  <text
+                    x="50" y="54"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="rotate-90"
+                    style={{ fill: '#F0F0F0', fontSize: 18, fontWeight: 700, fontFamily: 'Syne, sans-serif', transform: 'rotate(90deg)', transformOrigin: '50px 50px' }}
+                  >
+                    {ringProgress}/{WEEKLY_GOAL}
+                  </text>
+                </svg>
+                <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>This week</p>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Goal bar ── */}
         {showGoalBar && (() => {
@@ -1856,22 +1912,22 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           const target = start - Number(profile.goalAmount)
           return (
             <div className="rounded-2xl p-5 space-y-3" style={sectionCard}>
-              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Fat loss target</p>
-              <div className="flex items-center justify-between text-xs font-semibold" style={{ color: '#1A1108' }}>
+              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#888888' }}>Fat loss target</p>
+              <div className="flex items-center justify-between text-xs font-semibold" style={{ color: '#F0F0F0' }}>
                 <span>{start} kg</span>
-                <span style={{ color: '#C1683A' }}>→ {target} kg</span>
+                <span style={{ color: '#00E5A0' }}>→ {target} kg</span>
               </div>
-              <div className="relative h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: '#D4C4A0' }}>
+              <div className="relative h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: '#2A2A2A' }}>
                 {/* Progress = sessions count as proxy (capped at 100%) */}
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: `${Math.min(100, (sessions.length / 30) * 100)}%`,
-                    background: 'linear-gradient(90deg, #C1683A, #D4845A)',
+                    background: 'linear-gradient(90deg, #00E5A0, #00C080)',
                   }}
                 />
               </div>
-              <p className="text-xs" style={{ color: '#7A6548' }}>
+              <p className="text-xs" style={{ color: '#888888' }}>
                 Goal: lose {profile.goalAmount} kg · {sessions.length} session{sessions.length !== 1 ? 's' : ''} completed
               </p>
             </div>
@@ -1879,7 +1935,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         })()}
 
         {/* ── Goal card ── */}
-        <p className="text-[9px] font-bold uppercase tracking-widest pt-2" style={{ color: '#7A6548' }}>Your Goals</p>
+        <p className="text-[9px] font-bold uppercase tracking-widest pt-2" style={{ color: '#888888' }}>Your Goals</p>
         <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
           <div className="flex items-center gap-3">
             <span className="text-3xl leading-none">{goalInfo.emoji}</span>
@@ -1892,7 +1948,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {extraGoals.map(g => (
                     <span key={g} className="text-[11px] px-2.5 py-0.5 rounded-full font-medium"
-                      style={{ backgroundColor: '#FAF3E4', color: '#4A3728', border: '1px solid #C8B090' }}>
+                      style={{ backgroundColor: '#1A1A1A', color: '#888888', border: '1px solid #2A2A2A' }}>
                       {g}
                     </span>
                   ))}
@@ -1902,18 +1958,18 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             <button
               onClick={onEditProfile}
               className="text-xs font-medium transition-colors shrink-0"
-              style={{ color: '#C1683A' }}
+              style={{ color: '#00E5A0' }}
             >
               Edit →
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090' }}>
-              <p className="text-base font-bold tabular-nums" style={{ color: '#C1683A' }}>{calTarget}</p>
+            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+              <p className="text-base font-bold tabular-nums" style={{ color: '#00E5A0' }}>{calTarget}</p>
               <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">kcal / day</p>
             </div>
-            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090' }}>
-              <p className="text-base font-bold tabular-nums" style={{ color: '#7A9E7E' }}>{protTarget}g+</p>
+            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+              <p className="text-base font-bold tabular-nums" style={{ color: '#00B87A' }}>{protTarget}g+</p>
               <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">protein / day</p>
             </div>
           </div>
@@ -1929,11 +1985,11 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {last4Recipes.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Saved Recipes</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#888888' }}>Saved Recipes</p>
               <button
                 onClick={onViewSaved}
                 className="text-xs font-medium transition-colors"
-                style={{ color: '#C1683A' }}
+                style={{ color: '#00E5A0' }}
               >
                 See all ({savedRecipes.length}) →
               </button>
@@ -1944,9 +2000,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   key={recipe._id}
                   onClick={() => onOpenRecipe(recipe)}
                   className="rounded-xl overflow-hidden text-left active:opacity-80 transition-opacity"
-                  style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090' }}
+                  style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
                 >
-                  <div className="relative w-full h-24 overflow-hidden" style={{ backgroundColor: '#C1683A' }}>
+                  <div className="relative w-full h-24 overflow-hidden" style={{ backgroundColor: '#00E5A0' }}>
                     {recipe._imgUrl && (
                       <img src={recipe._imgUrl} alt={recipe.name} className="w-full h-full object-cover" />
                     )}
@@ -1956,7 +2012,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     </p>
                   </div>
                   <div className="px-2.5 py-2 flex items-center justify-between">
-                    <span className="text-sm font-bold tabular-nums" style={{ color: '#C1683A' }}>
+                    <span className="text-sm font-bold tabular-nums" style={{ color: '#00E5A0' }}>
                       {recipe.dietician?.macros?.calories ?? '—'} kcal
                     </span>
                     {recipe.dietician?.difficulty && (
@@ -1972,18 +2028,18 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* ── Favourite cuisines ── */}
         {cuisineFreq.length > 0 && (
           <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
-            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Favourite Cuisines</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#888888' }}>Favourite Cuisines</p>
             <div className="space-y-3">
               {cuisineFreq.map(([cuisine, count], i) => {
                 const pct = Math.round((count / cuisineFreq[0][1]) * 100)
-                const barColor = i === 0 ? '#C1683A' : i === 1 ? '#D4900A' : '#7A9E7E'
+                const barColor = i === 0 ? '#00E5A0' : i === 1 ? '#C9A84C' : '#00B87A'
                 return (
                   <div key={cuisine} className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-charcoal">{cuisine}</span>
                       <span className="text-xs text-charcoal-muted">{count} {count === 1 ? 'time' : 'times'}</span>
                     </div>
-                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E8D9BC' }}>
+                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#2A2A2A' }}>
                       <div className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${pct}%`, backgroundColor: barColor }} />
                     </div>
@@ -1997,10 +2053,10 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* ── Go-to protein ── */}
         {topProtein && (
           <div className="rounded-2xl p-5" style={sectionCard}>
-            <p className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: '#7A6548' }}>Go-to Protein</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: '#888888' }}>Go-to Protein</p>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0"
-                style={{ backgroundColor: '#FDF0E8', border: '2px solid #C1683A' }}>
+                style={{ backgroundColor: '#252525', border: '2px solid #00E5A0' }}>
                 {PROTEIN_CARDS.find(p => p.value === topProtein[0])?.emoji ?? '🍽️'}
               </div>
               <div>
@@ -2016,7 +2072,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* ── Recent sessions ── */}
         {last3Sessions.length > 0 && (
           <div className="space-y-3">
-            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#7A6548' }}>Recent Sessions</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#888888' }}>Recent Sessions</p>
             <div className="space-y-2">
               {last3Sessions.map(session => (
                 <div key={session.id} className="rounded-xl px-4 py-3.5 space-y-2" style={sectionCard}>
@@ -2026,7 +2082,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     </span>
                     {session.cuisine && (
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: '#FDF0E8', color: '#7A6548', border: '1px solid #C8B090' }}>
+                        style={{ backgroundColor: '#252525', color: '#888888', border: '1px solid #2A2A2A' }}>
                         {session.cuisine}
                       </span>
                     )}
@@ -2048,13 +2104,13 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                             key={i}
                             onClick={() => onOpenSessionDish?.(d)}
                             className="text-[11px] px-2.5 py-1 rounded-full transition-all hover:shadow-sm active:opacity-80"
-                            style={{ backgroundColor: '#FDF0E8', color: '#C1683A', border: '1px solid #D4845A', fontWeight: 600 }}
+                            style={{ backgroundColor: '#252525', color: '#00E5A0', border: '1px solid #00C080', fontWeight: 600 }}
                           >
                             {dishName} →
                           </button>
                         ) : (
                           <span key={i} className="text-[11px] px-2.5 py-1 rounded-full"
-                            style={{ backgroundColor: '#FDF0E8', color: '#4A3728', border: '1px solid #C8B090' }}>
+                            style={{ backgroundColor: '#252525', color: '#888888', border: '1px solid #2A2A2A' }}>
                             {dishName}
                           </span>
                         )
@@ -2080,8 +2136,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* ── Quick Start CTA ── */}
         <button
           onClick={onQuickStart}
-          className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
-          style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
+          className="w-full py-4 rounded-xl font-semibold text-base active:opacity-80 transition-opacity"
+          style={{ backgroundColor: '#00E5A0', color: '#0D0D0D', boxShadow: '0 2px 8px rgba(0,229,160,0.35)' }}
         >
           Start cooking →
         </button>
@@ -2147,22 +2203,22 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
 
   const pillStyle = (selected) => ({
     padding: '9px 16px', borderRadius: 10,
-    border: `1.5px solid ${selected ? '#1D9E75' : '#1a3020'}`,
-    backgroundColor: selected ? '#0f3522' : '#0f2318',
-    color: selected ? '#5DCAA5' : '#6b8a72',
-    fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
+    border: `1.5px solid ${selected ? '#00E5A0' : '#2A2A2A'}`,
+    backgroundColor: selected ? '#252525' : '#1A1A1A',
+    color: selected ? '#00C080' : '#888888',
+    fontFamily: 'Inter, sans-serif', fontSize: '0.875rem',
     fontWeight: selected ? 500 : 400, cursor: 'pointer', transition: 'all 0.15s',
   })
 
   const inputStyle = {
-    width: '100%', borderRadius: 12, backgroundColor: '#0f2318',
-    border: '1px solid #1a3020', color: '#c8e0cc',
-    padding: '12px 16px', fontFamily: 'DM Sans, sans-serif', fontSize: 16,
+    width: '100%', borderRadius: 12, backgroundColor: '#1A1A1A',
+    border: '1px solid #2A2A2A', color: '#F0F0F0',
+    padding: '12px 16px', fontFamily: 'Inter, sans-serif', fontSize: 16,
     outline: 'none',
   }
 
   const labelStyle = {
-    fontSize: '0.7rem', color: '#6b8a72', display: 'block',
+    fontSize: '0.7rem', color: '#888888', display: 'block',
     marginBottom: 6, letterSpacing: '0.08em', textTransform: 'uppercase',
   }
 
@@ -2172,7 +2228,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
         {[1, 2, 3].map(s => (
           <div key={s} style={{
             height: 6, width: s === step ? 24 : 8, borderRadius: 10,
-            backgroundColor: s <= step ? '#1D9E75' : '#1a3020',
+            backgroundColor: s <= step ? '#00E5A0' : '#2A2A2A',
             transition: 'all 0.25s ease',
           }} />
         ))}
@@ -2181,12 +2237,12 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
   }
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-10" style={{ backgroundColor: '#0A1A12' }}>
+    <div className="min-h-screen flex flex-col px-6 py-10" style={{ backgroundColor: '#0D0D0D' }}>
       <div className="w-full max-w-sm mx-auto flex flex-col" style={{ minHeight: 'calc(100dvh - 5rem)' }}>
 
         <div className="flex items-center gap-4 mb-8">
           <button onClick={step > 1 && !hasProfile ? () => setStep(s => s - 1) : onBack}
-            style={{ color: '#6b8a72', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+            style={{ color: '#888888', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
             </svg>
@@ -2199,10 +2255,10 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F5F2EC', marginBottom: 6 }}>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F0F0F0', marginBottom: 6 }}>
                   What's the goal, chef?
                 </h2>
-                <p style={{ fontSize: '0.875rem', color: '#6b8a72' }}>Remi adjusts every dish around this.</p>
+                <p style={{ fontSize: '0.875rem', color: '#888888' }}>Remi adjusts every dish around this.</p>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {REMI_GOAL_OPTIONS.map(o => (
@@ -2216,14 +2272,14 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                   <label style={labelStyle}>Current weight</label>
                   <div className="flex gap-2 items-center">
                     <input type="number" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="84" style={inputStyle} />
-                    <span style={{ color: '#6b8a72', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
+                    <span style={{ color: '#888888', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
                   </div>
                 </div>
                 <div>
                   <label style={labelStyle}>Target weight</label>
                   <div className="flex gap-2 items-center">
                     <input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} placeholder="78" style={inputStyle} />
-                    <span style={{ color: '#6b8a72', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
+                    <span style={{ color: '#888888', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
                   </div>
                 </div>
               </div>
@@ -2233,10 +2289,10 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F5F2EC', marginBottom: 6 }}>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F0F0F0', marginBottom: 6 }}>
                   How do you train?
                 </h2>
-                <p style={{ fontSize: '0.875rem', color: '#6b8a72' }}>Remi adjusts macros on training vs rest days.</p>
+                <p style={{ fontSize: '0.875rem', color: '#888888' }}>Remi adjusts macros on training vs rest days.</p>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {REMI_TRAINING_OPTIONS.map(o => {
@@ -2257,15 +2313,15 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                 <label style={labelStyle}>Days per week</label>
                 <input type="number" min={0} max={7} value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="4" style={inputStyle} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 14, backgroundColor: '#0f2318', border: '1px solid #1a3020' }}>
-                <span style={{ fontSize: '0.9rem', color: '#c8e0cc', fontFamily: 'DM Sans, sans-serif' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 14, backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+                <span style={{ fontSize: '0.9rem', color: '#F0F0F0', fontFamily: 'Inter, sans-serif' }}>
                   {trainingToday ? 'Today is a training day' : 'Today is a rest day'}
                 </span>
                 <button onClick={() => {
                   const next = !trainingToday
                   setTrainingToday(next)
                   localStorage.setItem('remi_training_today', JSON.stringify(next))
-                }} style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: trainingToday ? '#1D9E75' : '#1a3020', position: 'relative', flexShrink: 0, border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}>
+                }} style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: trainingToday ? '#00E5A0' : '#2A2A2A', position: 'relative', flexShrink: 0, border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}>
                   <span style={{ position: 'absolute', top: 2, left: trainingToday ? 22 : 2, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s', display: 'block' }} />
                 </button>
               </div>
@@ -2275,10 +2331,10 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F5F2EC', marginBottom: 6 }}>
+                <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F0F0F0', marginBottom: 6 }}>
                   What's in the fridge?
                 </h2>
-                <p style={{ fontSize: '0.875rem', color: '#6b8a72' }}>Tell Remi what you've got. He'll handle the rest.</p>
+                <p style={{ fontSize: '0.875rem', color: '#888888' }}>Tell Remi what you've got. He'll handle the rest.</p>
               </div>
               <div>
                 <input
@@ -2288,17 +2344,17 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                   placeholder="chicken, rice, broccoli... (Enter to add)"
                   style={inputStyle}
                 />
-                <p style={{ fontSize: '0.75rem', color: '#4a6b52', marginTop: 6 }}>Press Enter or comma to add each ingredient</p>
+                <p style={{ fontSize: '0.75rem', color: '#555555', marginTop: 6 }}>Press Enter or comma to add each ingredient</p>
               </div>
               {ingredients.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {ingredients.map((ing, i) => {
                     const c = CLASSIFY_COLORS[ing.type]
                     return (
-                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, backgroundColor: '#0f2318', border: `1.5px solid ${c.border}`, fontSize: '0.8125rem', color: '#c8e0cc', fontFamily: 'DM Sans, sans-serif' }}>
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, backgroundColor: '#1A1A1A', border: `1.5px solid ${c.border}`, fontSize: '0.8125rem', color: '#F0F0F0', fontFamily: 'Inter, sans-serif' }}>
                         <span>{ing.name}</span>
                         <span style={{ fontSize: '0.6rem', color: c.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{ing.type}</span>
-                        <button onClick={() => setIngredients(prev => prev.filter((_, j) => j !== i))} style={{ color: '#4a6b52', cursor: 'pointer', background: 'none', border: 'none', padding: 0, lineHeight: 1, fontSize: '1.1rem' }}>×</button>
+                        <button onClick={() => setIngredients(prev => prev.filter((_, j) => j !== i))} style={{ color: '#555555', cursor: 'pointer', background: 'none', border: 'none', padding: 0, lineHeight: 1, fontSize: '1.1rem' }}>×</button>
                       </span>
                     )
                   })}
@@ -2311,24 +2367,24 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
         <div className="mt-8 space-y-3">
           {step < 3 ? (
             <button onClick={() => { if (canProceed()) setStep(s => s + 1) }} disabled={!canProceed()}
-              style={{ width: '100%', backgroundColor: canProceed() ? '#1D9E75' : '#0f2318', color: canProceed() ? '#fff' : '#4a6b52', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #1a3020', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
+              style={{ width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#555555', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #2A2A2A', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
               Next →
             </button>
           ) : isLocked ? (
             <>
-              <button disabled style={{ width: '100%', backgroundColor: '#0f2318', color: '#4a6b52', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: '1px solid #EF9F27', cursor: 'not-allowed' }}>
+              <button disabled style={{ width: '100%', backgroundColor: '#1A1A1A', color: '#555555', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: '1px solid #C9A84C', cursor: 'not-allowed' }}>
                 🔒 Kitchen's closed for today
               </button>
-              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#4a6b52' }}>
-                <button onClick={onProClick} style={{ background: 'none', border: 'none', color: '#EF9F27', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '0.75rem', fontFamily: 'DM Sans, sans-serif' }}>Go Pro →</button> to keep cooking
+              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#555555' }}>
+                <button onClick={onProClick} style={{ background: 'none', border: 'none', color: '#C9A84C', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>Go Pro →</button> to keep cooking
               </p>
               <p style={{ textAlign: 'center', marginTop: 6 }}>
-                <button onClick={onPTClick} style={{ background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'DM Sans, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
+                <button onClick={onPTClick} style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'Inter, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
               </p>
             </>
           ) : (
             <button onClick={handleCook} disabled={!canProceed()}
-              style={{ width: '100%', backgroundColor: canProceed() ? '#1D9E75' : '#0f2318', color: canProceed() ? '#fff' : '#4a6b52', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #1a3020', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
+              style={{ width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#555555', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #2A2A2A', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
               Let him cook 🔥
             </button>
           )}
@@ -2356,9 +2412,9 @@ function ProfileComplete({ profile, onEnter }) {
       <div className="relative w-full h-64 sm:h-80 shrink-0 overflow-hidden">
         {heroUrl
           ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full" style={{ backgroundColor: '#C1683A' }} />
+          : <div className="w-full h-full" style={{ backgroundColor: '#00E5A0' }} />
         }
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, #EDE0C8 100%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, #0D0D0D 100%)' }} />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 relative z-10 -mt-8">
         <div className="w-full max-w-xs sm:max-w-sm text-center space-y-6">
@@ -2370,8 +2426,8 @@ function ProfileComplete({ profile, onEnter }) {
           </p>
           <button
             onClick={onEnter}
-            className="w-full py-4 rounded-xl font-semibold text-base text-white active:opacity-80 transition-opacity"
-            style={{ backgroundColor: '#C1683A', boxShadow: '0 2px 8px rgba(193,104,58,0.35)' }}
+            className="w-full py-4 rounded-xl font-semibold text-base active:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#00E5A0', color: '#0D0D0D', boxShadow: '0 2px 8px rgba(0,229,160,0.35)' }}
           >
             Enter the kitchen →
           </button>
@@ -2410,26 +2466,26 @@ function ProModal({ onClose }) {
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}
     >
-      <div style={{ position: 'relative', backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 20, padding: '2rem', maxWidth: 400, width: '100%' }}>
+      <div style={{ position: 'relative', backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 20, padding: '2rem', maxWidth: 400, width: '100%' }}>
         <button
           onClick={onClose}
-          style={{ position: 'absolute', top: 14, right: 16, background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', fontSize: '1.375rem', lineHeight: 1 }}
+          style={{ position: 'absolute', top: 14, right: 16, background: 'none', border: 'none', color: '#555555', cursor: 'pointer', fontSize: '1.375rem', lineHeight: 1 }}
           aria-label="Close"
         >×</button>
 
         {submitted ? (
-          <p style={{ color: '#c8e0cc', textAlign: 'center', fontSize: '1rem', padding: '1rem 0' }}>
+          <p style={{ color: '#F0F0F0', textAlign: 'center', fontSize: '1rem', padding: '1rem 0' }}>
             You're on the list. We'll be in touch. 🔥
           </p>
         ) : (
           <>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, fontSize: '1.625rem', color: '#c8e0cc', marginBottom: 8 }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.625rem', color: '#F0F0F0', marginBottom: 8 }}>
               Remi Pro
             </h2>
-            <p style={{ color: '#6b8a72', fontSize: '0.875rem', marginBottom: 16, lineHeight: 1.5 }}>
+            <p style={{ color: '#888888', fontSize: '0.875rem', marginBottom: 16, lineHeight: 1.5 }}>
               Unlimited cooking. Training day mode. Meal history. Shopping lists.
             </p>
-            <p style={{ color: '#1D9E75', fontWeight: 700, fontSize: '1.125rem', marginBottom: 24 }}>
+            <p style={{ color: '#00E5A0', fontWeight: 700, fontSize: '1.125rem', marginBottom: 24 }}>
               $4.99 / month or $39 / year
             </p>
             <form onSubmit={handleSubmit}>
@@ -2438,16 +2494,16 @@ function ProModal({ onClose }) {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#132b1a', border: '1px solid #1a3020', borderRadius: 10, padding: '12px 14px', color: '#c8e0cc', fontSize: 16, marginBottom: 12, fontFamily: 'DM Sans, sans-serif' }}
+                style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 10, padding: '12px 14px', color: '#F0F0F0', fontSize: 16, marginBottom: 12, fontFamily: 'Inter, sans-serif' }}
               />
               <button
                 type="submit"
                 disabled={submitting || !email.trim()}
-                style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 12, padding: '13px 0', fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: submitting || !email.trim() ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: submitting ? 0.7 : 1, marginBottom: 10 }}
+                style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 12, padding: '13px 0', fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: submitting || !email.trim() ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif', opacity: submitting ? 0.7 : 1, marginBottom: 10 }}
               >
                 {submitting ? 'Sending…' : 'Notify me when it\'s live'}
               </button>
-              <p style={{ textAlign: 'center', color: '#4a6b52', fontSize: '0.75rem' }}>No spam. Just Remi.</p>
+              <p style={{ textAlign: 'center', color: '#555555', fontSize: '0.75rem' }}>No spam. Just Remi.</p>
             </form>
           </>
         )}
@@ -2484,36 +2540,36 @@ function PTFounderPage({ onClose }) {
 
   const inputStyle = {
     display: 'block', width: '100%', boxSizing: 'border-box',
-    backgroundColor: '#132b1a', border: '1px solid #1a3020', borderRadius: 10,
-    padding: '12px 14px', color: '#c8e0cc', fontSize: 16,
-    fontFamily: 'DM Sans, sans-serif', marginBottom: 12,
+    backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 10,
+    padding: '12px 14px', color: '#F0F0F0', fontSize: 16,
+    fontFamily: 'Inter, sans-serif', marginBottom: 12,
   }
 
   return (
-    <div className="animate-fade-in min-h-screen" style={{ backgroundColor: '#0A1A12' }}>
+    <div className="animate-fade-in min-h-screen" style={{ backgroundColor: '#0D0D0D' }}>
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '3rem 1.25rem 4rem' }}>
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}
+          style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', fontSize: '0.875rem', fontFamily: 'Inter, sans-serif', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}
         >
           ← Back
         </button>
 
-        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1D9E75', marginBottom: 12 }}>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#00E5A0', marginBottom: 12 }}>
           Founding Partner Programme
         </p>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, fontSize: '2rem', color: '#c8e0cc', marginBottom: 10, lineHeight: 1.2 }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '2rem', color: '#F0F0F0', marginBottom: 10, lineHeight: 1.2 }}>
           Remi for Personal Trainers
         </h1>
-        <p style={{ color: '#6b8a72', fontSize: '1rem', marginBottom: '2.5rem', lineHeight: 1.6 }}>
+        <p style={{ color: '#888888', fontSize: '1rem', marginBottom: '2.5rem', lineHeight: 1.6 }}>
           The first 10 PTs who join get full dashboard access — free for life.
         </p>
 
-        <div style={{ backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 16, padding: '1.5rem', marginBottom: '2rem' }}>
-          <p style={{ color: '#c8e0cc', fontSize: '0.9375rem', lineHeight: 1.7, marginBottom: '1.25rem' }}>
+        <div style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 16, padding: '1.5rem', marginBottom: '2rem' }}>
+          <p style={{ color: '#F0F0F0', fontSize: '0.9375rem', lineHeight: 1.7, marginBottom: '1.25rem' }}>
             Give your clients a personal chef that adjusts every meal to their goals and training. No logging. No meal plans. Just open the fridge and cook.
           </p>
-          <p style={{ color: '#6b8a72', fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+          <p style={{ color: '#888888', fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
             As a founding PT partner, you get:
           </p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -2524,16 +2580,16 @@ function PTFounderPage({ onClose }) {
               'A direct line to shape what gets built',
             ].map(item => (
               <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ color: '#1D9E75', fontWeight: 700, marginTop: 1, flexShrink: 0 }}>→</span>
-                <span style={{ color: '#c8e0cc', fontSize: '0.9375rem', lineHeight: 1.5 }}>{item}</span>
+                <span style={{ color: '#00E5A0', fontWeight: 700, marginTop: 1, flexShrink: 0 }}>→</span>
+                <span style={{ color: '#F0F0F0', fontSize: '0.9375rem', lineHeight: 1.5 }}>{item}</span>
               </li>
             ))}
           </ul>
         </div>
 
         {submitted ? (
-          <div style={{ backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 16, padding: '2rem', textAlign: 'center' }}>
-            <p style={{ color: '#c8e0cc', fontSize: '1rem', lineHeight: 1.6 }}>
+          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 16, padding: '2rem', textAlign: 'center' }}>
+            <p style={{ color: '#F0F0F0', fontSize: '1rem', lineHeight: 1.6 }}>
               You're in. We'll be in touch before anyone else.<br />Welcome to the kitchen. 👨‍🍳
             </p>
           </div>
@@ -2565,7 +2621,7 @@ function PTFounderPage({ onClose }) {
             <select
               value={form.clientCount}
               onChange={set('clientCount')}
-              style={{ ...inputStyle, color: form.clientCount ? '#c8e0cc' : '#4a6b52' }}
+              style={{ ...inputStyle, color: form.clientCount ? '#F0F0F0' : '#555555' }}
             >
               <option value="" disabled>Approx number of active clients</option>
               <option value="1-5">1–5</option>
@@ -2576,11 +2632,11 @@ function PTFounderPage({ onClose }) {
             <button
               type="submit"
               disabled={submitting || !form.name.trim() || !form.email.trim()}
-              style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 12, padding: '14px 0', fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: submitting ? 0.7 : 1, marginBottom: 14 }}
+              style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 12, padding: '14px 0', fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif', opacity: submitting ? 0.7 : 1, marginBottom: 14 }}
             >
               {submitting ? 'Sending…' : 'Apply as a Founding PT'}
             </button>
-            <p style={{ textAlign: 'center', color: '#4a6b52', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+            <p style={{ textAlign: 'center', color: '#555555', fontSize: '0.8125rem', lineHeight: 1.5 }}>
               Spots 1–10 get lifetime free access. After that, Pro features are $19.99/mo.
             </p>
           </form>
@@ -2593,22 +2649,22 @@ function PTFounderPage({ onClose }) {
 function PreCookModal({ onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center px-5"
-      style={{ backgroundColor: 'rgba(10,26,18,0.92)' }}>
+      style={{ backgroundColor: 'rgba(13,13,13,0.92)' }}>
       <div className="w-full max-w-sm p-7 space-y-6 animate-fade-in"
-        style={{ backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 20 }}>
-        <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.375rem', color: '#F5F2EC' }}>
+        style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 20 }}>
+        <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '1.375rem', color: '#F0F0F0' }}>
           Ready to cook?
         </h2>
-        <p style={{ fontSize: '0.875rem', color: '#6b8a72', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '0.875rem', color: '#888888', lineHeight: 1.6 }}>
           Make sure you've grabbed everything from the fridge — once Remi starts cooking, your generations reset tomorrow.
         </p>
         <div className="space-y-3">
           <button onClick={onConfirm}
-            style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: 'none', cursor: 'pointer' }}>
+            style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: 'none', cursor: 'pointer' }}>
             Let's cook
           </button>
           <button onClick={onCancel}
-            style={{ width: '100%', backgroundColor: 'transparent', color: '#6b8a72', borderRadius: 14, padding: '12px 0', fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem', border: '1px solid #1a3020', cursor: 'pointer' }}>
+            style={{ width: '100%', backgroundColor: 'transparent', color: '#888888', borderRadius: 14, padding: '12px 0', fontFamily: 'Inter, sans-serif', fontSize: '0.875rem', border: '1px solid #2A2A2A', cursor: 'pointer' }}>
             Wait, I missed something
           </button>
         </div>
@@ -2664,6 +2720,8 @@ export default function App() {
   const [showPTPage,          setShowPTPage]          = useState(
     () => new URLSearchParams(window.location.search).get('pt') === 'founder'
   )
+
+  const [inputFocused, setInputFocused] = useState(false)
 
   const scrollRef      = useRef(null)
   const abortRef       = useRef(null)
@@ -3124,34 +3182,34 @@ export default function App() {
   if (view === 'cards' && dishes) {
     return (
       <>
-        <div className="animate-fade-in flex h-[100dvh]" style={{ backgroundColor: '#0A1A12' }}>
+        <div className="animate-fade-in flex h-[100dvh]" style={{ backgroundColor: '#0D0D0D' }}>
           {/* Main content */}
-          <div className="flex-1 min-w-0 overflow-y-auto px-4 py-10 sm:py-14 pb-20 lg:pb-14" style={{ backgroundColor: '#0A1A12' }}>
+          <div className="flex-1 min-w-0 overflow-y-auto px-4 py-10 sm:py-14 pb-20 lg:pb-14" style={{ backgroundColor: '#0D0D0D' }}>
             <div className="max-w-3xl mx-auto space-y-8 relative">
               {/* Gen counter + locked banner */}
               {genCount >= 3 ? (
-                <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: '#1a1a00', border: '1px solid #EF9F27' }}>
+                <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: '#1A1A0A', border: '1px solid #C9A84C' }}>
                   <div className="flex items-center gap-3">
                     <span style={{ fontSize: '1.25rem' }}>🔒</span>
                     <div className="flex-1">
-                      <p style={{ color: '#EF9F27', fontWeight: 600, fontSize: '0.875rem' }}>Kitchen's closed for today</p>
-                      <p style={{ color: '#6b8a72', fontSize: '0.75rem', marginTop: 2 }}>You've used all 3 free sessions. Come back tomorrow or upgrade.</p>
+                      <p style={{ color: '#C9A84C', fontWeight: 600, fontSize: '0.875rem' }}>Kitchen's closed for today</p>
+                      <p style={{ color: '#888888', fontSize: '0.75rem', marginTop: 2 }}>You've used all 3 free sessions. Come back tomorrow or upgrade.</p>
                     </div>
-                    <button onClick={() => setShowProModal(true)} style={{ color: '#EF9F27', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Go Pro →</button>
+                    <button onClick={() => setShowProModal(true)} style={{ color: '#C9A84C', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Go Pro →</button>
                   </div>
                   <p style={{ marginTop: 8, paddingLeft: '2rem' }}>
-                    <button onClick={() => setShowPTPage(true)} style={{ background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'DM Sans, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
+                    <button onClick={() => setShowPTPage(true)} style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'Inter, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
                   </p>
                 </div>
               ) : (
-                <p style={{ color: '#6b8a72', fontSize: '0.75rem', textAlign: 'right' }}>{genCount} of 3 sessions used today</p>
+                <p style={{ color: '#888888', fontSize: '0.75rem', textAlign: 'right' }}>{genCount} of 3 sessions used today</p>
               )}
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="font-sans text-3xl sm:text-4xl font-bold" style={{ color: '#c8e0cc' }}>
+                  <h1 className="font-sans text-3xl sm:text-4xl font-bold" style={{ color: '#F0F0F0' }}>
                     Your meals
                   </h1>
-                  <p style={{ color: '#6b8a72', fontSize: '0.875rem', marginTop: 4 }}>
+                  <p style={{ color: '#888888', fontSize: '0.875rem', marginTop: 4 }}>
                     Tap a card to open the full recipe.
                   </p>
                 </div>
@@ -3160,7 +3218,7 @@ export default function App() {
                   <button
                     onClick={() => setView('dashboard')}
                     className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                    style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
+                    style={{ color: '#888888', border: '1px solid #2A2A2A' }}
                   >
                     Dashboard
                   </button>
@@ -3169,10 +3227,10 @@ export default function App() {
                       <button
                         onClick={() => { setSavedBackTo('cards'); setView('saved') }}
                         className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                        style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
+                        style={{ color: '#888888', border: '1px solid #2A2A2A' }}
                       >
                         My Recipes
-                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#1D9E75' }}>
+                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold" style={{ backgroundColor: '#00E5A0', color: '#0D0D0D' }}>
                           {savedRecipes.length}
                         </span>
                       </button>
@@ -3180,7 +3238,7 @@ export default function App() {
                     <button
                       onClick={handleReset}
                       className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                      style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
+                      style={{ color: '#888888', border: '1px solid #2A2A2A' }}
                     >
                       Cook again
                     </button>
@@ -3206,13 +3264,13 @@ export default function App() {
                 <div className="space-y-3 animate-fade-in">
                   <p
                     className="text-[11px] font-bold uppercase tracking-widest"
-                    style={{ color: '#1D9E75' }}
+                    style={{ color: '#00E5A0' }}
                   >
                     What You'll Need
                   </p>
                   <div
                     className="rounded-2xl p-5 space-y-4"
-                    style={{ backgroundColor: '#0f2318', border: '0.5px solid #1a3020' }}
+                    style={{ backgroundColor: '#1A1A1A', border: '0.5px solid #2A2A2A' }}
                   >
                     <ul className="space-y-2">
                       {missingIngredients.map((item, i) => {
@@ -3230,7 +3288,7 @@ export default function App() {
                             key={i}
                             className="flex items-center gap-3 text-sm leading-snug cursor-pointer select-none"
                             style={{
-                              color: '#c8e0cc',
+                              color: '#F0F0F0',
                               opacity: checked ? 0.35 : 1,
                               transition: 'opacity 200ms ease',
                             }}
@@ -3243,8 +3301,8 @@ export default function App() {
                                 width: 20,
                                 height: 20,
                                 borderRadius: 4,
-                                border: '2px solid #1D9E75',
-                                backgroundColor: checked ? '#1D9E75' : 'transparent',
+                                border: '2px solid #00E5A0',
+                                backgroundColor: checked ? '#00E5A0' : 'transparent',
                                 transition: 'background-color 200ms ease',
                               }}
                             >
@@ -3275,9 +3333,10 @@ export default function App() {
                           disabled={allChecked}
                           className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
                           style={{
-                            backgroundColor: shoppingListCopied ? '#176f52' : allChecked ? '#1a3020' : '#1D9E75',
-                            boxShadow: (shoppingListCopied || allChecked) ? 'none' : '0 2px 8px rgba(29,158,117,0.3)',
+                            backgroundColor: shoppingListCopied ? '#009966' : allChecked ? '#2A2A2A' : '#00E5A0',
+                            boxShadow: (shoppingListCopied || allChecked) ? 'none' : '0 2px 8px rgba(0,229,160,0.3)',
                             cursor: allChecked ? 'default' : 'pointer',
+                            color: allChecked ? '#888888' : '#0D0D0D',
                           }}
                         >
                           {shoppingListCopied ? '✓ Copied to clipboard!' : allChecked ? '✓ All picked up' : '🛒 Copy Shopping List'}
@@ -3305,8 +3364,9 @@ export default function App() {
   // ── View: Loading (streaming dishes) ────────────────────────────────────────
   if (awaitingDishes) {
     return (
-      <div className="animate-fade-in min-h-screen flex flex-col items-center justify-center px-6 py-14" style={{ backgroundColor: '#0A1A12' }}>
-        <ChefLoader profile={profile} />
+      <div className="animate-fade-in min-h-screen flex flex-col items-center justify-center px-6 py-14" style={{ backgroundColor: '#0D0D0D' }}>
+        <style>{CHAT_STYLES}</style>
+        <ChefLoader />
       </div>
     )
   }
@@ -3314,18 +3374,19 @@ export default function App() {
   // ── View: Chat ───────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="animate-fade-in flex relative" style={{ position: 'fixed', inset: 0, backgroundColor: '#0A1A12' }}>
+      <style>{CHAT_STYLES}</style>
+      <div className="animate-fade-in flex relative" style={{ position: 'fixed', inset: 0, backgroundColor: '#0D0D0D' }}>
 
         {/* ── Main chat column ── */}
         <div className="flex flex-col flex-1 min-w-0">
 
           {/* Header */}
-          <div className="shrink-0 px-4 py-3.5 backdrop-blur-sm flex items-center justify-between" style={{ backgroundColor: 'rgba(10,26,18,0.92)', borderBottom: '1px solid #1a3020' }}>
+          <div className="shrink-0 px-4 py-3.5 backdrop-blur-sm flex items-center justify-between" style={{ backgroundColor: 'rgba(13,13,13,0.92)', borderBottom: '1px solid #2A2A2A' }}>
             <div className="flex items-center gap-2.5">
               <RemiLogo size={28} />
               <div>
-                <h1 className="font-sans font-bold" style={{ fontSize: 18, color: '#c8e0cc', letterSpacing: '0.01em' }}>Remi</h1>
-                <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 10, letterSpacing: '0.1em', color: '#1D9E75', textTransform: 'uppercase' }}>Personal Chef · Dietician · Coach</p>
+                <h1 className="font-sans font-bold" style={{ fontSize: 18, color: '#F0F0F0', letterSpacing: '0.01em' }}>Remi</h1>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: '0.1em', color: '#00E5A0', textTransform: 'uppercase' }}>Personal Chef · Dietician · Coach</p>
               </div>
             </div>
             {/* Desktop nav only — mobile uses BottomNav */}
@@ -3333,14 +3394,14 @@ export default function App() {
               <button
                 onClick={() => setView('dashboard')}
                 className="text-xs transition-colors flex items-center gap-1 px-2 py-1 rounded-lg"
-                style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
+                style={{ color: '#888888', border: '1px solid #2A2A2A' }}
               >
                 Dashboard
               </button>
               <button
                 onClick={() => setView('onboarding')}
                 className="text-xs transition-colors flex items-center gap-1 px-2 py-1 rounded-lg"
-                style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
+                style={{ color: '#888888', border: '1px solid #2A2A2A' }}
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
@@ -3376,7 +3437,7 @@ export default function App() {
 
           {/* Quick reply area */}
           {quickReplyType && !streaming && (
-            <div className="shrink-0 px-4 pt-3 pb-2 relative z-10" style={{ borderTop: '1px solid #1a3020', backgroundColor: '#0f2318' }}>
+            <div className="shrink-0 px-4 pt-3 pb-2 relative z-10" style={{ borderTop: '1px solid #2A2A2A', backgroundColor: '#0D0D0D' }}>
               <QuickReplyRow
                 type={quickReplyType}
                 onSubmit={(text, data) => handleQuickReply(text, data, quickReplyType)}
@@ -3387,12 +3448,14 @@ export default function App() {
           )}
 
           {/* Input bar */}
-          <div className="shrink-0 px-4 pt-2.5 pb-3 relative z-10" style={{ borderTop: '1px solid #1a3020', backgroundColor: '#0f2318', touchAction: 'manipulation' }}>
+          <div className="shrink-0 px-4 pt-2.5 pb-3 relative z-10" style={{ borderTop: '1px solid #2A2A2A', backgroundColor: '#0D0D0D', touchAction: 'manipulation' }}>
             <form onSubmit={handleSubmit} className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={e => setInput(e.target.value)}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
                 onInput={e => {
                   const ta = e.target
                   ta.style.height = 'auto'
@@ -3408,14 +3471,25 @@ export default function App() {
                 rows={1}
                 disabled={streaming}
                 className="flex-1 rounded-2xl px-4 py-3 focus:outline-none disabled:opacity-50 transition leading-snug"
-                style={{ fontSize: 16, minHeight: 44, maxHeight: 120, resize: 'none', overflowY: 'auto', backgroundColor: '#132b1a', border: '1px solid #1a3020', color: '#c8e0cc' }}
+                style={{
+                  fontSize: 16,
+                  minHeight: 44,
+                  maxHeight: 120,
+                  resize: 'none',
+                  overflowY: 'auto',
+                  backgroundColor: '#141414',
+                  border: inputFocused ? '1.5px solid #00E5A0' : '1px solid #2A2A2A',
+                  boxShadow: inputFocused ? '0 0 0 3px rgba(0,229,160,0.1)' : 'none',
+                  color: '#E8E8E8',
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                }}
               />
               {streaming ? (
                 <button
                   type="button"
                   onClick={handleStop}
-                  style={{ backgroundColor: '#1D9E75', width: 44, height: 44, flexShrink: 0 }}
-                  className="flex items-center justify-center rounded-full text-white text-xs font-semibold active:opacity-80 transition-opacity"
+                  style={{ backgroundColor: '#00E5A0', width: 44, height: 44, flexShrink: 0, color: '#0D0D0D' }}
+                  className="flex items-center justify-center rounded-full text-xs font-semibold active:opacity-80 transition-opacity"
                   aria-label="Stop"
                 >
                   ■
@@ -3424,16 +3498,17 @@ export default function App() {
                 <button
                   type="submit"
                   style={{
-                    backgroundColor: input.trim() ? '#1D9E75' : '#1a3020',
+                    backgroundColor: input.trim() ? '#00E5A0' : '#2A2A2A',
+                    color: input.trim() ? '#0D0D0D' : '#888888',
                     width: 44,
                     height: 44,
                     flexShrink: 0,
                     transition: 'background-color 0.15s',
                   }}
-                  className="flex items-center justify-center rounded-full text-white active:opacity-80"
+                  className="flex items-center justify-center rounded-full active:opacity-80"
                   aria-label="Send"
                 >
-                  <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5" style={{ marginLeft: 2 }}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" style={{ marginLeft: 2 }}>
                     <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                   </svg>
                 </button>
