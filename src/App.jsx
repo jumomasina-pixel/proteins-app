@@ -1,6 +1,11 @@
 import posthog from 'posthog-js'
 import { useState, useRef, useEffect, useMemo } from 'react'
 
+posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
+  api_host: 'https://us.i.posthog.com',
+  person_profiles: 'identified_only',
+})
+
 // ── Storage versioning ────────────────────────────────────────────────────────
 // Bump this number whenever the stored data shape changes in a breaking way.
 // Any existing storage that doesn't carry a matching version will be wiped and
@@ -91,6 +96,9 @@ function parseDishChunk(chunk) {
   const splitIdx = chunk.search(/\n[^\n]*(?:✅|dietician.{0,8}version|✅\s*\[)/im)
   const chefPart = splitIdx > -1 ? chunk.slice(0, splitIdx) : chunk
   const dietPart = splitIdx > -1 ? chunk.slice(splitIdx) : ''
+  // If the ✅ marker was missing (splitIdx === -1), search the whole chunk for macros
+  // so a partially-streamed or mis-formatted third dish can still surface values.
+  const macroArea = dietPart || chunk
 
   // Dish name — first line containing 🍽️, stripped of emoji and "— Chef Version"
   const nameLine = chunk.split('\n').find(l => l.includes('🍽️')) ?? ''
@@ -133,28 +141,28 @@ function parseDishChunk(chunk) {
     /key\s+technique[^:\n]*:\s*([^\n]+)/i,
   )
 
-  // Macros: search the entire dietPart — robust against bullets, indentation, bold, table format
-  const calories = grabNum(dietPart,
+  // Macros: search macroArea (dietPart when available, whole chunk as fallback)
+  const calories = grabNum(macroArea,
     /calories\s*:\s*~?\s*(\d[\d,]*)/i,          // Calories: ~450
     /\|\s*~?\s*(\d[\d,]*)\s*kcal/i,             // | ~450 kcal  (table)
     /(\d[\d,]*)\s*kcal\b/i,                     // 450 kcal (bare)
   )
-  const protein = grabNum(dietPart,
+  const protein = grabNum(macroArea,
     /protein\s*:\s*~?\s*(\d[\d,]*)/i,           // Protein: ~45g
     /\|\s*~?\s*(\d[\d,]*)g[^a-z]/i,            // | ~45g  (first number with g, table)
     /(\d[\d,]*)g?\s+protein/i,                  // 45g protein (reversed)
   )
-  const carbs = grabNum(dietPart,
+  const carbs = grabNum(macroArea,
     /carbs?\s*:\s*~?\s*(\d[\d,]*)/i,            // Carbs: ~30g
     /carbohydrate\s*:\s*~?\s*(\d[\d,]*)/i,      // Carbohydrate: ~30
     /(\d[\d,]*)g?\s+carbs?/i,                   // 30g carbs (reversed)
   )
-  const fat = grabNum(dietPart,
+  const fat = grabNum(macroArea,
     /\bfat\s*:\s*~?\s*(\d[\d,]*)/i,             // Fat: ~12g
     /(\d[\d,]*)g?\s+fat\b/i,                    // 12g fat (reversed)
   )
-  const cookTime   = grabNum(dietPart, /cook\s*time\s*:\s*~?\s*(\d+)/i)
-  const difficulty = grab(dietPart,    /difficulty\s*:\s*(Easy|Medium|Pro)/i)
+  const cookTime   = grabNum(macroArea, /cook\s*time\s*:\s*~?\s*(\d+)/i)
+  const difficulty = grab(macroArea,    /difficulty\s*:\s*(Easy|Medium|Pro)/i)
 
   const stepsRaw = grab(dietPart,
     /quick\s+cook\s+steps[^:\n]*:\s*([\s\S]+?)(?=\ndietician|$)/i,
@@ -201,7 +209,22 @@ function parseDishes(rawText) {
     .filter(c => c.includes('🍽️'))
 
   if (chunks.length === 0) return []
-  return chunks.map(parseDishChunk).filter(d => d.name)
+  const parsed = chunks.map(parseDishChunk).filter(d => d.name)
+
+  // Log raw response whenever a dish has no macro data at all
+  const brokenDishes = parsed.filter(d => {
+    const m = d.dietician.macros
+    return m.calories === '—' && m.protein === '—' && m.carbs === '—' && m.fat === '—'
+  })
+  if (brokenDishes.length > 0) {
+    console.error(`[parser] ${brokenDishes.length} dish(es) with all-missing macros. Raw response:\n`, rawText)
+  }
+
+  // Omit dishes where every macro failed — never show "—" to the user
+  return parsed.filter(d => {
+    const m = d.dietician.macros
+    return !(m.calories === '—' && m.protein === '—' && m.carbs === '—' && m.fat === '—')
+  })
 }
 
 function parseMissingIngredients(rawText) {
@@ -2068,7 +2091,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
 // ── Onboarding (3-step) ──────────────────────────────────────────────────────
 
-function Onboarding({ initialProfile, onComplete, onBack, isLocked }) {
+function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, onPTClick }) {
   const hasProfile = initialProfile?.goal && Array.isArray(initialProfile?.training)
   const [step, setStep] = useState(hasProfile ? 3 : 1)
   const [goal, setGoal] = useState(initialProfile?.goal || 'cut')
@@ -2296,7 +2319,10 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked }) {
                 🔒 Kitchen's closed for today
               </button>
               <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#4a6b52' }}>
-                <a href="#" style={{ color: '#EF9F27' }}>Go Pro →</a> to keep cooking
+                <button onClick={onProClick} style={{ background: 'none', border: 'none', color: '#EF9F27', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '0.75rem', fontFamily: 'DM Sans, sans-serif' }}>Go Pro →</button> to keep cooking
+              </p>
+              <p style={{ textAlign: 'center', marginTop: 6 }}>
+                <button onClick={onPTClick} style={{ background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'DM Sans, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
               </p>
             </>
           ) : (
@@ -2355,6 +2381,213 @@ function ProfileComplete({ profile, onEnter }) {
 }
 
 // ── Pre-cook confirmation modal ───────────────────────────────────────────────
+
+// ── Pro waitlist modal ────────────────────────────────────────────────────────
+
+function ProModal({ onClose }) {
+  const [email, setEmail] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!email.trim()) return
+    setSubmitting(true)
+    try {
+      await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), timestamp: new Date().toISOString() }),
+      })
+    } catch {}
+    setSubmitted(true)
+    setSubmitting(false)
+  }
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}
+    >
+      <div style={{ position: 'relative', backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 20, padding: '2rem', maxWidth: 400, width: '100%' }}>
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: 14, right: 16, background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', fontSize: '1.375rem', lineHeight: 1 }}
+          aria-label="Close"
+        >×</button>
+
+        {submitted ? (
+          <p style={{ color: '#c8e0cc', textAlign: 'center', fontSize: '1rem', padding: '1rem 0' }}>
+            You're on the list. We'll be in touch. 🔥
+          </p>
+        ) : (
+          <>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, fontSize: '1.625rem', color: '#c8e0cc', marginBottom: 8 }}>
+              Remi Pro
+            </h2>
+            <p style={{ color: '#6b8a72', fontSize: '0.875rem', marginBottom: 16, lineHeight: 1.5 }}>
+              Unlimited cooking. Training day mode. Meal history. Shopping lists.
+            </p>
+            <p style={{ color: '#1D9E75', fontWeight: 700, fontSize: '1.125rem', marginBottom: 24 }}>
+              $4.99 / month or $39 / year
+            </p>
+            <form onSubmit={handleSubmit}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#132b1a', border: '1px solid #1a3020', borderRadius: 10, padding: '12px 14px', color: '#c8e0cc', fontSize: 16, marginBottom: 12, fontFamily: 'DM Sans, sans-serif' }}
+              />
+              <button
+                type="submit"
+                disabled={submitting || !email.trim()}
+                style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 12, padding: '13px 0', fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: submitting || !email.trim() ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: submitting ? 0.7 : 1, marginBottom: 10 }}
+              >
+                {submitting ? 'Sending…' : 'Notify me when it\'s live'}
+              </button>
+              <p style={{ textAlign: 'center', color: '#4a6b52', fontSize: '0.75rem' }}>No spam. Just Remi.</p>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── PT Founders page ──────────────────────────────────────────────────────────
+
+function PTFounderPage({ onClose }) {
+  const [form, setForm] = useState({ name: '', email: '', gym: '', clientCount: '' })
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  function set(field) {
+    return e => setForm(prev => ({ ...prev, [field]: e.target.value }))
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!form.name.trim() || !form.email.trim()) return
+    setSubmitting(true)
+    try {
+      await fetch('/api/pt-waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, timestamp: new Date().toISOString() }),
+      })
+    } catch {}
+    setSubmitted(true)
+    setSubmitting(false)
+  }
+
+  const inputStyle = {
+    display: 'block', width: '100%', boxSizing: 'border-box',
+    backgroundColor: '#132b1a', border: '1px solid #1a3020', borderRadius: 10,
+    padding: '12px 14px', color: '#c8e0cc', fontSize: 16,
+    fontFamily: 'DM Sans, sans-serif', marginBottom: 12,
+  }
+
+  return (
+    <div className="animate-fade-in min-h-screen" style={{ backgroundColor: '#0A1A12' }}>
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '3rem 1.25rem 4rem' }}>
+        <button
+          onClick={onClose}
+          style={{ background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}
+        >
+          ← Back
+        </button>
+
+        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1D9E75', marginBottom: 12 }}>
+          Founding Partner Programme
+        </p>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, fontSize: '2rem', color: '#c8e0cc', marginBottom: 10, lineHeight: 1.2 }}>
+          Remi for Personal Trainers
+        </h1>
+        <p style={{ color: '#6b8a72', fontSize: '1rem', marginBottom: '2.5rem', lineHeight: 1.6 }}>
+          The first 10 PTs who join get full dashboard access — free for life.
+        </p>
+
+        <div style={{ backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 16, padding: '1.5rem', marginBottom: '2rem' }}>
+          <p style={{ color: '#c8e0cc', fontSize: '0.9375rem', lineHeight: 1.7, marginBottom: '1.25rem' }}>
+            Give your clients a personal AI chef that adjusts every meal to their goals and training. No logging. No meal plans. Just open the fridge and cook.
+          </p>
+          <p style={{ color: '#6b8a72', fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+            As a founding PT partner, you get:
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              'Free Pro account for life',
+              'Early access to the PT dashboard',
+              'Discounted rates for your clients ($2.99/mo)',
+              'A direct line to shape what gets built',
+            ].map(item => (
+              <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ color: '#1D9E75', fontWeight: 700, marginTop: 1, flexShrink: 0 }}>→</span>
+                <span style={{ color: '#c8e0cc', fontSize: '0.9375rem', lineHeight: 1.5 }}>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {submitted ? (
+          <div style={{ backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 16, padding: '2rem', textAlign: 'center' }}>
+            <p style={{ color: '#c8e0cc', fontSize: '1rem', lineHeight: 1.6 }}>
+              You're in. We'll be in touch before anyone else.<br />Welcome to the kitchen. 👨‍🍳
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              value={form.name}
+              onChange={set('name')}
+              placeholder="Full name"
+              required
+              style={inputStyle}
+            />
+            <input
+              type="email"
+              value={form.email}
+              onChange={set('email')}
+              placeholder="Email"
+              required
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              value={form.gym}
+              onChange={set('gym')}
+              placeholder="Gym / studio name"
+              style={inputStyle}
+            />
+            <select
+              value={form.clientCount}
+              onChange={set('clientCount')}
+              style={{ ...inputStyle, color: form.clientCount ? '#c8e0cc' : '#4a6b52' }}
+            >
+              <option value="" disabled>Approx number of active clients</option>
+              <option value="1-5">1–5</option>
+              <option value="5-15">5–15</option>
+              <option value="15-30">15–30</option>
+              <option value="30+">30+</option>
+            </select>
+            <button
+              type="submit"
+              disabled={submitting || !form.name.trim() || !form.email.trim()}
+              style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 12, padding: '14px 0', fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: submitting ? 0.7 : 1, marginBottom: 14 }}
+            >
+              {submitting ? 'Sending…' : 'Apply as a Founding PT'}
+            </button>
+            <p style={{ textAlign: 'center', color: '#4a6b52', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+              Spots 1–10 get lifetime free access. After that, Pro features are $19.99/mo.
+            </p>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function PreCookModal({ onConfirm, onCancel }) {
   return (
@@ -2426,6 +2659,10 @@ export default function App() {
     const key = 'remi_gens_' + new Date().toISOString().slice(0, 10)
     return parseInt(localStorage.getItem(key) || '0', 10)
   })
+  const [showProModal,        setShowProModal]        = useState(false)
+  const [showPTPage,          setShowPTPage]          = useState(
+    () => new URLSearchParams(window.location.search).get('pt') === 'founder'
+  )
 
   const scrollRef      = useRef(null)
   const abortRef       = useRef(null)
@@ -2743,6 +2980,16 @@ export default function App() {
     })
   }
 
+  // ── View: PT Founders ────────────────────────────────────────────────────────
+  if (showPTPage) {
+    return (
+      <>
+        <PTFounderPage onClose={() => setShowPTPage(false)} />
+        {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
+      </>
+    )
+  }
+
   // ── View: Welcome ────────────────────────────────────────────────────────────
   if (view === 'welcome') {
     return <WelcomeScreen onStart={() => setView('onboarding')} />
@@ -2756,6 +3003,8 @@ export default function App() {
           initialProfile={profile}
           isLocked={genCount >= 3}
           onBack={() => setView(profile ? 'chat' : 'welcome')}
+          onProClick={() => setShowProModal(true)}
+          onPTClick={() => setShowPTPage(true)}
           onComplete={(remiProfile, fridgeMessage) => {
             const saved = { ...remiProfile, completedAt: Date.now(), version: PROFILE_VERSION }
             localStorage.setItem('remi_profile', JSON.stringify(saved))
@@ -2781,6 +3030,7 @@ export default function App() {
             onCancel={() => setShowCookModal(false)}
           />
         )}
+        {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
   }
@@ -2879,13 +3129,18 @@ export default function App() {
             <div className="max-w-3xl mx-auto space-y-8 relative">
               {/* Gen counter + locked banner */}
               {genCount >= 3 ? (
-                <div className="rounded-2xl px-5 py-4 flex items-center gap-3" style={{ backgroundColor: '#1a1a00', border: '1px solid #EF9F27' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🔒</span>
-                  <div className="flex-1">
-                    <p style={{ color: '#EF9F27', fontWeight: 600, fontSize: '0.875rem' }}>Kitchen's closed for today</p>
-                    <p style={{ color: '#6b8a72', fontSize: '0.75rem', marginTop: 2 }}>You've used all 3 free sessions. Come back tomorrow or upgrade.</p>
+                <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: '#1a1a00', border: '1px solid #EF9F27' }}>
+                  <div className="flex items-center gap-3">
+                    <span style={{ fontSize: '1.25rem' }}>🔒</span>
+                    <div className="flex-1">
+                      <p style={{ color: '#EF9F27', fontWeight: 600, fontSize: '0.875rem' }}>Kitchen's closed for today</p>
+                      <p style={{ color: '#6b8a72', fontSize: '0.75rem', marginTop: 2 }}>You've used all 3 free sessions. Come back tomorrow or upgrade.</p>
+                    </div>
+                    <button onClick={() => setShowProModal(true)} style={{ color: '#EF9F27', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Go Pro →</button>
                   </div>
-                  <button style={{ color: '#EF9F27', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>Go Pro →</button>
+                  <p style={{ marginTop: 8, paddingLeft: '2rem' }}>
+                    <button onClick={() => setShowPTPage(true)} style={{ background: 'none', border: 'none', color: '#4a6b52', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'DM Sans, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
+                  </p>
                 </div>
               ) : (
                 <p style={{ color: '#6b8a72', fontSize: '0.75rem', textAlign: 'right' }}>{genCount} of 3 sessions used today</p>
@@ -3041,6 +3296,7 @@ export default function App() {
           else if (v === 'chat') handleReset()
           else setView(v)
         }} />
+        {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
   }
@@ -3201,6 +3457,7 @@ export default function App() {
         if (v === 'saved') { setSavedBackTo('chat'); setView('saved') }
         else setView(v)
       }} />
+      {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
     </>
   )
 }
