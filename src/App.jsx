@@ -1554,7 +1554,7 @@ function WelcomeScreen({ onStart }) {
           <RemiLogo size={56} />
           <div>
             <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F5F2EC', letterSpacing: '0.02em' }}>Remi</h1>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', color: '#6b8a72', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal AI Chef</p>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', color: '#6b8a72', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal Chef</p>
           </div>
         </div>
         <div className="space-y-3 text-left">
