@@ -1072,8 +1072,8 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
   }, [dishName])
 
   return (
-    <div className="relative w-full h-44 overflow-hidden rounded-t-2xl">
-      {/* Terracotta placeholder — always behind */}
+    <div className="relative w-full overflow-hidden rounded-t-2xl" style={{ height: 200 }}>
+      {/* Placeholder */}
       <div
         className="absolute inset-0 flex items-center justify-center"
         style={{ backgroundColor: '#00E5A0' }}
@@ -1096,20 +1096,26 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
         />
       )}
 
-      {/* Dark gradient so text reads cleanly */}
+      {/* Deep gradient for text legibility */}
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.18) 50%, transparent 100%)' }}
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.22) 55%, transparent 100%)' }}
       />
 
       {/* Dish name + cuisine overlaid at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6">
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-3.5 pt-8">
         {cuisine && (
-          <span className="block text-[11px] font-medium text-white/70 mb-0.5 uppercase tracking-wider">
+          <span
+            className="block text-[10px] font-semibold uppercase tracking-widest mb-1"
+            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'ui-monospace, monospace' }}
+          >
             {cuisine}
           </span>
         )}
-        <h3 className="font-serif text-lg font-bold text-white leading-snug drop-shadow">
+        <h3
+          className="text-lg font-bold text-white leading-snug drop-shadow-lg"
+          style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700 }}
+        >
           {dishName}
         </h3>
       </div>
@@ -1139,7 +1145,12 @@ function DishCard({ dish, onClick, onImageResolved }) {
             <span
               key={chip.key}
               className="text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: 'rgba(0,229,160,0.12)', color: '#00C080', border: '1px solid rgba(0,229,160,0.2)' }}
+              style={{
+                backgroundColor: 'rgba(0,229,160,0.12)',
+                color: '#00C080',
+                border: '1px solid rgba(0,229,160,0.2)',
+                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+              }}
             >
               {chip.label}
             </span>
@@ -1167,6 +1178,100 @@ function DishCard({ dish, onClick, onImageResolved }) {
         </div>
       </div>
     </button>
+  )
+}
+
+// ── Share card modal ──────────────────────────────────────────────────────────
+
+function ShareCardModal({ dish, imgUrl, onClose }) {
+  const m = dish.dietician.macros
+  const macros = [
+    { label: 'KCAL', value: m.calories },
+    { label: 'PRO',  value: `${m.protein}g` },
+    { label: 'CARB', value: `${m.carbs}g` },
+    { label: 'FAT',  value: `${m.fat}g` },
+  ]
+
+  return (
+    <div
+      className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0"
+      style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="w-full max-w-sm animate-fade-in"
+        style={{ borderRadius: 24, overflow: 'hidden', backgroundColor: '#111', border: '1px solid #2A2A2A' }}
+      >
+        {/* Card preview */}
+        <div className="relative w-full" style={{ height: 260 }}>
+          {imgUrl
+            ? <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
+            : <div className="w-full h-full" style={{ backgroundColor: '#00E5A0' }} />
+          }
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)' }}
+          />
+          {/* Branding chip */}
+          <div
+            className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            <RemiLogo size={14} />
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#F0F0F0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Remi
+            </span>
+          </div>
+          {/* Dish name */}
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+            {dish.chef.cuisine && (
+              <p style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+                {dish.chef.cuisine}
+              </p>
+            )}
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.375rem', color: '#fff', lineHeight: 1.2 }}>
+              {dish.name}
+            </h2>
+          </div>
+        </div>
+
+        {/* Macro strip */}
+        <div className="grid grid-cols-4" style={{ borderTop: '1px solid #2A2A2A' }}>
+          {macros.map(({ label, value }, i) => (
+            <div
+              key={label}
+              className="flex flex-col items-center py-4 gap-0.5"
+              style={{ borderRight: i < 3 ? '1px solid #2A2A2A' : 'none' }}
+            >
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 15, fontWeight: 700, color: '#00E5A0' }}>
+                {value}
+              </span>
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 9, color: '#555', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 space-y-2.5" style={{ borderTop: '1px solid #2A2A2A' }}>
+          <button
+            disabled
+            className="w-full py-3.5 rounded-xl text-sm font-semibold"
+            style={{ backgroundColor: '#1A1A1A', color: '#444', border: '1px solid #2A2A2A', cursor: 'not-allowed' }}
+          >
+            Export card — coming next session
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl text-sm font-medium"
+            style={{ backgroundColor: 'transparent', color: '#666' }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -1214,11 +1319,12 @@ function CookStepsList({ steps, accentColor }) {
 }
 
 function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigateDashboard, missingIngredients = [] }) {
-  const [mode,         setMode]         = useState('diet')
-  const [copied,       setCopied]       = useState(false)
-  const [toast,        setToast]        = useState({ visible: false, message: '', action: null })
-  const [checkedItems, setCheckedItems] = useState(new Set())
-  const [listCopied,   setListCopied]   = useState(false)
+  const [mode,            setMode]            = useState('diet')
+  const [copied,          setCopied]          = useState(false)
+  const [toast,           setToast]           = useState({ visible: false, message: '', action: null })
+  const [checkedItems,    setCheckedItems]    = useState(new Set())
+  const [listCopied,      setListCopied]      = useState(false)
+  const [showShareModal,  setShowShareModal]  = useState(false)
   const { chef, dietician } = dish
   console.log('[debug] missingIngredients:', missingIngredients)
 
@@ -1288,7 +1394,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
       {/* ── Hero image ── */}
       {imgUrl ? (
-        <div className="relative w-full h-72 sm:h-[50vh] overflow-hidden">
+        <div className="relative w-full overflow-hidden" style={{ height: '55vh' }}>
           <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }} />
@@ -1322,24 +1428,43 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-tight">{dish.name}</h1>
         )}
 
-        {/* ── Mode toggle ── */}
-        <div className="p-1 rounded-2xl flex gap-1" style={{ backgroundColor: '#252525' }}>
-          {[
-            { value: 'diet', label: "I'm being good 🥗" },
-            { value: 'chef', label: 'Cheat meal 🍔'     },
-          ].map(opt => (
-            <button key={opt.value} onClick={() => setMode(opt.value)}
+        {/* ── Mode toggle + Share ── */}
+        <div className="flex gap-2.5 items-center">
+          <div className="flex gap-2 flex-1">
+            <button
+              onClick={() => setMode('diet')}
               className="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200"
-              style={mode === opt.value
-                ? { backgroundColor: '#1A1A1A', color: '#F0F0F0', boxShadow: '0 1px 6px rgba(0,0,0,0.4)' }
-                : { color: '#888888' }
-              }>
-              {opt.label}
+              style={mode === 'diet'
+                ? { backgroundColor: '#00E5A0', color: '#0D0D0D', boxShadow: '0 2px 10px rgba(0,229,160,0.35)' }
+                : { backgroundColor: '#1A1A1A', color: '#888888', border: '1px solid #2A2A2A' }
+              }
+            >
+              Performance Mode
             </button>
-          ))}
+            <button
+              onClick={() => setMode('chef')}
+              className="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200"
+              style={mode === 'chef'
+                ? { backgroundColor: '#E55A5A', color: '#fff', boxShadow: '0 2px 10px rgba(229,90,90,0.35)' }
+                : { backgroundColor: '#1A1A1A', color: '#888888', border: '1px solid #2A2A2A' }
+              }
+            >
+              Cheat Day
+            </button>
+          </div>
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="shrink-0 flex items-center justify-center rounded-xl transition-all duration-200 active:scale-95"
+            style={{ width: 44, height: 44, backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', color: '#888888' }}
+            aria-label="Share recipe"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
         </div>
         {isChef && (
-          <p className="text-center text-sm italic" style={{ color: chefAccent, marginTop: '-1.5rem' }}>
+          <p className="text-center text-sm italic" style={{ color: '#E55A5A', marginTop: '-1rem' }}>
             No judgment. Enjoy every bite.
           </p>
         )}
@@ -1509,6 +1634,11 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
           </div>
         )}
       </div>
+
+      {/* ── Share card modal ── */}
+      {showShareModal && (
+        <ShareCardModal dish={dish} imgUrl={imgUrl} onClose={() => setShowShareModal(false)} />
+      )}
 
       {/* ── Action bar ── */}
       <div className="fixed bottom-0 inset-x-0 z-50 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-8 sm:px-4">
