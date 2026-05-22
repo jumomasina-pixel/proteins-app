@@ -2,12 +2,18 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import Anthropic from '@anthropic-ai/sdk'
+import { PostHog } from 'posthog-node'
 
 const app = express()
 app.use(cors())
 app.use(express.json())
 
 const client = new Anthropic()
+
+const posthog = new PostHog(process.env.POSTHOG_API_KEY, {
+  host: process.env.POSTHOG_HOST,
+  enableExceptionAutocapture: true,
+})
 
 const SYSTEM_PROMPT = `You are a Dietician with 30+ years of clinical and culinary experience. Your superpower is taking restaurant and chef-quality dishes and recreating them at home with significantly reduced caloric density — without sacrificing taste, texture, or satisfaction.
 
@@ -89,10 +95,22 @@ If a dish is indulgent by nature (e.g. carbonara, butter chicken), acknowledge i
 Feel free to express genuine enthusiasm for food — this is craft, not just nutrition math`
 
 app.post('/api/meals', async (req, res) => {
-  const { messages } = req.body
+  const { messages, profile } = req.body
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages array is required' })
   }
+
+  const distinctId = req.headers['x-posthog-distinct-id'] || profile?.name || 'anonymous'
+  const sessionId = req.headers['x-posthog-session-id']
+
+  posthog.capture({
+    distinctId,
+    event: 'meal_request_sent',
+    properties: {
+      message_count: messages.length,
+      ...(sessionId && { $session_id: sessionId }),
+    },
+  })
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -115,10 +133,27 @@ app.post('/api/meals', async (req, res) => {
       }
     }
 
+    posthog.capture({
+      distinctId,
+      event: 'meal_response_completed',
+      properties: {
+        ...(sessionId && { $session_id: sessionId }),
+      },
+    })
+
     res.write('data: [DONE]\n\n')
     res.end()
   } catch (err) {
     console.error(err)
+    posthog.captureException(err, distinctId)
+    posthog.capture({
+      distinctId,
+      event: 'meal_request_failed',
+      properties: {
+        error_message: err.message,
+        ...(sessionId && { $session_id: sessionId }),
+      },
+    })
     res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`)
     res.end()
   }

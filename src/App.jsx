@@ -1,3 +1,4 @@
+import posthog from 'posthog-js'
 import { useState, useRef, useEffect, useMemo } from 'react'
 
 // ── Storage versioning ────────────────────────────────────────────────────────
@@ -5,13 +6,13 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 // Any existing storage that doesn't carry a matching version will be wiped and
 // the user will restart from the welcome screen as a new user.
 
-const PROFILE_VERSION = 4
+const PROFILE_VERSION = 5
 
-const LS_KEYS = ['lhc_profile', 'lhc_saved_recipes', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
+const LS_KEYS = ['remi_profile', 'lhc_profile', 'lhc_saved_recipes', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
 
 function loadProfileOrEvict() {
   try {
-    const raw = localStorage.getItem('lhc_profile')
+    const raw = localStorage.getItem('remi_profile') || localStorage.getItem('lhc_profile')
     if (!raw) return null
     const p = JSON.parse(raw)
     if (p?.version !== PROFILE_VERSION) {
@@ -22,6 +23,31 @@ function loadProfileOrEvict() {
   } catch {
     LS_KEYS.forEach(k => localStorage.removeItem(k))
     return null
+  }
+}
+
+// ── Map new remi_profile shape → old buildProfileSection shape ────────────────
+function mapProfileForApi(p) {
+  if (!p) return null
+  const goalMap = { cut: 'lose', bulk: 'build', maintain: 'maintain', recomp: 'eat_clean', performance: 'energy' }
+  const oldGoal = goalMap[p.goal] || 'maintain'
+  const days = Number(p.daysPerWeek) || 0
+  const freq = days === 0 ? 'rarely' : days <= 2 ? '1-2x' : days <= 4 ? '3-4x' : '5-6x'
+  const typeMap = { weights: 'Weights', boxing: 'Boxing & Martial Arts', cardio: 'Cardio', sport: 'Team Sports' }
+  const trainingTypes = (p.training || []).filter(t => t !== 'none').map(t => typeMap[t] || t)
+  const goalAmount = (p.currentWeight && p.targetWeight && p.goal === 'cut')
+    ? String(Math.max(0, Number(p.currentWeight) - Number(p.targetWeight)))
+    : ''
+  return {
+    name: p.name || 'Chef',
+    weight: p.currentWeight,
+    goal: oldGoal,
+    goals: [oldGoal],
+    goalAmount,
+    trainingFreq: freq,
+    trainingTypes: trainingTypes.length ? trainingTypes : ['None'],
+    avoidFoods: p.avoidFoods || '',
+    kitchenLevel: 'home cook',
   }
 }
 
@@ -293,7 +319,51 @@ function PaperTexture() {
   )
 }
 
-// ── Onboarding option constants ───────────────────────────────────────────────
+// ── Remi logo mark ────────────────────────────────────────────────────────────
+
+function RemiLogo({ size = 32 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 44 44" fill="none">
+      <path d="M22 8C22 8 14 16 14 24C14 28.4 17.6 32 22 32C26.4 32 30 28.4 30 24C30 16 22 8 22 8Z" fill="#1D9E75"/>
+      <path d="M22 14C22 14 18 19 18 24C18 26.2 19.8 28 22 28" stroke="#5DCAA5" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+    </svg>
+  )
+}
+
+// ── Remi onboarding constants ─────────────────────────────────────────────────
+
+const REMI_GOAL_OPTIONS = [
+  { value: 'cut',         label: 'Cut',         desc: 'lose fat' },
+  { value: 'bulk',        label: 'Bulk',        desc: 'build muscle' },
+  { value: 'maintain',    label: 'Maintain',    desc: '' },
+  { value: 'recomp',      label: 'Recomp',      desc: '' },
+  { value: 'performance', label: 'Performance', desc: '' },
+]
+
+const REMI_TRAINING_OPTIONS = [
+  { value: 'weights', label: 'Weights' },
+  { value: 'boxing',  label: 'Boxing' },
+  { value: 'cardio',  label: 'Cardio' },
+  { value: 'sport',   label: 'Sport' },
+  { value: 'none',    label: "None / I don't train" },
+]
+
+function classifyIngredient(name) {
+  const l = name.toLowerCase()
+  if (/chicken|beef|fish|egg|tofu|salmon|tuna|lamb|pork|turkey|prawn|shrimp|mince|steak|brisket|duck/.test(l)) return 'protein'
+  if (/rice|pasta|bread|potato|sweet potato|oat|noodle|quinoa|flour|tortilla|couscous|barley/.test(l)) return 'carb'
+  if (/olive oil|butter|nut|avocado|cheese|cream|coconut|oil|ghee|tahini/.test(l)) return 'fat'
+  return 'veg'
+}
+
+const CLASSIFY_COLORS = {
+  protein: { border: '#1D9E75', text: '#5DCAA5' },
+  carb:    { border: '#EF9F27', text: '#EF9F27' },
+  fat:     { border: '#6b8a72', text: '#6b8a72' },
+  veg:     { border: '#5DCAA5', text: '#5DCAA5' },
+}
+
+// ── Legacy onboarding option constants (kept for Dashboard compatibility) ─────
 
 const GOAL_OPTIONS = [
   { value: 'lose',      label: 'Lose fat',                    emoji: '🔥' },
@@ -621,8 +691,8 @@ function BottomNav({ activeView, onNavigate }) {
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-50 flex"
       style={{
-        backgroundColor: '#FAF6EE',
-        borderTop: '1px solid #C8B090',
+        backgroundColor: '#0f2318',
+        borderTop: '1px solid #1a3020',
         paddingBottom: 'env(safe-area-inset-bottom, 0)',
       }}
     >
@@ -634,7 +704,7 @@ function BottomNav({ activeView, onNavigate }) {
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors"
-            style={{ color: active ? '#C1683A' : '#7A6548' }}
+            style={{ color: active ? '#1D9E75' : '#6b8a72' }}
             aria-label={item.label}
           >
             {item.icon(active)}
@@ -1013,59 +1083,51 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
 }
 
 function DishCard({ dish, onClick, onImageResolved }) {
-  const savings = calorieSavings(dish)
+  const m = dish.dietician.macros
   return (
     <button
       onClick={onClick}
-      className="w-full rounded-2xl bg-cream shadow-card overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 hover:shadow-card-hover group"
+      className="w-full rounded-2xl overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 group"
+      style={{ backgroundColor: '#0f2318', border: '0.5px solid #1a3020', boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
     >
       <CardImageHeader dishName={dish.name} cuisine={dish.chef.cuisine} onImageResolved={onImageResolved} />
 
-      <div className="px-5 pb-5 pt-4 space-y-3">
-        {/* Calorie count */}
-        <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-bold tabular-nums" style={{ color: '#C1683A' }}>
-            {dish.dietician.macros.calories}
-          </span>
-          <span className="text-sm text-charcoal-muted">kcal</span>
+      <div className="px-4 pb-4 pt-3 space-y-3">
+        {/* 4-chip macro row */}
+        <div className="flex gap-1.5 flex-wrap">
+          {[
+            { label: `${m.calories} kcal`, key: 'cal' },
+            { label: `${m.protein}g P`, key: 'pro' },
+            { label: `${m.carbs}g C`, key: 'carb' },
+            { label: `${m.fat}g F`, key: 'fat' },
+          ].map(chip => (
+            <span
+              key={chip.key}
+              className="text-xs font-semibold px-2.5 py-1 rounded-full"
+              style={{ backgroundColor: 'rgba(93,202,165,0.12)', color: '#5DCAA5', border: '1px solid rgba(93,202,165,0.2)' }}
+            >
+              {chip.label}
+            </span>
+          ))}
         </div>
 
-        {/* Cook time + difficulty badges */}
+        {/* Cook time + difficulty */}
         {(dish.dietician.cookTime !== '—' || dish.dietician.difficulty) && (
           <div className="flex gap-2 flex-wrap">
             {dish.dietician.cookTime !== '—' && (
-              <span
-                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090', color: '#4A3728' }}
-              >
-                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#6b8a72', backgroundColor: '#132b1a' }}>
                 {dish.dietician.cookTime} mins
               </span>
             )}
             {dish.dietician.difficulty && (
-              <span
-                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: '#FAF3E4', border: '1px solid #C8B090', color: '#4A3728' }}
-              >
-                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2c0 0-6 6-6 12a6 6 0 0012 0c0-6-6-12-6-12zm0 16a2 2 0 110-4 2 2 0 010 4z"/>
-                </svg>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#6b8a72', backgroundColor: '#132b1a' }}>
                 {dish.dietician.difficulty}
               </span>
             )}
           </div>
         )}
 
-        {/* Calorie savings badge */}
-        {savings && (
-          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-sage-dark bg-sage-pale rounded-full px-3 py-1 border border-sage/25">
-            💪 Save ~{savings} kcal vs restaurant
-          </div>
-        )}
-
-        <div className="pt-1 text-sm font-medium text-terracotta flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200">
+        <div className="pt-1 text-sm font-medium flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200" style={{ color: '#1D9E75' }}>
           View recipe <span>→</span>
         </div>
       </div>
@@ -1458,356 +1520,74 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
 // ── Welcome screen ────────────────────────────────────────────────────────────
 
-const WELCOME_VALUE_PROPS = [
-  { icon: '⚡', text: 'Built around what you actually have'        },
-  { icon: '🎯', text: 'Personalised to your body and your goals'   },
-  { icon: '🍽️', text: 'Chef quality. Dietician approved.'          },
-]
-
-// Keyframe styles injected once for welcome-screen animations
-const WELCOME_STYLES = `
-  @keyframes ctaPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(193,104,58,0); }
-    50%       { box-shadow: 0 0 0 10px rgba(193,104,58,0.18); }
-  }
-  .cta-pulse { animation: ctaPulse 2.4s ease-in-out 0.8s 3; }
-  @keyframes taglineFadeIn {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .tagline-enter { animation: taglineFadeIn 0.4s ease-out both; }
-  @keyframes propFadeIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-  .prop-enter-0 { animation: propFadeIn 0.35s ease-out 0.05s both; }
-  .prop-enter-1 { animation: propFadeIn 0.35s ease-out 0.15s both; }
-  .prop-enter-2 { animation: propFadeIn 0.35s ease-out 0.25s both; }
-`
+const WELCOME_STYLES = ``
 
 function WelcomeScreen({ onStart }) {
-  const [heroUrl,    setHeroUrl]    = useState(null)
-  const [imgLoaded,  setImgLoaded]  = useState(false)
-  const [showBelow,  setShowBelow]  = useState(false)
-
-  // Hero image is a fixed Unsplash photo — no fetch needed
-  useEffect(() => { setHeroUrl('https://images.unsplash.com/photo-1591205095432-ef9c03c67068?w=1200&q=85') }, [])
-
-  // Reveal content below the hero once image is loaded (or after 1.2s fallback)
-  useEffect(() => {
-    const t = setTimeout(() => setShowBelow(true), 1200)
-    return () => clearTimeout(t)
-  }, [])
-
-  function handleImgLoad() {
-    setImgLoaded(true)
-    setShowBelow(true)
-  }
-
   return (
-    <div className="min-h-screen flex flex-col relative overflow-x-hidden" style={{ backgroundColor: '#1A1108' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#0A1A12' }}>
       <style>{WELCOME_STYLES}</style>
-      <PaperTexture />
-
-      {/* ── Hero image — full bleed, no rounded corners ── */}
-      <div
-        className="relative w-full shrink-0 overflow-hidden"
-        style={{ height: 'clamp(45vh, 50vw, 55vh)' }}
-      >
-        {/* Warm dark placeholder */}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: '#2A1A0E' }}
-        />
-
-        {heroUrl && (
-          <img
-            src={heroUrl}
-            alt=""
-            onLoad={handleImgLoad}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-            style={{ opacity: imgLoaded ? 1 : 0 }}
-          />
-        )}
-
-        {/* Gradient — warm sandy fade at bottom */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 45%, rgba(26,17,8,0.7) 80%, #1A1108 100%)',
-          }}
-        />
-
-        {/* Wordmark sits at the top of the hero */}
-        <div className="absolute top-0 left-0 right-0 px-6 pt-10 sm:pt-14 text-center">
-          <h1
-            className="font-serif font-extrabold leading-none text-white"
-            style={{
-              fontSize: 'clamp(2.6rem, 9vw, 4rem)',
-              letterSpacing: '0.03em',
-              textShadow: '0 2px 20px rgba(0,0,0,0.55)',
-            }}
-          >
-            Let Him Cook
-          </h1>
-          <p
-            className="mt-3 font-sans"
-            style={{ fontSize: '1.125rem', fontWeight: 500, color: '#FAF6EE', textShadow: '0 1px 6px rgba(0,0,0,0.6)', letterSpacing: '0.01em' }}
-          >
-            Personal Chef · Dietician · Coach
-          </p>
-        </div>
-      </div>
-
-      {/* ── Content below hero ── */}
-      <div
-        className="flex-1 flex flex-col px-6 pb-10 pt-8 sm:pb-14"
-        style={{
-          backgroundColor: '#1A1108',
-          opacity: showBelow ? 1 : 0,
-          transition: 'opacity 0.35s ease-out',
-        }}
-      >
-        <div className="w-full max-w-sm mx-auto flex flex-col gap-8">
-
-          {/* ── Tagline block ── */}
-          <div className={`text-center space-y-3 ${showBelow ? 'tagline-enter' : ''}`}>
-            <h2
-              className="font-serif font-bold text-white leading-tight"
-              style={{ fontSize: 'clamp(1.5rem, 5.5vw, 2rem)' }}
-            >
-              Eat like a chef.<br />
-              Train like an athlete.<br />
-              Live like both.
-            </h2>
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.50)' }}>
-              Your proteins. Your goals. Three dishes — lean or indulgent — in seconds.
-            </p>
-          </div>
-
-        </div>
-      </div>
-
-      {/* ── Mission Section ── */}
-      <div
-        className="w-full px-6 py-14 sm:py-20 space-y-14"
-        style={{ backgroundColor: '#1A1108' }}
-      >
-
-        {/* Founder story */}
-        <div className="mx-auto" style={{ maxWidth: 680 }}>
-          <div
-            className="rounded-2xl p-7 sm:p-9"
-            style={{
-              backgroundColor: '#FAF6EE',
-              borderLeft: '4px solid #C1683A',
-              boxShadow: '0 2px 16px rgba(0,0,0,0.22)',
-            }}
-          >
-            <h2
-              className="font-serif font-bold mb-4"
-              style={{ color: '#1A1108', fontSize: 'clamp(1.25rem, 4vw, 1.6rem)' }}
-            >
-              Why I Built This
-            </h2>
-            <p
-              className="font-sans leading-relaxed"
-              style={{ color: '#4A3728', fontSize: '0.9375rem' }}
-            >
-              I have ADHD. I was constantly throwing out food — either I'd forgotten it was there, or I'd stare at the fridge for 20 minutes trying to figure out what I could make, lose focus, and order takeaway instead. Let Him Cook started as a fix for my own fridge. It became something bigger.
-            </p>
+      <div className="text-center space-y-10 w-full max-w-xs">
+        <div className="flex flex-col items-center gap-5">
+          <RemiLogo size={56} />
+          <div>
+            <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F5F2EC', letterSpacing: '0.02em' }}>Remi</h1>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.75rem', color: '#6b8a72', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal AI Chef</p>
           </div>
         </div>
-
-        {/* Impact stat cards */}
-        <div
-          className="mx-auto grid grid-cols-1 sm:grid-cols-3 gap-5"
-          style={{ maxWidth: 680 }}
-        >
+        <div className="space-y-3 text-left">
           {[
-            { emoji: '🗑️', stat: '$3,800',      label: 'wasted per Australian household every year on food that never gets eaten' },
-            { emoji: '🧠', stat: '200+',         label: 'food-related decisions the average person makes every single day' },
-            { emoji: '🌍', stat: '17.5M tonnes', label: 'of CO₂ generated annually in Australia from food waste alone' },
-          ].map(({ emoji, stat, label }) => (
-            <div
-              key={stat}
-              className="rounded-2xl p-6 flex flex-col gap-2"
-              style={{
-                backgroundColor: '#FAF6EE',
-                border: '1px solid #C8B090',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.16)',
-              }}
-            >
-              <span className="text-2xl">{emoji}</span>
-              <span
-                className="font-serif font-extrabold leading-none"
-                style={{ color: '#C1683A', fontSize: 'clamp(1.5rem, 5vw, 2rem)' }}
-              >
-                {stat}
-              </span>
-              <p
-                className="font-sans text-xs leading-snug"
-                style={{ color: '#7A6548' }}
-              >
-                {label}
-              </p>
+            'Built around what you have',
+            'Macros adjusted to your training',
+            'Chef quality. Nutritionist approved.',
+          ].map(text => (
+            <div key={text} className="flex items-center gap-3">
+              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#1D9E75', flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ fontSize: '0.875rem', color: '#c8e0cc' }}>{text}</span>
             </div>
           ))}
         </div>
-
-        {/* Mission statement */}
-        <div
-          className="mx-auto text-center space-y-6"
-          style={{ maxWidth: 600 }}
-        >
-          <h2
-            className="font-serif font-bold text-white"
-            style={{ fontSize: 'clamp(1.25rem, 4vw, 1.6rem)' }}
+        <div className="space-y-3">
+          <button
+            onClick={onStart}
+            style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem' }}
           >
-            Our Mission
-          </h2>
-          <ul className="space-y-4 text-left inline-block">
-            {[
-              "Reduce decision fatigue — open your fridge, tell us what's there, eat well in minutes",
-              'Reduce food waste — use what you have before it ends up in the bin',
-              'Improve health through enablement — not restriction, not guilt. Just great food, built around you.',
-            ].map((point) => (
-              <li key={point} className="flex items-start gap-3">
-                <span
-                  className="mt-1.5 shrink-0 w-2 h-2 rounded-full"
-                  style={{ backgroundColor: '#C1683A' }}
-                />
-                <span
-                  className="font-sans leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.9375rem' }}
-                >
-                  {point}
-                </span>
-              </li>
-            ))}
-          </ul>
+            Get started →
+          </button>
+          <p style={{ fontSize: '0.7rem', color: '#4a6b52', letterSpacing: '0.04em' }}>Free · No account needed</p>
         </div>
-
-        {/* ── Value props ── */}
-        <div className="w-full max-w-sm mx-auto flex flex-col gap-8">
-          <div className="space-y-3">
-            {WELCOME_VALUE_PROPS.map(({ icon, text }, i) => (
-              <div
-                key={text}
-                className={`flex items-center gap-4 prop-enter-${i}`}
-              >
-                <span
-                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-base"
-                  style={{ backgroundColor: 'rgba(193,104,58,0.15)', border: '1px solid rgba(193,104,58,0.3)' }}
-                >
-                  {icon}
-                </span>
-                <span
-                  className="text-sm font-medium leading-snug"
-                  style={{ color: 'rgba(255,255,255,0.80)' }}
-                >
-                  {text}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Social proof ── */}
-          <p
-            className="text-center italic"
-            style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.32)', lineHeight: 1.6 }}
-          >
-            — Trusted by athletes, home cooks, and everyone in between
-          </p>
-
-          {/* ── CTA ── */}
-          <div className="space-y-3">
-            <button
-              onClick={onStart}
-              className="cta-pulse w-full py-4 rounded-xl font-bold text-base text-white transition-opacity active:opacity-80"
-              style={{
-                backgroundColor: '#C1683A',
-                fontSize: '1rem',
-                letterSpacing: '0.01em',
-              }}
-            >
-              Build My Profile →
-            </button>
-            <p
-              className="text-center"
-              style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.30)', letterSpacing: '0.04em' }}
-            >
-              Free · No account needed · Takes 2 minutes
-            </p>
-          </div>
-        </div>
-
       </div>
     </div>
   )
 }
 
-// ── Loading screen (chef illustration + rotating facts) ───────────────────────
+// ── Loading screen ────────────────────────────────────────────────────────────
 
 const LOADER_STYLES = `
-  @keyframes chefBob {
-    0%, 100% { transform: translateY(0px); }
-    50%       { transform: translateY(-7px); }
+  @keyframes logoPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
   }
-  .loader-chef { animation: chefBob 2.6s ease-in-out infinite; }
+  .remi-loader-pulse { animation: logoPulse 2s ease-in-out infinite; }
 `
 
-function ChefLoader() {
-  const [factIdx,     setFactIdx]     = useState(0)
-  const [factVisible, setFactVisible] = useState(true)
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setFactVisible(false)
-      setTimeout(() => {
-        setFactIdx(i => (i + 1) % LOADING_FACTS.length)
-        setFactVisible(true)
-      }, 400)
-    }, 4000)
-    return () => clearInterval(timer)
-  }, [])
-
+function ChefLoader({ profile }) {
+  const isTrainingDay = profile?.trainingToday !== false
+  const subtext = isTrainingDay
+    ? 'Training day · High protein · Moderate carbs'
+    : 'Rest day · Lean and clean'
   return (
     <>
       <style>{LOADER_STYLES}</style>
-      <div className="flex flex-col items-center gap-10">
-
-        {/* Chef photo */}
-        <img
-          src="https://images.unsplash.com/photo-1629407119384-d42320c3e576?w=800&q=80"
-          alt="Chef cooking"
-          className="loader-chef"
-          style={{
-            width: 400,
-            height: 280,
-            objectFit: 'cover',
-            borderRadius: 16,
-            boxShadow: '0 8px 32px rgba(26,17,8,0.18)',
-          }}
-        />
-
-        {/* Rotating fact bubble */}
-        <div
-          className="w-full max-w-sm rounded-xl px-5 py-4"
-          style={{
-            backgroundColor: '#FAF6EE',
-            borderLeft: '3px solid #C1683A',
-            boxShadow: '0 2px 12px rgba(26,17,8,0.09), 0 1px 4px rgba(26,17,8,0.05)',
-            opacity: factVisible ? 1 : 0,
-            transform: factVisible ? 'translateY(0px)' : 'translateY(6px)',
-            transition: 'opacity 400ms ease, transform 400ms ease',
-          }}
-        >
-          <p className="text-sm leading-relaxed" style={{ color: '#4A3728' }}>
-            {LOADING_FACTS[factIdx]}
-          </p>
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div className="remi-loader-pulse">
+          <RemiLogo size={56} />
         </div>
-
+        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '1.125rem', fontStyle: 'italic', color: '#5DCAA5' }}>
+          Let him cook...
+        </p>
+        {profile && (
+          <p style={{ fontSize: '0.8125rem', color: '#6b8a72' }}>{subtext}</p>
+        )}
       </div>
     </>
   )
@@ -2286,237 +2066,245 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
   )
 }
 
-// ── Onboarding ────────────────────────────────────────────────────────────────
+// ── Onboarding (3-step) ──────────────────────────────────────────────────────
 
-const EMPTY_PROFILE = {
-  name: '', weight: '', goals: [], goalAmount: '',
-  trainingFreq: '', trainingTypes: [], avoidFoods: '', kitchenLevel: '',
-}
-
-function Onboarding({ initialProfile, onComplete, onBack }) {
-  const [step, setStep]       = useState(1)
-  const [profile, setProfile] = useState({ ...EMPTY_PROFILE, ...initialProfile })
-
-  // Only show step 4 (how much to lose) when fat-loss is one of the selected goals
-  const skipStep4  = !(profile.goals ?? []).includes('lose')
-  const stepList   = skipStep4 ? [1,2,3,5,6,7,8] : [1,2,3,4,5,6,7,8]
-  const stepIndex  = stepList.indexOf(step)
-  const totalSteps = stepList.length
-  const displayNum = stepIndex + 1
-
-  function set(field, value) { setProfile(p => ({ ...p, [field]: value })) }
-
-  function goNext() {
-    const ni = stepIndex + 1
-    if (ni >= stepList.length) { onComplete(profile); return }
-    setStep(stepList[ni])
-  }
-  function goBack() {
-    const pi = stepIndex - 1
-    if (pi < 0) { onBack?.(); return }
-    setStep(stepList[pi])
-  }
+function Onboarding({ initialProfile, onComplete, onBack, isLocked }) {
+  const hasProfile = initialProfile?.goal && Array.isArray(initialProfile?.training)
+  const [step, setStep] = useState(hasProfile ? 3 : 1)
+  const [goal, setGoal] = useState(initialProfile?.goal || 'cut')
+  const [currentWeight, setCurrentWeight] = useState(String(initialProfile?.currentWeight || ''))
+  const [targetWeight, setTargetWeight] = useState(String(initialProfile?.targetWeight || ''))
+  const [training, setTraining] = useState(initialProfile?.training || [])
+  const [daysPerWeek, setDaysPerWeek] = useState(String(initialProfile?.daysPerWeek || ''))
+  const [trainingToday, setTrainingToday] = useState(
+    initialProfile?.trainingToday !== undefined ? initialProfile.trainingToday : true
+  )
+  const [ingredients, setIngredients] = useState([])
+  const [ingredientInput, setIngredientInput] = useState('')
 
   function canProceed() {
-    if (step === 1) return profile.name.trim().length > 0
-    if (step === 2) return String(profile.weight).trim().length > 0
-    if (step === 3) return (profile.goals ?? []).length > 0
-    if (step === 4) return String(profile.goalAmount).trim().length > 0
-    if (step === 5) return profile.trainingFreq !== ''
-    if (step === 6) return profile.trainingTypes.length > 0
-    if (step === 7) return true
-    if (step === 8) return profile.kitchenLevel !== ''
+    if (step === 1) return currentWeight.trim().length > 0
+    if (step === 2) return daysPerWeek.trim().length > 0 || training.includes('none')
+    if (step === 3) return ingredients.length > 0
     return true
   }
 
-  const isLast   = stepIndex === totalSteps - 1
-  const btnLabel = isLast ? 'Build my profile →'
-                 : (step === 7 && !profile.avoidFoods) ? 'Skip →'
-                 : 'Next →'
+  function addIngredient(raw) {
+    const trimmed = raw.trim().replace(/,$/, '').trim()
+    if (!trimmed) return
+    const type = classifyIngredient(trimmed)
+    setIngredients(prev => [...prev, { name: trimmed, type }])
+    setIngredientInput('')
+  }
 
-  const cardStyle = (selected) => ({
-    backgroundColor: selected ? '#FDF0E8' : '#FAF6EE',
-    borderColor:     selected ? '#C1683A' : '#C8B090',
-    color:           '#1A1108',
-  })
-
-  function renderStep() {
-    switch (step) {
-      case 1: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What's your name?</h2>
-          <input autoFocus type="text" value={profile.name}
-            onChange={e => set('name', e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && canProceed() && goNext()}
-            placeholder="First name"
-            className="w-full rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-base focus:outline-none focus:border-terracotta transition"
-          />
-        </div>
-      )
-      case 2: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What's your current weight?</h2>
-          <div className="flex items-center gap-3">
-            <input autoFocus type="number" value={profile.weight}
-              onChange={e => set('weight', e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && canProceed() && goNext()}
-              placeholder="85"
-              className="flex-1 rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-base focus:outline-none focus:border-terracotta transition"
-            />
-            <span className="font-medium text-charcoal-muted">kg</span>
-          </div>
-        </div>
-      )
-      case 3: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What are your goals?</h2>
-          <p className="text-sm text-charcoal-muted">Select all that apply</p>
-          <div className="space-y-2.5">
-            {GOAL_OPTIONS.map(o => {
-              const sel = (profile.goals ?? []).includes(o.value)
-              return (
-                <button
-                  key={o.value}
-                  onClick={() => {
-                    const current = profile.goals ?? []
-                    set('goals', sel ? current.filter(v => v !== o.value) : [...current, o.value])
-                  }}
-                  className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
-                  style={cardStyle(sel)}
-                >
-                  <span className="text-2xl leading-none shrink-0">{o.emoji}</span>
-                  <span>{o.label}</span>
-                  {sel && (
-                    <span className="ml-auto shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs"
-                      style={{ backgroundColor: '#C1683A' }}>✓</span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )
-      case 4: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">
-            How much fat do you want to lose?
-          </h2>
-          <div className="flex items-center gap-3">
-            <input autoFocus type="number" value={profile.goalAmount}
-              onChange={e => set('goalAmount', e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && canProceed() && goNext()}
-              placeholder="10"
-              className="flex-1 rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-base focus:outline-none focus:border-terracotta transition"
-            />
-            <span className="font-medium text-charcoal-muted">kg</span>
-          </div>
-        </div>
-      )
-      case 5: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">How often do you train?</h2>
-          <div className="space-y-3">
-            {FREQ_OPTIONS.map(o => (
-              <button key={o.value} onClick={() => set('trainingFreq', o.value)}
-                className="w-full px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
-                style={cardStyle(profile.trainingFreq === o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )
-      case 6: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">What type of training?</h2>
-          <p className="text-sm text-charcoal-muted">Select all that apply</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {TRAINING_TYPES.map(({ value, label, emoji }) => {
-              const sel = profile.trainingTypes.includes(value)
-              return (
-                <button key={value}
-                  onClick={() => {
-                    if (value === 'None') { set('trainingTypes', sel ? [] : ['None']); return }
-                    const filtered = profile.trainingTypes.filter(t => t !== 'None')
-                    set('trainingTypes', sel ? filtered.filter(t => t !== value) : [...filtered, value])
-                  }}
-                  className="flex items-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left"
-                  style={{ backgroundColor: sel ? '#FDF0E8' : '#FAF6EE', borderColor: sel ? '#C1683A' : '#C8B090', color: sel ? '#C1683A' : '#4A3728' }}
-                >
-                  <span className="text-lg leading-none shrink-0">{emoji}</span>
-                  <span className="leading-snug">{label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )
-      case 7: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">Any foods you avoid?</h2>
-          <p className="text-sm text-charcoal-muted">Optional — leave blank to skip</p>
-          <textarea autoFocus rows={3} value={profile.avoidFoods}
-            onChange={e => set('avoidFoods', e.target.value)}
-            placeholder="e.g. dairy, gluten, shellfish…"
-            className="w-full rounded-xl bg-cream border border-sandy-border px-5 py-3.5 text-charcoal text-sm focus:outline-none focus:border-terracotta transition resize-none"
-          />
-        </div>
-      )
-      case 8: return (
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal">How comfortable are you in the kitchen?</h2>
-          <div className="space-y-3">
-            {KITCHEN_OPTIONS.map(o => (
-              <button key={o.value} onClick={() => set('kitchenLevel', o.value)}
-                className="w-full px-5 py-4 rounded-2xl border-2 text-left font-medium transition-all"
-                style={cardStyle(profile.kitchenLevel === o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )
-      default: return null
+  function handleIngredientKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      addIngredient(ingredientInput)
     }
   }
 
-  return (
-    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col px-6 py-8 relative">
-      <PaperTexture />
-      <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col" style={{ minHeight: 'calc(100dvh - 4rem)' }}>
+  function buildFridgeMessage() {
+    return "I want meal ideas. In the fridge I've got: " + ingredients.map(i => i.name).join(', ') + '.'
+  }
 
-        {/* Progress header */}
-        <div className="flex items-center gap-4 mb-10">
-          <button onClick={goBack} className="text-charcoal-muted hover:text-charcoal transition-colors p-1">
+  function handleCook() {
+    if (!canProceed() || isLocked) return
+    const remiProfile = {
+      goal,
+      currentWeight: Number(currentWeight) || undefined,
+      targetWeight: targetWeight ? Number(targetWeight) : undefined,
+      training,
+      daysPerWeek: Number(daysPerWeek) || 0,
+      trainingToday,
+    }
+    onComplete(remiProfile, buildFridgeMessage())
+  }
+
+  const pillStyle = (selected) => ({
+    padding: '9px 16px', borderRadius: 10,
+    border: `1.5px solid ${selected ? '#1D9E75' : '#1a3020'}`,
+    backgroundColor: selected ? '#0f3522' : '#0f2318',
+    color: selected ? '#5DCAA5' : '#6b8a72',
+    fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem',
+    fontWeight: selected ? 500 : 400, cursor: 'pointer', transition: 'all 0.15s',
+  })
+
+  const inputStyle = {
+    width: '100%', borderRadius: 12, backgroundColor: '#0f2318',
+    border: '1px solid #1a3020', color: '#c8e0cc',
+    padding: '12px 16px', fontFamily: 'DM Sans, sans-serif', fontSize: 16,
+    outline: 'none',
+  }
+
+  const labelStyle = {
+    fontSize: '0.7rem', color: '#6b8a72', display: 'block',
+    marginBottom: 6, letterSpacing: '0.08em', textTransform: 'uppercase',
+  }
+
+  function ProgressDots() {
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+        {[1, 2, 3].map(s => (
+          <div key={s} style={{
+            height: 6, width: s === step ? 24 : 8, borderRadius: 10,
+            backgroundColor: s <= step ? '#1D9E75' : '#1a3020',
+            transition: 'all 0.25s ease',
+          }} />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col px-6 py-10" style={{ backgroundColor: '#0A1A12' }}>
+      <div className="w-full max-w-sm mx-auto flex flex-col" style={{ minHeight: 'calc(100dvh - 5rem)' }}>
+
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={step > 1 && !hasProfile ? () => setStep(s => s - 1) : onBack}
+            style={{ color: '#6b8a72', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
             </svg>
           </button>
-          <div className="flex-1 flex items-center gap-3">
-            <div className="flex gap-1.5 flex-1">
-              {stepList.map((s, idx) => (
-                <div key={s} className="h-1.5 rounded-full transition-all duration-300"
-                  style={{ flex: idx === stepIndex ? 2 : 1, backgroundColor: idx <= stepIndex ? '#C1683A' : '#C8B090' }}
-                />
-              ))}
-            </div>
-            <span className="text-xs text-charcoal-muted shrink-0 tabular-nums">{displayNum} / {totalSteps}</span>
-          </div>
+          {!hasProfile && <ProgressDots />}
         </div>
 
-        {/* Step */}
-        <div className="flex-1">{renderStep()}</div>
+        <div className="flex-1 space-y-6">
 
-        {/* Next */}
-        <div className="mt-8">
-          <button onClick={goNext} disabled={!canProceed()}
-            className="w-full py-4 rounded-xl font-semibold text-base text-white transition-opacity"
-            style={{ backgroundColor: '#C1683A', opacity: canProceed() ? 1 : 0.4, boxShadow: canProceed() ? '0 2px 8px rgba(193,104,58,0.35)' : 'none' }}
-          >
-            {btnLabel}
-          </button>
+          {step === 1 && (
+            <div className="space-y-6">
+              <div>
+                <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F5F2EC', marginBottom: 6 }}>
+                  What's the goal, chef?
+                </h2>
+                <p style={{ fontSize: '0.875rem', color: '#6b8a72' }}>Remi adjusts every dish around this.</p>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {REMI_GOAL_OPTIONS.map(o => (
+                  <button key={o.value} onClick={() => setGoal(o.value)} style={pillStyle(goal === o.value)}>
+                    {o.label}{o.desc ? ` — ${o.desc}` : ''}{goal === o.value ? ' ✓' : ''}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label style={labelStyle}>Current weight</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="number" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="84" style={inputStyle} />
+                    <span style={{ color: '#6b8a72', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Target weight</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} placeholder="78" style={inputStyle} />
+                    <span style={{ color: '#6b8a72', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-6">
+              <div>
+                <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F5F2EC', marginBottom: 6 }}>
+                  How do you train?
+                </h2>
+                <p style={{ fontSize: '0.875rem', color: '#6b8a72' }}>Remi adjusts macros on training vs rest days.</p>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {REMI_TRAINING_OPTIONS.map(o => {
+                  const isNone = o.value === 'none'
+                  const sel = isNone ? training.includes('none') : training.includes(o.value)
+                  return (
+                    <button key={o.value} onClick={() => {
+                      if (isNone) { setTraining(['none']); return }
+                      const filtered = training.filter(t => t !== 'none')
+                      setTraining(sel ? filtered.filter(t => t !== o.value) : [...filtered, o.value])
+                    }} style={pillStyle(sel)}>
+                      {o.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div>
+                <label style={labelStyle}>Days per week</label>
+                <input type="number" min={0} max={7} value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="4" style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 14, backgroundColor: '#0f2318', border: '1px solid #1a3020' }}>
+                <span style={{ fontSize: '0.9rem', color: '#c8e0cc', fontFamily: 'DM Sans, sans-serif' }}>
+                  {trainingToday ? 'Today is a training day' : 'Today is a rest day'}
+                </span>
+                <button onClick={() => {
+                  const next = !trainingToday
+                  setTrainingToday(next)
+                  localStorage.setItem('remi_training_today', JSON.stringify(next))
+                }} style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: trainingToday ? '#1D9E75' : '#1a3020', position: 'relative', flexShrink: 0, border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}>
+                  <span style={{ position: 'absolute', top: 2, left: trainingToday ? 22 : 2, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s', display: 'block' }} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-6">
+              <div>
+                <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F5F2EC', marginBottom: 6 }}>
+                  What's in the fridge?
+                </h2>
+                <p style={{ fontSize: '0.875rem', color: '#6b8a72' }}>Tell Remi what you've got. He'll handle the rest.</p>
+              </div>
+              <div>
+                <input
+                  type="text" value={ingredientInput}
+                  onChange={e => setIngredientInput(e.target.value)}
+                  onKeyDown={handleIngredientKeyDown}
+                  placeholder="chicken, rice, broccoli... (Enter to add)"
+                  style={inputStyle}
+                />
+                <p style={{ fontSize: '0.75rem', color: '#4a6b52', marginTop: 6 }}>Press Enter or comma to add each ingredient</p>
+              </div>
+              {ingredients.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {ingredients.map((ing, i) => {
+                    const c = CLASSIFY_COLORS[ing.type]
+                    return (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, backgroundColor: '#0f2318', border: `1.5px solid ${c.border}`, fontSize: '0.8125rem', color: '#c8e0cc', fontFamily: 'DM Sans, sans-serif' }}>
+                        <span>{ing.name}</span>
+                        <span style={{ fontSize: '0.6rem', color: c.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{ing.type}</span>
+                        <button onClick={() => setIngredients(prev => prev.filter((_, j) => j !== i))} style={{ color: '#4a6b52', cursor: 'pointer', background: 'none', border: 'none', padding: 0, lineHeight: 1, fontSize: '1.1rem' }}>×</button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 space-y-3">
+          {step < 3 ? (
+            <button onClick={() => { if (canProceed()) setStep(s => s + 1) }} disabled={!canProceed()}
+              style={{ width: '100%', backgroundColor: canProceed() ? '#1D9E75' : '#0f2318', color: canProceed() ? '#fff' : '#4a6b52', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #1a3020', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
+              Next →
+            </button>
+          ) : isLocked ? (
+            <>
+              <button disabled style={{ width: '100%', backgroundColor: '#0f2318', color: '#4a6b52', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: '1px solid #EF9F27', cursor: 'not-allowed' }}>
+                🔒 Kitchen's closed for today
+              </button>
+              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#4a6b52' }}>
+                <a href="#" style={{ color: '#EF9F27' }}>Go Pro →</a> to keep cooking
+              </p>
+            </>
+          ) : (
+            <button onClick={handleCook} disabled={!canProceed()}
+              style={{ width: '100%', backgroundColor: canProceed() ? '#1D9E75' : '#0f2318', color: canProceed() ? '#fff' : '#4a6b52', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #1a3020', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
+              Let him cook 🔥
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -2566,6 +2354,35 @@ function ProfileComplete({ profile, onEnter }) {
   )
 }
 
+// ── Pre-cook confirmation modal ───────────────────────────────────────────────
+
+function PreCookModal({ onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center px-5"
+      style={{ backgroundColor: 'rgba(10,26,18,0.92)' }}>
+      <div className="w-full max-w-sm p-7 space-y-6 animate-fade-in"
+        style={{ backgroundColor: '#0f2318', border: '1px solid #1a3020', borderRadius: 20 }}>
+        <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '1.375rem', color: '#F5F2EC' }}>
+          Ready to cook?
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: '#6b8a72', lineHeight: 1.6 }}>
+          Make sure you've grabbed everything from the fridge — once Remi starts cooking, your generations reset tomorrow.
+        </p>
+        <div className="space-y-3">
+          <button onClick={onConfirm}
+            style={{ width: '100%', backgroundColor: '#1D9E75', color: '#fff', borderRadius: 14, padding: '14px 0', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: 'none', cursor: 'pointer' }}>
+            Let's cook
+          </button>
+          <button onClick={onCancel}
+            style={{ width: '100%', backgroundColor: 'transparent', color: '#6b8a72', borderRadius: 14, padding: '12px 0', fontFamily: 'DM Sans, sans-serif', fontSize: '0.875rem', border: '1px solid #1a3020', cursor: 'pointer' }}>
+            Wait, I missed something
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -2603,6 +2420,12 @@ export default function App() {
   const [shoppingListCopied,  setShoppingListCopied]  = useState(false)
   const [checkedIngredients,  setCheckedIngredients]  = useState(new Set())
   const [error,               setError]               = useState(null)
+  const [showCookModal,       setShowCookModal]       = useState(false)
+  const [pendingFridgeMsg,    setPendingFridgeMsg]    = useState('')
+  const [genCount,            setGenCount]            = useState(() => {
+    const key = 'remi_gens_' + new Date().toISOString().slice(0, 10)
+    return parseInt(localStorage.getItem(key) || '0', 10)
+  })
 
   const scrollRef      = useRef(null)
   const abortRef       = useRef(null)
@@ -2650,8 +2473,12 @@ export default function App() {
 
       const res = await fetch('/api/meals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: nextMessages.map(({ role, content }) => ({ role, content })), profile }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-POSTHOG-DISTINCT-ID': posthog.get_distinct_id(),
+          'X-POSTHOG-SESSION-ID': posthog.get_session_id() ?? '',
+        },
+        body: JSON.stringify({ messages: nextMessages.map(({ role, content }) => ({ role, content })), profile: mapProfileForApi(profile) }),
         signal: abortRef.current.signal,
       })
 
@@ -2694,6 +2521,11 @@ export default function App() {
               setShoppingListCopied(false)
               setCheckedIngredients(new Set())
               saveSession(parsed)
+              posthog.capture('dishes_received', { dish_count: parsed.length, proteins: sessionDataRef.current.proteins })
+              const _gKey = 'remi_gens_' + new Date().toISOString().slice(0, 10)
+              const _newCount = parseInt(localStorage.getItem(_gKey) || '0', 10) + 1
+              localStorage.setItem(_gKey, String(_newCount))
+              setGenCount(_newCount)
               setView('cards')
             } else {
               setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: accumulated }])
@@ -2756,6 +2588,10 @@ export default function App() {
           setShoppingListCopied(false)
           setCheckedIngredients(new Set())
           saveSession(parsed)
+          const _gKey2 = 'remi_gens_' + new Date().toISOString().slice(0, 10)
+          const _newCount2 = parseInt(localStorage.getItem(_gKey2) || '0', 10) + 1
+          localStorage.setItem(_gKey2, String(_newCount2))
+          setGenCount(_newCount2)
           setView('cards')
         } else {
           throw new Error('The connection dropped before your recipes arrived. Try again.')
@@ -2796,13 +2632,13 @@ export default function App() {
   function handleStop() { abortRef.current?.abort() }
 
   function handleReset() {
+    posthog.capture('chat_reset')
     setMessages(SEED)
     setDishes(null)
     setDishImages([])
     setMissingIngredients([])
     setShoppingListCopied(false)
     setCheckedIngredients(new Set())
-    setView('chat')
     setSelectedDish(null)
     setViewingDish(null)
     setViewingDishImg(null)
@@ -2810,7 +2646,7 @@ export default function App() {
     setInput('')
     setQuickReplyType('proteins')
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
-    setTimeout(() => inputRef.current?.focus(), 50)
+    setView('onboarding')
   }
 
   function saveSession(parsedDishes) {
@@ -2870,6 +2706,7 @@ export default function App() {
       localStorage.setItem('lhc_saved_recipes', JSON.stringify(next))
       return next
     })
+    posthog.capture('recipe_saved', { dish_name: dish.name, cuisine: dish.chef?.cuisine })
   }
 
   function handleRemoveRecipe(nameOrId) {
@@ -2878,6 +2715,7 @@ export default function App() {
       localStorage.setItem('lhc_saved_recipes', JSON.stringify(next))
       return next
     })
+    posthog.capture('recipe_removed', { name_or_id: nameOrId })
   }
 
   function isRecipeSaved(dishName) {
@@ -2890,7 +2728,7 @@ export default function App() {
     if (unchecked.length === 0) return
     const date = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
     const lines = [
-      'Let Him Cook — Shopping List',
+      'Remi — Shopping List',
       date,
       '',
       "For tonight's recipes you'll need:",
@@ -2900,6 +2738,7 @@ export default function App() {
     ].join('\n')
     navigator.clipboard.writeText(lines).then(() => {
       setShoppingListCopied(true)
+      posthog.capture('shopping_list_copied', { item_count: unchecked.length })
       setTimeout(() => setShoppingListCopied(false), 2000)
     })
   }
@@ -2912,16 +2751,36 @@ export default function App() {
   // ── View: Onboarding ─────────────────────────────────────────────────────────
   if (view === 'onboarding') {
     return (
-      <Onboarding
-        initialProfile={profile}
-        onBack={() => setView(profile ? 'chat' : 'welcome')}
-        onComplete={p => {
-          const saved = { ...p, completedAt: Date.now(), version: PROFILE_VERSION }
-          localStorage.setItem('lhc_profile', JSON.stringify(saved))
-          setProfile(saved)
-          setView(profile ? 'chat' : 'profile-complete')
-        }}
-      />
+      <>
+        <Onboarding
+          initialProfile={profile}
+          isLocked={genCount >= 3}
+          onBack={() => setView(profile ? 'chat' : 'welcome')}
+          onComplete={(remiProfile, fridgeMessage) => {
+            const saved = { ...remiProfile, completedAt: Date.now(), version: PROFILE_VERSION }
+            localStorage.setItem('remi_profile', JSON.stringify(saved))
+            setProfile(saved)
+            posthog.identify(posthog.get_distinct_id(), {
+              name: remiProfile.name,
+              goal: remiProfile.goal,
+              training: remiProfile.training,
+              days_per_week: remiProfile.daysPerWeek,
+            })
+            posthog.capture('onboarding_completed', { goal: remiProfile.goal, training: remiProfile.training })
+            setPendingFridgeMsg(fridgeMessage || '')
+            setShowCookModal(true)
+          }}
+        />
+        {showCookModal && (
+          <PreCookModal
+            onConfirm={() => {
+              setShowCookModal(false)
+              submitMessage(pendingFridgeMsg)
+            }}
+            onCancel={() => setShowCookModal(false)}
+          />
+        )}
+      </>
     )
   }
 
@@ -3013,17 +2872,29 @@ export default function App() {
   if (view === 'cards' && dishes) {
     return (
       <>
-        <div className="animate-fade-in flex h-[100dvh] bg-sandy">
-          <PaperTexture />
+        <div className="animate-fade-in flex h-[100dvh]" style={{ backgroundColor: '#0A1A12' }}>
           {/* Main content */}
-          <div className="flex-1 min-w-0 overflow-y-auto px-4 py-10 sm:py-14 pb-20 lg:pb-14">
+          <div className="flex-1 min-w-0 overflow-y-auto px-4 py-10 sm:py-14 pb-20 lg:pb-14" style={{ backgroundColor: '#0A1A12' }}>
             <div className="max-w-3xl mx-auto space-y-8 relative">
+              {/* Gen counter + locked banner */}
+              {genCount >= 3 ? (
+                <div className="rounded-2xl px-5 py-4 flex items-center gap-3" style={{ backgroundColor: '#1a1a00', border: '1px solid #EF9F27' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🔒</span>
+                  <div className="flex-1">
+                    <p style={{ color: '#EF9F27', fontWeight: 600, fontSize: '0.875rem' }}>Kitchen's closed for today</p>
+                    <p style={{ color: '#6b8a72', fontSize: '0.75rem', marginTop: 2 }}>You've used all 3 free sessions. Come back tomorrow or upgrade.</p>
+                  </div>
+                  <button style={{ color: '#EF9F27', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>Go Pro →</button>
+                </div>
+              ) : (
+                <p style={{ color: '#6b8a72', fontSize: '0.75rem', textAlign: 'right' }}>{genCount} of 3 sessions used today</p>
+              )}
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="font-serif text-4xl sm:text-5xl font-extrabold tracking-wider text-charcoal">
-                    Let Him Cook
+                  <h1 className="font-sans text-3xl sm:text-4xl font-bold" style={{ color: '#c8e0cc' }}>
+                    Your meals
                   </h1>
-                  <p className="text-charcoal-muted text-sm mt-1.5">
+                  <p style={{ color: '#6b8a72', fontSize: '0.875rem', marginTop: 4 }}>
                     Tap a card to open the full recipe.
                   </p>
                 </div>
@@ -3031,7 +2902,8 @@ export default function App() {
                 <div className="hidden sm:flex flex-col gap-2 mt-1.5 shrink-0 items-end">
                   <button
                     onClick={() => setView('dashboard')}
-                    className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
                   >
                     Dashboard
                   </button>
@@ -3039,19 +2911,21 @@ export default function App() {
                     {savedRecipes.length > 0 && (
                       <button
                         onClick={() => { setSavedBackTo('cards'); setView('saved') }}
-                        className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                        className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                        style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
                       >
                         My Recipes
-                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#C1683A' }}>
+                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: '#1D9E75' }}>
                           {savedRecipes.length}
                         </span>
                       </button>
                     )}
                     <button
                       onClick={handleReset}
-                      className="text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                      style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
                     >
-                      Start over
+                      Cook again
                     </button>
                   </div>
                 </div>
@@ -3062,7 +2936,7 @@ export default function App() {
                   <DishCard
                     key={i}
                     dish={dish}
-                    onClick={() => { setSelectedDish(i); setView('detail') }}
+                    onClick={() => { setSelectedDish(i); posthog.capture('recipe_detail_viewed', { dish_name: dish.name }); setView('detail') }}
                     onImageResolved={url => setDishImages(prev => {
                       const next = [...prev]; next[i] = url; return next
                     })}
@@ -3075,13 +2949,13 @@ export default function App() {
                 <div className="space-y-3 animate-fade-in">
                   <p
                     className="text-[11px] font-bold uppercase tracking-widest"
-                    style={{ color: '#C1683A' }}
+                    style={{ color: '#1D9E75' }}
                   >
                     What You'll Need
                   </p>
                   <div
                     className="rounded-2xl p-5 space-y-4"
-                    style={{ backgroundColor: '#FAF6EE', border: '1px solid #C8B090', boxShadow: '0 2px 8px rgba(26,17,8,0.07)' }}
+                    style={{ backgroundColor: '#0f2318', border: '0.5px solid #1a3020' }}
                   >
                     <ul className="space-y-2">
                       {missingIngredients.map((item, i) => {
@@ -3099,8 +2973,8 @@ export default function App() {
                             key={i}
                             className="flex items-center gap-3 text-sm leading-snug cursor-pointer select-none"
                             style={{
-                              color: '#1A1108',
-                              opacity: checked ? 0.4 : 1,
+                              color: '#c8e0cc',
+                              opacity: checked ? 0.35 : 1,
                               transition: 'opacity 200ms ease',
                             }}
                             onClick={toggleChecked}
@@ -3112,8 +2986,8 @@ export default function App() {
                                 width: 20,
                                 height: 20,
                                 borderRadius: 4,
-                                border: '2px solid #C1683A',
-                                backgroundColor: checked ? '#C1683A' : 'transparent',
+                                border: '2px solid #1D9E75',
+                                backgroundColor: checked ? '#1D9E75' : 'transparent',
                                 transition: 'background-color 200ms ease',
                               }}
                             >
@@ -3144,8 +3018,8 @@ export default function App() {
                           disabled={allChecked}
                           className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:opacity-80"
                           style={{
-                            backgroundColor: shoppingListCopied ? '#4E7A53' : allChecked ? '#A8C5AC' : '#7A9E7E',
-                            boxShadow: (shoppingListCopied || allChecked) ? 'none' : '0 2px 8px rgba(122,158,126,0.3)',
+                            backgroundColor: shoppingListCopied ? '#176f52' : allChecked ? '#1a3020' : '#1D9E75',
+                            boxShadow: (shoppingListCopied || allChecked) ? 'none' : '0 2px 8px rgba(29,158,117,0.3)',
                             cursor: allChecked ? 'default' : 'pointer',
                           }}
                         >
@@ -3173,22 +3047,8 @@ export default function App() {
   // ── View: Loading (streaming dishes) ────────────────────────────────────────
   if (awaitingDishes) {
     return (
-      <div className="animate-fade-in min-h-screen bg-sandy flex flex-col items-center justify-center px-6 py-14 relative">
-        <PaperTexture />
-        <div className="flex flex-col items-center gap-8 w-full max-w-sm relative">
-          {/* Loading text — Playfair, same weight/style as app headings */}
-          <div className="text-center space-y-1.5">
-            <h1 className="font-serif text-3xl sm:text-4xl font-extrabold tracking-wide text-charcoal">
-              Let Him Cook
-            </h1>
-            <p className="font-serif text-base sm:text-lg font-semibold text-charcoal-muted">
-              Building 3 high-protein recipes just for you…
-            </p>
-          </div>
-
-          {/* Chef illustration + fact bubble */}
-          <ChefLoader />
-        </div>
+      <div className="animate-fade-in min-h-screen flex flex-col items-center justify-center px-6 py-14" style={{ backgroundColor: '#0A1A12' }}>
+        <ChefLoader profile={profile} />
       </div>
     )
   }
@@ -3196,29 +3056,33 @@ export default function App() {
   // ── View: Chat ───────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="animate-fade-in flex bg-sandy relative" style={{ position: 'fixed', inset: 0 }}>
-        <PaperTexture />
+      <div className="animate-fade-in flex relative" style={{ position: 'fixed', inset: 0, backgroundColor: '#0A1A12' }}>
 
         {/* ── Main chat column ── */}
         <div className="flex flex-col flex-1 min-w-0">
 
           {/* Header */}
-          <div className="shrink-0 px-4 py-3.5 bg-sandy-light/80 backdrop-blur-sm flex items-center justify-between" style={{ borderBottom: '1px solid rgba(193,104,58,0.15)' }}>
-            <div>
-              <h1 className="font-serif font-extrabold" style={{ fontSize: 22, color: '#1A1108', letterSpacing: '0.03em' }}>Let Him Cook</h1>
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, letterSpacing: '0.08em', color: '#C1683A', opacity: 0.8 }}>Personal Chef · Dietician · Coach</p>
+          <div className="shrink-0 px-4 py-3.5 backdrop-blur-sm flex items-center justify-between" style={{ backgroundColor: 'rgba(10,26,18,0.92)', borderBottom: '1px solid #1a3020' }}>
+            <div className="flex items-center gap-2.5">
+              <RemiLogo size={28} />
+              <div>
+                <h1 className="font-sans font-bold" style={{ fontSize: 18, color: '#c8e0cc', letterSpacing: '0.01em' }}>Remi</h1>
+                <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 10, letterSpacing: '0.1em', color: '#1D9E75', textTransform: 'uppercase' }}>Personal Chef · Dietician · Coach</p>
+              </div>
             </div>
             {/* Desktop nav only — mobile uses BottomNav */}
             <div className="hidden sm:flex items-center gap-2">
               <button
                 onClick={() => setView('dashboard')}
-                className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-transparent hover:border-sandy-border"
+                className="text-xs transition-colors flex items-center gap-1 px-2 py-1 rounded-lg"
+                style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
               >
                 Dashboard
               </button>
               <button
                 onClick={() => setView('onboarding')}
-                className="text-xs text-charcoal-muted hover:text-terracotta transition-colors flex items-center gap-1"
+                className="text-xs transition-colors flex items-center gap-1 px-2 py-1 rounded-lg"
+                style={{ color: '#6b8a72', border: '1px solid #1a3020' }}
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
@@ -3254,7 +3118,7 @@ export default function App() {
 
           {/* Quick reply area */}
           {quickReplyType && !streaming && (
-            <div className="shrink-0 border-t border-sandy-border px-4 pt-3 pb-2 bg-sandy-light relative z-10">
+            <div className="shrink-0 px-4 pt-3 pb-2 relative z-10" style={{ borderTop: '1px solid #1a3020', backgroundColor: '#0f2318' }}>
               <QuickReplyRow
                 type={quickReplyType}
                 onSubmit={(text, data) => handleQuickReply(text, data, quickReplyType)}
@@ -3265,8 +3129,7 @@ export default function App() {
           )}
 
           {/* Input bar */}
-          <div className="shrink-0 border-t border-sandy-border px-4 pt-2.5 pb-3 bg-sandy-light relative z-10" style={{ touchAction: 'manipulation' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-1.5">Your answer</p>
+          <div className="shrink-0 px-4 pt-2.5 pb-3 relative z-10" style={{ borderTop: '1px solid #1a3020', backgroundColor: '#0f2318', touchAction: 'manipulation' }}>
             <form onSubmit={handleSubmit} className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
@@ -3283,17 +3146,17 @@ export default function App() {
                     if (!streaming && input.trim()) submitMessage(input)
                   }
                 }}
-                placeholder="Type here or tap an option above..."
+                placeholder="Type here..."
                 rows={1}
                 disabled={streaming}
-                className="flex-1 rounded-2xl bg-cream border border-sandy-border px-4 py-3 text-charcoal placeholder-charcoal-muted/70 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta disabled:opacity-50 transition leading-snug"
-                style={{ fontSize: 16, minHeight: 44, maxHeight: 120, resize: 'none', overflowY: 'auto' }}
+                className="flex-1 rounded-2xl px-4 py-3 focus:outline-none disabled:opacity-50 transition leading-snug"
+                style={{ fontSize: 16, minHeight: 44, maxHeight: 120, resize: 'none', overflowY: 'auto', backgroundColor: '#132b1a', border: '1px solid #1a3020', color: '#c8e0cc' }}
               />
               {streaming ? (
                 <button
                   type="button"
                   onClick={handleStop}
-                  style={{ backgroundColor: '#C1683A', width: 44, height: 44, flexShrink: 0 }}
+                  style={{ backgroundColor: '#1D9E75', width: 44, height: 44, flexShrink: 0 }}
                   className="flex items-center justify-center rounded-full text-white text-xs font-semibold active:opacity-80 transition-opacity"
                   aria-label="Stop"
                 >
@@ -3303,7 +3166,7 @@ export default function App() {
                 <button
                   type="submit"
                   style={{
-                    backgroundColor: input.trim() ? '#C1683A' : '#C8B090',
+                    backgroundColor: input.trim() ? '#1D9E75' : '#1a3020',
                     width: 44,
                     height: 44,
                     flexShrink: 0,

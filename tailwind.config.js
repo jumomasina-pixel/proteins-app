@@ -5,28 +5,38 @@ export default {
     extend: {
       colors: {
         sandy: {
-          DEFAULT: '#EDE0C8',
-          light:   '#F5ECD7',
-          dark:    '#D4C4A0',
-          border:  '#C8B090',
+          DEFAULT: '#0A1A12',
+          light:   '#0f2318',
+          dark:    '#132b1a',
+          border:  '#1a3020',
         },
-        cream: '#FAF6EE',
+        cream: '#0f2318',
         terracotta: {
-          DEFAULT: '#C1683A',
-          light:   '#D4845A',
-          dark:    '#A8522A',
-          pale:    '#FDF0E8',
+          DEFAULT: '#1D9E75',
+          light:   '#5DCAA5',
+          dark:    '#176f52',
+          pale:    '#0f2318',
         },
         sage: {
-          DEFAULT: '#7A9E7E',
-          light:   '#A8C5AC',
-          dark:    '#4E7A53',
-          pale:    '#EEF5EF',
+          DEFAULT: '#5DCAA5',
+          light:   '#a0d9c5',
+          dark:    '#1D9E75',
+          pale:    '#0f2318',
         },
         charcoal: {
-          DEFAULT: '#1A1108',
-          light:   '#4A3728',
-          muted:   '#7A6548',
+          DEFAULT: '#c8e0cc',
+          light:   '#c8e0cc',
+          muted:   '#6b8a72',
+        },
+        remi: {
+          void:      '#0A1A12',
+          grove:     '#1D9E75',
+          sage:      '#5DCAA5',
+          parchment: '#F5F2EC',
+          ember:     '#EF9F27',
+          stone:     '#2C2C2A',
+          surface:   '#0f2318',
+          border:    '#1a3020',
         },
       },
       fontFamily: {
@@ -34,9 +44,9 @@ export default {
         sans:  ['"DM Sans"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        card:       '0 2px 12px rgba(44,36,22,0.07), 0 1px 3px rgba(44,36,22,0.05)',
-        'card-hover':'0 10px 32px rgba(44,36,22,0.14), 0 4px 10px rgba(44,36,22,0.08)',
-        btn:        '0 2px 8px rgba(193,104,58,0.35)',
+        card:        '0 2px 12px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2)',
+        'card-hover':'0 10px 32px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3)',
+        btn:         '0 2px 8px rgba(29,158,117,0.35)',
       },
       keyframes: {
         fadeIn: {
