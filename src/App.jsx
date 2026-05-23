@@ -1569,17 +1569,54 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       {imgUrl ? (
         <div className="relative w-full overflow-hidden" style={{ height: '55vh' }}>
           <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
-          <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto">
-            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors duration-200 drop-shadow">
-              {BACK_ARROW} Back to dishes
-            </button>
-          </div>
+          <button
+            onClick={onBack}
+            style={{
+              position: 'absolute', top: 16, left: 16, zIndex: 10,
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(13,13,13,0.75)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 20,
+              padding: '8px 16px',
+              color: '#F0F0F0',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 500,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back to dishes
+          </button>
         </div>
       ) : (
         <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#00E5A0' }}>
           <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
-            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors duration-200">
-              {BACK_ARROW} Back to dishes
+            <button
+              onClick={onBack}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(13,13,13,0.75)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 20,
+                padding: '8px 16px',
+                color: '#F0F0F0',
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 500,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Back to dishes
             </button>
           </div>
         </div>
@@ -2170,6 +2207,32 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
 
 // ── Remi's Corner ─────────────────────────────────────────────────────────────
 
+function renderTipMarkdown(text) {
+  return text.split('\n').reduce((acc, line, i) => {
+    if (!line.trim()) return acc
+    if (/^##\s+/.test(line)) {
+      acc.push(
+        <p key={i} style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#F0F0F0', margin: '0 0 8px' }}>
+          {line.replace(/^##\s+/, '')}
+        </p>
+      )
+      return acc
+    }
+    const parts = line.split(/(\*\*[^*]+\*\*)/)
+    const inline = parts.map((part, j) =>
+      /^\*\*[^*]+\*\*$/.test(part)
+        ? <span key={j} style={{ fontWeight: 600, color: '#F0F0F0' }}>{part.slice(2, -2)}</span>
+        : part
+    )
+    acc.push(
+      <p key={i} style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, color: '#F0F0F0', lineHeight: 1.6, margin: '0 0 4px' }}>
+        {inline}
+      </p>
+    )
+    return acc
+  }, [])
+}
+
 function RemiCorner({ profile }) {
   const [tab, setTab] = useState('fuel')
   const [tip, setTip] = useState(null)
@@ -2258,7 +2321,7 @@ function RemiCorner({ profile }) {
       ) : error ? (
         <p className="text-xs" style={{ color: '#666' }}>{error}</p>
       ) : tip ? (
-        <p className="text-sm leading-relaxed" style={{ color: '#C8C8C8', fontFamily: "'IBM Plex Sans', sans-serif" }}>{tip}</p>
+        <div>{renderTipMarkdown(tip)}</div>
       ) : null}
     </div>
   )
@@ -4417,9 +4480,10 @@ export default function App() {
                   key={s}
                   type="button"
                   onClick={() => {
-                    const trimmed = input.trimEnd()
-                    const separator = trimmed.endsWith(',') ? ' ' : trimmed ? ', ' : ''
-                    setInput(trimmed + separator + s)
+                    // Strip the partial word the user was typing and replace with the selection
+                    const prefix = input.replace(/\S+$/, '').trimEnd()
+                    const separator = prefix.endsWith(',') ? ' ' : prefix ? ', ' : ''
+                    setInput(prefix + (prefix ? separator : '') + s)
                     setSuggestions([])
                     setTimeout(() => inputRef.current?.focus(), 0)
                   }}
