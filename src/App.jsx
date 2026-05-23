@@ -1220,8 +1220,9 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
 // ── Compact dish card ─────────────────────────────────────────────────────────
 
 function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
-  const [imgUrl,    setImgUrl]    = useState(initialUrl ?? null)
-  const [imgLoaded, setImgLoaded] = useState(!!initialUrl)
+  const [imgUrl,      setImgUrl]      = useState(initialUrl ?? null)
+  const [imgLoaded,   setImgLoaded]   = useState(!!initialUrl)
+  const [photographer, setPhotographer] = useState(null)
 
   useEffect(() => {
     if (initialUrl) return
@@ -1233,6 +1234,7 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
       .then(d => {
         if (!cancelled && d.url) {
           setImgUrl(d.url)
+          setPhotographer(d.credit?.name ?? null)
           onImageResolved?.(d.url)
         }
       })
@@ -1241,30 +1243,44 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
   }, [dishName])
 
   return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '16/9',
-        borderRadius: '12px 12px 0 0',
-        overflow: 'hidden',
-        backgroundColor: '#2A2A2A',
-        position: 'relative',
-      }}
-    >
-      {imgUrl && (
-        <img
-          src={imgUrl}
-          alt={dishName}
-          onLoad={() => setImgLoaded(true)}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: imgLoaded ? 1 : 0,
-            transition: 'opacity 700ms ease',
-            display: 'block',
-          }}
-        />
+    <div style={{ width: '100%' }}>
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '16/9',
+          borderRadius: '12px 12px 0 0',
+          overflow: 'hidden',
+          backgroundColor: '#2A2A2A',
+          position: 'relative',
+        }}
+      >
+        {imgUrl && (
+          <img
+            src={imgUrl}
+            alt={dishName}
+            onLoad={() => setImgLoaded(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: imgLoaded ? 1 : 0,
+              transition: 'opacity 700ms ease',
+              display: 'block',
+            }}
+          />
+        )}
+      </div>
+      {photographer && imgUrl && (
+        <p style={{
+          fontFamily: 'Inter, sans-serif',
+          fontSize: 11,
+          color: '#888888',
+          margin: '4px 0 0',
+          padding: '0 4px',
+          lineHeight: 1.4,
+        }}>
+          Photo by {photographer} on Unsplash
+        </p>
       )}
     </div>
   )
@@ -1368,10 +1384,6 @@ function ShareCardModal({ dish, imgUrl, onClose }) {
             ? <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
             : <div className="w-full h-full" style={{ backgroundColor: '#00E5A0' }} />
           }
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)' }}
-          />
           {/* Branding chip */}
           <div
             className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
@@ -1382,17 +1394,18 @@ function ShareCardModal({ dish, imgUrl, onClose }) {
               Remi
             </span>
           </div>
-          {/* Dish name */}
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-            {dish.chef.cuisine && (
-              <p style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-                {dish.chef.cuisine}
-              </p>
-            )}
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.375rem', color: '#fff', lineHeight: 1.2 }}>
-              {dish.name}
-            </h2>
-          </div>
+        </div>
+
+        {/* Dish name row — below image */}
+        <div style={{ padding: '14px 20px 0' }}>
+          {dish.chef.cuisine && (
+            <p style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: '#888888', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+              {dish.chef.cuisine}
+            </p>
+          )}
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.375rem', color: '#F0EAE0', lineHeight: 1.2 }}>
+            {dish.name}
+          </h2>
         </div>
 
         {/* Macro strip */}
@@ -1556,18 +1569,10 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       {imgUrl ? (
         <div className="relative w-full overflow-hidden" style={{ height: '55vh' }}>
           <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }} />
           <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto">
             <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors duration-200 drop-shadow">
               {BACK_ARROW} Back to dishes
             </button>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 max-w-2xl mx-auto">
-            {chef.cuisine && <p className="text-xs font-medium text-white/65 uppercase tracking-widest mb-2">{chef.cuisine}</p>}
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.875rem, 5vw, 3rem)', color: '#fff', lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
-              {dish.name}
-            </h1>
           </div>
         </div>
       ) : (
@@ -1583,9 +1588,12 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       {/* ── Content ── */}
       <div className="max-w-2xl mx-auto px-4 pt-6 space-y-8 relative">
 
-        {!imgUrl && (
+        <div>
+          {chef.cuisine && (
+            <p className="text-xs font-medium uppercase tracking-widest mb-2" style={{ color: '#888888' }}>{chef.cuisine}</p>
+          )}
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.875rem, 6vw, 2.5rem)', color: '#F0EAE0', lineHeight: 1.15 }}>{dish.name}</h1>
-        )}
+        </div>
 
         {/* ── Mode toggle + Share ── */}
         <div className="flex gap-2.5 items-center">
@@ -2698,7 +2706,7 @@ const ONBOARDING_STYLES = `
 
 function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, onPTClick }) {
   const hasProfile = initialProfile?.goal && (Array.isArray(initialProfile?.trainingTypes) || Array.isArray(initialProfile?.training))
-  const [step, setStep] = useState(hasProfile ? 5 : 1)
+  const [step, setStep] = useState(hasProfile ? 6 : 1)
   const [goal, setGoal] = useState(initialProfile?.goal || 'cut')
   const [currentWeight, setCurrentWeight] = useState(String(initialProfile?.currentWeight || ''))
   const [targetWeight, setTargetWeight] = useState(String(initialProfile?.targetWeight || ''))
@@ -2717,30 +2725,32 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
   const [trainingPhilosophy, setTrainingPhilosophy] = useState(
     initialProfile?.trainingPhilosophy !== undefined ? (initialProfile.trainingPhilosophy || '') : ''
   )
+  const [name, setName] = useState(initialProfile?.name || '')
 
-  const TOTAL_STEPS = 5
+  const TOTAL_STEPS = 6
 
   function canProceed() {
-    if (step === 1) return currentWeight.trim().length > 0
-    if (step === 2) return trainingTypes.length > 0
-    if (step === 3) return primarySport.length > 0
-    if (step === 4) return sportGoal.length > 0
-    if (step === 5) return true
+    if (step === 1) return name.trim().length > 0
+    if (step === 2) return currentWeight.trim().length > 0
+    if (step === 3) return trainingTypes.length > 0
+    if (step === 4) return primarySport.length > 0
+    if (step === 5) return sportGoal.length > 0
+    if (step === 6) return true
     return true
   }
 
   function goNext() {
     if (!canProceed()) return
-    if (step === 2 && trainingTypes.length === 1) {
+    if (step === 3 && trainingTypes.length === 1) {
       setPrimarySport(trainingTypes[0])
-      setStep(4)
+      setStep(5)
     } else {
       setStep(s => s + 1)
     }
   }
 
   function goBack() {
-    if (step === 4 && trainingTypes.length === 1) setStep(2)
+    if (step === 5 && trainingTypes.length === 1) setStep(3)
     else if (step > 1 && !hasProfile) setStep(s => s - 1)
     else onBack()
   }
@@ -2752,6 +2762,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
       COMBAT_SPORTS.includes(primarySport) &&
       fightDate.trim() !== '' && fightWeight.trim() !== ''
     const remiProfile = {
+      name: name.trim() || 'Chef',
       goal,
       currentWeight: Number(currentWeight) || undefined,
       targetWeight: isCombatWeightCut ? Number(fightWeight) : (targetWeight ? Number(targetWeight) : undefined),
@@ -2765,7 +2776,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
       weightCutMode: isCombatWeightCut,
       trainingPhilosophy: philosophy || null,
     }
-    onComplete(remiProfile, '')
+    onComplete(remiProfile, 'ready')
   }
 
   const cardStyle = (selected) => ({
@@ -2879,8 +2890,28 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
         {/* Step content — keyed so entering re-triggers the fade-up */}
         <div key={step} className="ob-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 28 }}>
 
-          {/* ── Step 1: Goal + weights ── */}
+          {/* ── Step 1: Name ── */}
           {step === 1 && (
+            <>
+              <div>
+                <h2 style={headingStyle}>Let's start. What do I call you?</h2>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && canProceed()) goNext() }}
+                  placeholder="Your name"
+                  style={inputStyle}
+                  autoFocus
+                />
+              </div>
+            </>
+          )}
+
+          {/* ── Step 2: Goal + weights ── */}
+          {step === 2 && (
             <>
               <div>
                 <h2 style={headingStyle}>What are we working toward?</h2>
@@ -2915,8 +2946,8 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
             </>
           )}
 
-          {/* ── Step 2: Training types ── */}
-          {step === 2 && (
+          {/* ── Step 3: Training types ── */}
+          {step === 3 && (
             <>
               <div>
                 <h2 style={headingStyle}>What does your training look like?</h2>
@@ -2963,8 +2994,8 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
             </>
           )}
 
-          {/* ── Step 3: Primary sport ── */}
-          {step === 3 && (
+          {/* ── Step 4: Primary sport ── */}
+          {step === 4 && (
             <>
               <div>
                 <h2 style={headingStyle}>Which one is your main focus?</h2>
@@ -2986,8 +3017,8 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
             </>
           )}
 
-          {/* ── Step 4: Sport goals ── */}
-          {step === 4 && (
+          {/* ── Step 5: Sport goals ── */}
+          {step === 5 && (
             <>
               <div>
                 <h2 style={headingStyle}>Do you have a specific goal coming up?</h2>
@@ -3022,8 +3053,8 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
             </>
           )}
 
-          {/* ── Step 5: Training philosophy ── */}
-          {step === 5 && (() => {
+          {/* ── Step 6: Training philosophy ── */}
+          {step === 6 && (() => {
             const phil = TRAINING_PHILOSOPHY_MAP[primarySport]
             return (
               <>
@@ -3854,7 +3885,7 @@ export default function App() {
     setInput('')
     setQuickReplyType('proteins')
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
-    setView('onboarding')
+    setView('chat')
   }
 
   function saveSession(parsedDishes) {
@@ -4009,7 +4040,6 @@ export default function App() {
             onConfirm={() => {
               setShowCookModal(false)
               setView('chat')
-              submitMessage(pendingFridgeMsg)
             }}
             onCancel={() => setShowCookModal(false)}
           />
