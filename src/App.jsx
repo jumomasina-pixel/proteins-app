@@ -670,11 +670,20 @@ function InsightsMobileStrip() {
 
 // ── Mobile bottom nav ─────────────────────────────────────────────────────────
 
-function BottomNav({ activeView, onNavigate }) {
+function CrownBadge() {
+  return (
+    <svg viewBox="0 0 18 14" width="13" height="10" fill="#C9A84C" style={{ display: 'block' }}>
+      <path d="M9 0L11.5 5L18 3.5L15 10H3L0 3.5L6.5 5L9 0Z"/>
+      <rect x="3" y="11" width="12" height="2.5" rx="1"/>
+    </svg>
+  )
+}
+
+function BottomNav({ activeView, onNavigate, isPro = false }) {
   const NAV_ITEMS = [
     {
       id: 'chat',
-      label: 'Home',
+      label: 'Cook',
       icon: (active) => (
         <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
@@ -683,7 +692,7 @@ function BottomNav({ activeView, onNavigate }) {
     },
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: 'Stats',
       icon: (active) => (
         <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -691,8 +700,17 @@ function BottomNav({ activeView, onNavigate }) {
       ),
     },
     {
+      id: 'intel',
+      label: 'Intel',
+      icon: (active) => (
+        <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+        </svg>
+      ),
+    },
+    {
       id: 'saved',
-      label: 'My Recipes',
+      label: 'Saved',
       icon: (active) => (
         <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
@@ -730,7 +748,14 @@ function BottomNav({ activeView, onNavigate }) {
             style={{ color: active ? '#00E5A0' : '#888888' }}
             aria-label={item.label}
           >
-            {item.icon(active)}
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              {item.icon(active)}
+              {item.id === 'intel' && !isPro && (
+                <span style={{ position: 'absolute', top: -5, right: -7, lineHeight: 1 }}>
+                  <CrownBadge />
+                </span>
+              )}
+            </div>
             <span className="text-[9px] font-semibold uppercase tracking-wider">{item.label}</span>
           </button>
         )
@@ -2886,6 +2911,165 @@ function PreCookModal({ onConfirm, onCancel }) {
   )
 }
 
+// ── Intel view ────────────────────────────────────────────────────────────────
+
+const INTEL_CARDS = [
+  {
+    category: 'RECOVERY',
+    headline: 'Post-workout protein within 45 minutes doubles muscle protein synthesis rate compared to delayed intake.',
+    source: 'J. International Society of Sports Nutrition · 2017',
+  },
+  {
+    category: 'HORMONES',
+    headline: 'Chronic under-eating elevates cortisol to the same level as acute psychological stress, impairing fat oxidation.',
+    source: 'American Journal of Physiology · 2019',
+  },
+  {
+    category: 'FAT LOSS',
+    headline: 'Time-restricted eating within an 8-hour window reduces visceral fat by up to 3% without caloric restriction.',
+    source: 'Cell Metabolism · 2022',
+  },
+  {
+    category: 'PERFORMANCE',
+    headline: 'Dietary nitrates from beetroot and leafy greens improve VO₂ max by ~3% in trained athletes over 4 weeks.',
+    source: 'Medicine & Science in Sports & Exercise · 2021',
+  },
+]
+
+function IntelView({ isPro, onProClick }) {
+  return (
+    <div className="animate-fade-in min-h-screen" style={{ backgroundColor: '#0D0D0D', paddingBottom: 96 }}>
+
+      {/* Header */}
+      <div style={{ padding: '3rem 1.25rem 1.75rem', maxWidth: 600, margin: '0 auto' }}>
+        <p style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '0.6rem', letterSpacing: '0.14em', color: '#C9A84C', textTransform: 'uppercase', marginBottom: 12 }}>
+          Remi Intel
+        </p>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.75rem, 6vw, 2.5rem)', color: '#F0F0F0', lineHeight: 1.1, marginBottom: 10 }}>
+          The science behind the meal.
+        </h1>
+        <p style={{ fontSize: '0.875rem', color: '#555', fontFamily: 'Inter, sans-serif', lineHeight: 1.6 }}>
+          Research-backed nutrition and performance insights, curated weekly.
+        </p>
+      </div>
+
+      {/* Cards + overlay wrapper */}
+      <div style={{ padding: '0 1.25rem', maxWidth: 600, margin: '0 auto', position: 'relative' }}>
+
+        {/* Card stack */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 14,
+          filter: isPro ? 'none' : 'blur(5px)',
+          pointerEvents: isPro ? 'auto' : 'none',
+          userSelect: isPro ? 'auto' : 'none',
+        }}>
+          {INTEL_CARDS.map((card, i) => (
+            <div
+              key={i}
+              style={{
+                backgroundColor: '#141414',
+                border: '1px solid #2A2A2A',
+                borderRadius: 16,
+                padding: '1.25rem 1.375rem',
+              }}
+            >
+              <span style={{
+                display: 'block',
+                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                fontSize: '0.6rem',
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: '#C9A84C',
+                fontWeight: 700,
+                marginBottom: 10,
+              }}>
+                {card.category}
+              </span>
+              <p style={{
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 500,
+                fontSize: '0.9375rem',
+                color: '#F0F0F0',
+                lineHeight: 1.55,
+                marginBottom: 12,
+              }}>
+                {card.headline}
+              </p>
+              <p style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                fontSize: '0.625rem',
+                color: '#444',
+                letterSpacing: '0.03em',
+                lineHeight: 1.5,
+              }}>
+                {card.source}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Upgrade overlay — free users only */}
+        {!isPro && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1.5rem',
+          }}>
+            <div style={{
+              backgroundColor: '#1A1A1A',
+              border: '1px solid #2A2A2A',
+              borderRadius: 20,
+              padding: '2rem 1.75rem',
+              textAlign: 'center',
+              maxWidth: 300,
+              width: '100%',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
+            }}>
+              {/* Crown icon */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                <svg viewBox="0 0 32 24" width="40" height="30" fill="#C9A84C">
+                  <path d="M16 0L20.5 9L32 6.5L27 18H5L0 6.5L11.5 9L16 0Z"/>
+                  <rect x="5" y="20" width="22" height="4" rx="2"/>
+                </svg>
+              </div>
+              <h3 style={{
+                fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                fontSize: '1.375rem', color: '#F0F0F0',
+                marginBottom: 8, lineHeight: 1.2,
+              }}>
+                Remi Pro
+              </h3>
+              <p style={{
+                fontSize: '0.8125rem', color: '#666',
+                fontFamily: 'Inter, sans-serif', lineHeight: 1.6,
+                marginBottom: 24,
+              }}>
+                Unlock weekly research cards, unlimited sessions, and full dashboard access.
+              </p>
+              <button
+                onClick={onProClick}
+                style={{
+                  width: '100%', backgroundColor: '#C9A84C', color: '#0D0D0D',
+                  borderRadius: 12, padding: '13px 0',
+                  fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                  fontSize: '0.9375rem', border: 'none', cursor: 'pointer',
+                  marginBottom: 10,
+                  boxShadow: '0 2px 12px rgba(201,168,76,0.35)',
+                }}
+              >
+                Upgrade to Pro →
+              </button>
+              <p style={{ fontSize: '0.7rem', color: '#555', fontFamily: 'Inter, sans-serif' }}>
+                $4.99 / month
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -3343,6 +3527,21 @@ export default function App() {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
           else setView(v)
         }} />
+      </>
+    )
+  }
+
+  // ── View: Intel ──────────────────────────────────────────────────────────────
+  if (view === 'intel') {
+    return (
+      <>
+        <IntelView isPro={false} onProClick={() => setShowProModal(true)} />
+        <BottomNav activeView="intel" onNavigate={v => {
+          if (v === 'saved') { setSavedBackTo('intel'); setView('saved') }
+          else if (v === 'chat') handleReset()
+          else setView(v)
+        }} />
+        {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
   }
