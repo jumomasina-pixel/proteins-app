@@ -535,9 +535,9 @@ const TRAINING_TYPES = [
   { value: 'None',               label: 'None',               emoji: '🛋️' },
 ]
 const KITCHEN_OPTIONS = [
-  { value: 'beginner',    label: 'Beginner'         },
-  { value: 'home cook',   label: 'Home cook'        },
-  { value: 'confident',   label: 'Pretty confident' },
+  { value: 'beginner',    label: 'I follow recipes'        },
+  { value: 'home cook',   label: 'I know my way around'    },
+  { value: 'confident',   label: 'I can improvise'         },
 ]
 
 // ── Quick-reply card data ─────────────────────────────────────────────────────
@@ -622,7 +622,7 @@ const HEALTH_INSIGHTS = [
   },
   {
     tag: 'COOKING SCIENCE',
-    headline: 'Browning = flavour fat used to give you',
+    headline: 'High heat gives you what fat used to.',
     body: 'The Maillard reaction creates hundreds of flavour compounds. High heat first replaces what you save in calories.',
   },
   {
@@ -1785,7 +1785,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
                       color: allChecked ? '#7A6B5A' : '#0F0D0B',
                     }}
                   >
-                    {listCopied ? '✓ Copied to clipboard!' : allChecked ? '✓ All picked up' : '🛒 Copy Shopping List'}
+                    {listCopied ? '✓ Copied' : allChecked ? '✓ All picked up' : 'Copy List'}
                   </button>
                 )
               })()}
@@ -1819,10 +1819,10 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6.75 2.25A.75.75 0 016 3v18a.75.75 0 001.28.53L12 17.31l4.72 4.22A.75.75 0 0018 21V3a.75.75 0 00-.75-.75H6.75z"/>
                 </svg>
-                ✓ Saved to My Recipes
+                ✓ Saved
               </>
             ) : (
-              <>🔖 Save to My Recipes</>
+              <>Save This</>
             )}
           </button>
 
@@ -1836,7 +1836,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
               border: copied ? 'none' : '1.5px solid #2A2A2A',
             }}
           >
-            {copied ? '✓ Copied!' : 'Copy Recipe 📋'}
+            {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>
       </div>
@@ -2134,7 +2134,7 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
           <div className="text-center py-24 space-y-4">
             <div className="text-6xl leading-none">📚</div>
             <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: '#7A6B5A' }}>
-              Nothing saved yet. Start cooking and bookmark your favourites.
+              Nothing saved yet. Cook something worth keeping.
             </p>
           </div>
         ) : (
@@ -2655,7 +2655,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           <div className="text-center py-16 space-y-4">
             <div className="text-5xl leading-none">🍽️</div>
             <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: '#7A6B5A' }}>
-              Your dashboard fills up as you cook. Start a session and get your first recipes.
+              Nothing here yet. Open the Cook tab and get your first dishes.
             </p>
           </div>
         )}
@@ -2883,8 +2883,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           {step === 1 && (
             <>
               <div>
-                <h2 style={headingStyle}>What's the goal?</h2>
-                <p style={subStyle}>Remi adjusts every dish around this.</p>
+                <h2 style={headingStyle}>What are we working toward?</h2>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {REMI_GOAL_OPTIONS.map(o => (
@@ -2899,14 +2898,14 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={labelStyle}>Current weight</label>
+                  <label style={labelStyle}>Current weight in kg.</label>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <input type="number" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="84" style={inputStyle} />
                     <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: "'IBM Plex Sans', sans-serif" }}>kg</span>
                   </div>
                 </div>
                 <div>
-                  <label style={labelStyle}>Target weight</label>
+                  <label style={labelStyle}>Target weight in kg.</label>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} placeholder="78" style={inputStyle} />
                     <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: "'IBM Plex Sans', sans-serif" }}>kg</span>
@@ -2920,8 +2919,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           {step === 2 && (
             <>
               <div>
-                <h2 style={headingStyle}>How do you train?</h2>
-                <p style={subStyle}>Select everything that applies.</p>
+                <h2 style={headingStyle}>What does your training look like?</h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {REMI_TRAINING_TYPES_V5.map(type => {
@@ -2938,7 +2936,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                 })}
               </div>
               <div>
-                <label style={labelStyle}>Days per week</label>
+                <label style={labelStyle}>Days per week. Honest answer.</label>
                 <input type="number" min={0} max={7} value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="4" style={inputStyle} />
               </div>
               <button
@@ -2969,8 +2967,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           {step === 3 && (
             <>
               <div>
-                <h2 style={headingStyle}>What's your main training focus?</h2>
-                <p style={subStyle}>Pick one — Remi will build around this.</p>
+                <h2 style={headingStyle}>Which one is your main focus?</h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {trainingTypes.map(type => {
@@ -3032,7 +3029,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
               <>
                 <div>
                   <h2 style={headingStyle}>{phil ? phil.q : "Is there an athlete or coach who shapes how you train?"}</h2>
-                  {!phil && <p style={subStyle}>Optional — skip if you're not sure yet.</p>}
+                  {!phil && <p style={subStyle}>Skip if you're not sure yet.</p>}
                 </div>
                 {phil ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -3131,7 +3128,7 @@ function ProfileComplete({ profile, onEnter }) {
           Remi is ready.
         </h2>
         <p className="remi-word-up" style={{ fontSize: '0.9375rem', color: '#666', fontFamily: "'IBM Plex Sans', sans-serif", lineHeight: 1.6, marginBottom: 48, animationDelay: '0.42s' }}>
-          Your kitchen, personalised.
+          Built around you. Let's get to work.
         </p>
         <button
           onClick={onEnter}
@@ -3184,7 +3181,7 @@ function ProModal({ onClose }) {
 
         {submitted ? (
           <p style={{ color: '#F0EAE0', textAlign: 'center', fontSize: '1rem', padding: '1rem 0' }}>
-            You're on the list. We'll be in touch. 🔥
+            You're on the list. We'll be in touch.
           </p>
         ) : (
           <>
@@ -3299,7 +3296,7 @@ function PTFounderPage({ onClose }) {
         {submitted ? (
           <div style={{ backgroundColor: '#1A1612', border: '1px solid #2A2A2A', borderRadius: 16, padding: '2rem', textAlign: 'center' }}>
             <p style={{ color: '#F0EAE0', fontSize: '1rem', lineHeight: 1.6 }}>
-              You're in. We'll be in touch before anyone else.<br />Welcome to the kitchen. 👨‍🍳
+              You're in. We'll be in touch before anyone else.<br />Welcome to the kitchen.
             </p>
           </div>
         ) : (
@@ -3818,7 +3815,7 @@ export default function App() {
       setMessages(prev => [...prev, {
         id: Date.now(),
         role: 'assistant',
-        content: 'Something went wrong generating your recipes. Try again — if it keeps happening, start a fresh session.',
+        content: 'Something went wrong on our end. Try again.',
       }])
       setError(err.message)
     } finally {
@@ -4282,7 +4279,7 @@ export default function App() {
                             color: allChecked ? '#7A6B5A' : '#0F0D0B',
                           }}
                         >
-                          {shoppingListCopied ? '✓ Copied to clipboard!' : allChecked ? '✓ All picked up' : '🛒 Copy Shopping List'}
+                          {shoppingListCopied ? '✓ Copied' : allChecked ? '✓ All picked up' : 'Copy List'}
                         </button>
                       )
                     })()}
