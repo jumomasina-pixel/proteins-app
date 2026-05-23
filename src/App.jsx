@@ -543,53 +543,53 @@ const KITCHEN_OPTIONS = [
 // ── Quick-reply card data ─────────────────────────────────────────────────────
 
 const PROTEIN_CARDS = [
-  { value: 'chicken',  label: 'Chicken',  emoji: '🍗' },
-  { value: 'beef',     label: 'Beef',     emoji: '🥩' },
-  { value: 'salmon',   label: 'Salmon',   emoji: '🐟' },
-  { value: 'eggs',     label: 'Eggs',     emoji: '🥚' },
-  { value: 'pork',     label: 'Pork',     emoji: '🥓' },
-  { value: 'tofu',     label: 'Tofu',     emoji: '🫘' },
-  { value: 'lamb',     label: 'Lamb',     emoji: '🍖' },
-  { value: 'prawns',   label: 'Prawns',   emoji: '🦐' },
-  { value: 'tuna',     label: 'Tuna',     emoji: '🐟' },
-  { value: 'turkey',   label: 'Turkey',   emoji: '🦃' },
+  { value: 'chicken',  label: 'Chicken'  },
+  { value: 'beef',     label: 'Beef'     },
+  { value: 'salmon',   label: 'Salmon'   },
+  { value: 'eggs',     label: 'Eggs'     },
+  { value: 'pork',     label: 'Pork'     },
+  { value: 'tofu',     label: 'Tofu'     },
+  { value: 'lamb',     label: 'Lamb'     },
+  { value: 'prawns',   label: 'Prawns'   },
+  { value: 'tuna',     label: 'Tuna'     },
+  { value: 'turkey',   label: 'Turkey'   },
 ]
 
 const CUISINE_CARDS = [
-  { value: 'Mexican',           label: 'Mexican',           emoji: '🌮' },
-  { value: 'Asian',             label: 'Asian',             emoji: '🥢' },
-  { value: 'Italian',           label: 'Italian',           emoji: '🍝' },
-  { value: 'Indian',            label: 'Indian',            emoji: '🍛' },
-  { value: 'Modern Australian', label: 'Modern Australian', emoji: '🦘' },
-  { value: 'French',            label: 'French',            emoji: '🥖' },
-  { value: 'American',          label: 'American',          emoji: '🍔' },
-  { value: 'Middle Eastern',    label: 'Middle Eastern',    emoji: '🧆' },
-  { value: 'Japanese',          label: 'Japanese',          emoji: '🍱' },
-  { value: 'Thai',              label: 'Thai',              emoji: '🌿' },
-  { value: 'No preference',     label: 'No preference',     emoji: '🎲' },
+  { value: 'Mexican',           label: 'Mexican'           },
+  { value: 'Asian',             label: 'Asian'             },
+  { value: 'Italian',           label: 'Italian'           },
+  { value: 'Indian',            label: 'Indian'            },
+  { value: 'Modern Australian', label: 'Modern Australian' },
+  { value: 'French',            label: 'French'            },
+  { value: 'American',          label: 'American'          },
+  { value: 'Middle Eastern',    label: 'Middle Eastern'    },
+  { value: 'Japanese',          label: 'Japanese'          },
+  { value: 'Thai',              label: 'Thai'              },
+  { value: 'No preference',     label: 'No preference'     },
 ]
 
 const TIME_CARDS = [
-  { value: 'under 20 mins',           label: 'Under 20 mins',           emoji: '⚡' },
-  { value: '20–40 mins',              label: '20–40 mins',              emoji: '🕐' },
-  { value: '40–60 mins',              label: '40–60 mins',              emoji: '👨‍🍳' },
-  { value: 'all the time in the world', label: 'All the time in the world', emoji: '🌟' },
+  { value: 'under 20 mins',             label: 'Under 20 mins'           },
+  { value: '20–40 mins',                label: '20–40 mins'              },
+  { value: '40–60 mins',                label: '40–60 mins'              },
+  { value: 'all the time in the world', label: 'All the time in the world' },
 ]
 
 const PANTRY_CARDS = [
-  { value: 'garlic',          label: 'Garlic',          emoji: '🧄' },
-  { value: 'onion',           label: 'Onion',           emoji: '🧅' },
-  { value: 'rice',            label: 'Rice',            emoji: '🍚' },
-  { value: 'pasta',           label: 'Pasta',           emoji: '🍝' },
-  { value: 'tinned tomatoes', label: 'Tinned tomatoes', emoji: '🍅' },
-  { value: 'spinach',         label: 'Spinach',         emoji: '🥬' },
-  { value: 'broccoli',        label: 'Broccoli',        emoji: '🥦' },
-  { value: 'capsicum',        label: 'Capsicum',        emoji: '🫑' },
-  { value: 'zucchini',        label: 'Zucchini',        emoji: '🥒' },
-  { value: 'sweet potato',    label: 'Sweet potato',    emoji: '🍠' },
-  { value: 'lemon',           label: 'Lemon',           emoji: '🍋' },
-  { value: 'soy sauce',       label: 'Soy sauce',       emoji: '🫙' },
-  { value: 'chilli',          label: 'Chilli',          emoji: '🌶️' },
+  { value: 'garlic',          label: 'Garlic'          },
+  { value: 'onion',           label: 'Onion'           },
+  { value: 'rice',            label: 'Rice'            },
+  { value: 'pasta',           label: 'Pasta'           },
+  { value: 'tinned tomatoes', label: 'Tinned tomatoes' },
+  { value: 'spinach',         label: 'Spinach'         },
+  { value: 'broccoli',        label: 'Broccoli'        },
+  { value: 'capsicum',        label: 'Capsicum'        },
+  { value: 'zucchini',        label: 'Zucchini'        },
+  { value: 'sweet potato',    label: 'Sweet potato'    },
+  { value: 'lemon',           label: 'Lemon'           },
+  { value: 'soy sauce',       label: 'Soy sauce'       },
+  { value: 'chilli',          label: 'Chilli'          },
 ]
 
 // ── Loading screen facts ──────────────────────────────────────────────────────
@@ -976,31 +976,60 @@ function SkeletonCard() {
 
 // ── Chat bubbles ──────────────────────────────────────────────────────────────
 
-function ChatBubble({ role, content, isStreaming, userName }) {
+function ChatBubble({ role, content, isStreaming, userName, isOpening }) {
   const isUser = role === 'user'
+
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div
+          className="max-w-[75%] sm:max-w-[65%] whitespace-pre-wrap"
+          style={{
+            backgroundColor: '#1C1C1C',
+            color: '#E8E8E8',
+            borderLeft: '3px solid rgba(193,104,58,0.6)',
+            borderRadius: '2px 16px 16px 2px',
+            fontSize: '0.875rem',
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            padding: '12px 16px',
+            lineHeight: 1.6,
+          }}
+        >
+          {content}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className={`flex items-end gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-      {isUser ? <UserAvatar name={userName} /> : <ChefAvatar />}
+    <div style={{ position: 'relative' }}>
+      {isOpening && (
+        <div style={{
+          position: 'absolute',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 320, height: 200,
+          borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(193,104,58,0.06) 0%, transparent 70%)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }} />
+      )}
       <div
-        className="max-w-[75%] sm:max-w-[65%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
-        style={isUser
-          ? {
-              backgroundColor: '#1C1C1C',
-              color: '#E8E8E8',
-              borderLeft: '3px solid #00E5A0',
-              borderRadius: '2px 16px 16px 2px',
-              fontSize: '0.875rem',
-            }
-          : {
-              backgroundColor: '#272727',
-              color: '#E8E8E8',
-              border: '1px solid #2E2E2E',
-              borderRadius: '16px',
-              fontSize: '15px',
-              lineHeight: 1.7,
-              fontFamily: "'IBM Plex Sans', sans-serif",
-            }
-        }
+        className="max-w-[85%] whitespace-pre-wrap"
+        style={{
+          backgroundColor: '#1A1612',
+          borderRadius: '20px 4px 20px 20px',
+          padding: '20px',
+          fontFamily: "'Playfair Display', serif",
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: 20,
+          color: '#F0EAE0',
+          lineHeight: 1.55,
+          position: 'relative',
+          zIndex: 1,
+        }}
       >
         {content}
         {isStreaming && (
@@ -1013,17 +1042,16 @@ function ChatBubble({ role, content, isStreaming, userName }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex items-end gap-2.5">
-      <ChefAvatar />
+    <div>
       <div
-        className="flex items-center gap-2.5 px-4 py-3.5"
-        style={{ backgroundColor: '#272727', border: '1px solid #2E2E2E', borderRadius: '16px' }}
+        className="flex items-center gap-2.5 px-5 py-4"
+        style={{ backgroundColor: '#1A1612', borderRadius: '20px 4px 20px 20px', display: 'inline-flex' }}
       >
         {[0, 1, 2].map(i => (
           <span
             key={i}
             className="mint-dot"
-            style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }}
+            style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#C1683A', display: 'inline-block', opacity: 0.7 }}
           />
         ))}
       </div>
@@ -1037,16 +1065,22 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   const [selected, setSelected] = useState([])
 
   const chipStyle = (sel) => ({
-    backgroundColor: '#141414',
-    borderColor:     sel ? '#00E5A0' : '#2A2A2A',
-    color:           sel ? '#00E5A0' : '#7A6B5A',
-    borderRadius:    20,
-    fontSize:        13,
+    backgroundColor: sel ? '#C1683A' : '#1A1612',
+    border:          `1px solid ${sel ? '#C1683A' : 'rgba(240,234,224,0.15)'}`,
+    color:           '#F0EAE0',
+    borderRadius:    8,
+    fontSize:        14,
     fontFamily:      "'IBM Plex Sans', sans-serif",
-    fontWeight:      sel ? 500 : 400,
+    fontWeight:      sel ? 600 : 500,
+    padding:         '10px 18px',
+    minHeight:       44,
+    display:         'flex',
+    alignItems:      'center',
+    whiteSpace:      'nowrap',
+    transition:      'background 150ms ease, border-color 150ms ease',
+    cursor:          'pointer',
   })
 
-  // "Something else" focuses the textarea rather than just vanishing the row
   function handleSomethingElse() {
     onDismiss()
     onFocusInput?.()
@@ -1055,8 +1089,8 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   const somethingElseBtn = (
     <button
       onClick={handleSomethingElse}
-      className="shrink-0 py-2 px-4 rounded-xl text-sm font-medium transition-colors duration-200"
-      style={{ color: '#7A6B5A', backgroundColor: '#1A1612', border: '1px solid #2A2A2A' }}
+      className="shrink-0 transition-colors duration-200"
+      style={{ color: '#7A6B5A', backgroundColor: 'transparent', border: 'none', fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 14, cursor: 'pointer', padding: '10px 4px' }}
     >
       Something else →
     </button>
@@ -1091,34 +1125,30 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
 
     return (
       <div className="space-y-2.5">
-        {/* Proteins row */}
-        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#7A6B5A' }}>Proteins</p>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Proteins</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {PROTEIN_CARDS.map(card => (
             <button
               key={card.value}
               onClick={() => toggleProtein(card.value)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all"
+              className="shrink-0"
               style={chipStyle(selected.includes(card.value))}
             >
-              <span>{card.emoji}</span>
-              <span className="whitespace-nowrap">{card.label}</span>
+              {card.label}
             </button>
           ))}
         </div>
 
-        {/* Pantry / veggie row */}
-        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#7A6B5A' }}>Also have:</p>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Also have:</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {PANTRY_CARDS.map(card => (
             <button
               key={card.value}
               onClick={() => togglePantry(card.value)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all"
+              className="shrink-0"
               style={chipStyle(pantrySelected.includes(card.value))}
             >
-              <span>{card.emoji}</span>
-              <span className="whitespace-nowrap">{card.label}</span>
+              {card.label}
             </button>
           ))}
         </div>
@@ -1127,8 +1157,8 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
           {selected.length > 0 && (
             <button
               onClick={handleSubmit}
-              className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition-opacity active:opacity-80"
-              style={{ backgroundColor: '#00E5A0', color: '#0F0D0B' }}
+              className="flex-1 rounded-xl font-semibold text-sm transition-opacity active:opacity-80"
+              style={{ backgroundColor: '#C1683A', color: '#F0EAE0', border: 'none', height: 44, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
             >
               {totalSelected > selected.length
                 ? `Use ${selected.length} protein${selected.length > 1 ? 's' : ''} + ${pantrySelected.length} extra →`
@@ -1145,17 +1175,16 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   if (type === 'cuisine') {
     return (
       <div className="space-y-2.5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#7A6B5A' }}>Pick a style</p>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pick a style</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {CUISINE_CARDS.map(card => (
             <button
               key={card.value}
               onClick={() => onSubmit(card.value, [card.value])}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all active:scale-95"
+              className="shrink-0 active:opacity-80"
               style={chipStyle(false)}
             >
-              <span>{card.emoji}</span>
-              <span className="whitespace-nowrap">{card.label}</span>
+              {card.label}
             </button>
           ))}
         </div>
@@ -1167,17 +1196,16 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   if (type === 'time') {
     return (
       <div className="space-y-2.5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#7A6B5A' }}>How long have you got?</p>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>How long have you got?</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {TIME_CARDS.map(card => (
             <button
               key={card.value}
               onClick={() => onSubmit(card.value, [card.value])}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 border transition-all active:scale-95"
+              className="shrink-0 active:opacity-80"
               style={chipStyle(false)}
             >
-              <span>{card.emoji}</span>
-              <span className="whitespace-nowrap">{card.label}</span>
+              {card.label}
             </button>
           ))}
         </div>
@@ -1196,7 +1224,7 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
   const [imgLoaded, setImgLoaded] = useState(!!initialUrl)
 
   useEffect(() => {
-    if (initialUrl) return  // already have URL — skip fetch
+    if (initialUrl) return
     let cancelled = false
     const params = new URLSearchParams({ query: dishName })
     if (cuisine) params.set('cuisine', cuisine)
@@ -1213,53 +1241,31 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
   }, [dishName])
 
   return (
-    <div className="relative w-full overflow-hidden rounded-t-2xl" style={{ height: 200 }}>
-      {/* Placeholder */}
-      <div
-        className="absolute inset-0 flex items-center justify-center"
-        style={{ backgroundColor: '#00E5A0' }}
-      >
-        <svg viewBox="0 0 64 64" className="w-14 h-14 opacity-30" fill="white">
-          <path d="M32 6C18 6 8 16 8 30c0 10 6 18 14 22v4h20v-4c8-4 14-12 14-22C56 16 46 6 32 6zm0 4c11 0 20 9 20 20 0 8-5 15-12 18.5V50H24v-1.5C17 45 12 38 12 30c0-11 9-20 20-20z"/>
-          <rect x="28" y="2" width="8" height="8" rx="2"/>
-          <circle cx="32" cy="30" r="6"/>
-        </svg>
-      </div>
-
-      {/* Real photo */}
+    <div
+      style={{
+        width: '100%',
+        aspectRatio: '16/9',
+        borderRadius: '12px 12px 0 0',
+        overflow: 'hidden',
+        backgroundColor: '#2A2A2A',
+        position: 'relative',
+      }}
+    >
       {imgUrl && (
         <img
           src={imgUrl}
           alt={dishName}
           onLoad={() => setImgLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? 1 : 0 }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: imgLoaded ? 1 : 0,
+            transition: 'opacity 700ms ease',
+            display: 'block',
+          }}
         />
       )}
-
-      {/* Deep gradient for text legibility */}
-      <div
-        className="absolute inset-0"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.22) 55%, transparent 100%)' }}
-      />
-
-      {/* Dish name + cuisine overlaid at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-3.5 pt-8">
-        {cuisine && (
-          <span
-            className="block text-[10px] font-semibold uppercase tracking-widest mb-1"
-            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'ui-monospace, monospace' }}
-          >
-            {cuisine}
-          </span>
-        )}
-        <h3
-          className="text-lg font-bold text-white leading-snug drop-shadow-lg"
-          style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700 }}
-        >
-          {dishName}
-        </h3>
-      </div>
     </div>
   )
 }
@@ -1269,28 +1275,41 @@ function DishCard({ dish, onClick, onImageResolved }) {
   return (
     <button
       onClick={onClick}
-      className="w-full rounded-2xl overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 group"
-      style={{ backgroundColor: '#1A1612', border: '0.5px solid #2A2A2A', boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
+      className="w-full overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 group"
+      style={{ backgroundColor: '#1A1612', borderRadius: 12, border: '0.5px solid rgba(240,234,224,0.08)', boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
     >
       <CardImageHeader dishName={dish.name} cuisine={dish.chef.cuisine} onImageResolved={onImageResolved} />
 
-      <div className="px-4 pb-4 pt-3 space-y-3">
+      <div className="space-y-3" style={{ backgroundColor: '#1A1612', borderRadius: '0 0 12px 12px', padding: 16 }}>
+        {/* Cuisine badge */}
+        {dish.chef.cuisine && (
+          <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 10, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block' }}>
+            {dish.chef.cuisine}
+          </span>
+        )}
+
+        {/* Dish name */}
+        <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, color: '#F0EAE0', lineHeight: 1.2, margin: 0 }}>
+          {dish.name}
+        </h3>
+
         {/* 4-chip macro row */}
         <div className="flex gap-1.5 flex-wrap">
           {[
             { label: `${m.calories} kcal`, key: 'cal' },
-            { label: `${m.protein}g P`, key: 'pro' },
-            { label: `${m.carbs}g C`, key: 'carb' },
-            { label: `${m.fat}g F`, key: 'fat' },
+            { label: `${m.protein}g P`,    key: 'pro' },
+            { label: `${m.carbs}g C`,      key: 'carb' },
+            { label: `${m.fat}g F`,        key: 'fat'  },
           ].map(chip => (
             <span
               key={chip.key}
               className="text-xs font-semibold px-2.5 py-1 rounded-full"
               style={{
-                backgroundColor: 'rgba(0,229,160,0.12)',
-                color: '#00C080',
-                border: '1px solid rgba(0,229,160,0.2)',
+                backgroundColor: 'rgba(122,158,126,0.12)',
+                color: '#7A9E7E',
+                border: '1px solid rgba(122,158,126,0.2)',
                 fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                fontVariantNumeric: 'tabular-nums',
               }}
             >
               {chip.label}
@@ -1302,19 +1321,19 @@ function DishCard({ dish, onClick, onImageResolved }) {
         {(dish.dietician.cookTime !== '—' || dish.dietician.difficulty) && (
           <div className="flex gap-2 flex-wrap">
             {dish.dietician.cookTime !== '—' && (
-              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#7A6B5A', backgroundColor: '#1A1612' }}>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#7A6B5A', backgroundColor: 'rgba(240,234,224,0.05)', border: '1px solid rgba(240,234,224,0.08)' }}>
                 {dish.dietician.cookTime} mins
               </span>
             )}
             {dish.dietician.difficulty && (
-              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#7A6B5A', backgroundColor: '#1A1612' }}>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ color: '#7A6B5A', backgroundColor: 'rgba(240,234,224,0.05)', border: '1px solid rgba(240,234,224,0.08)' }}>
                 {dish.dietician.difficulty}
               </span>
             )}
           </div>
         )}
 
-        <div className="pt-1 text-sm font-medium flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200" style={{ color: '#00E5A0' }}>
+        <div className="pt-1 text-sm font-medium flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200" style={{ color: '#C1683A', fontFamily: "'IBM Plex Sans', sans-serif" }}>
           View recipe <span>→</span>
         </div>
       </div>
@@ -1827,91 +1846,179 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
 // ── Welcome screen ────────────────────────────────────────────────────────────
 
-const WELCOME_STYLES = ``
+const WELCOME_STYLES = `
+  @keyframes splash-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .splash-el   { animation: splash-fade 400ms ease both; }
+  .splash-el-0 { animation-delay: 0ms; }
+  .splash-el-1 { animation-delay: 150ms; }
+  .splash-el-2 { animation-delay: 300ms; }
+  .splash-el-3 { animation-delay: 450ms; }
+  @keyframes greeting-pulse {
+    0%, 100% { opacity: 0.08; }
+    50%       { opacity: 0.22; }
+  }
+  .greeting-skeleton { animation: greeting-pulse 1.5s ease-in-out infinite; }
+`
 
 function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCookedNo, cookedConfirmation }) {
   const isReturning = !!profile?.name
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#0F0D0B' }}>
-      <style>{WELCOME_STYLES}</style>
-      <div className="text-center space-y-10 w-full max-w-xs">
-        <div className="flex flex-col items-center gap-5">
-          <RemiLogo size={56} />
-          <div>
-            {isReturning ? (
-              <>
-                <h1 style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '2rem', fontWeight: 500, color: '#F0EAE0', letterSpacing: '0.02em' }}>
-                  Welcome back, {profile.name}.
-                </h1>
-                <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.75rem', fontStyle: 'italic', color: '#00C080', marginTop: 6, textAlign: 'center' }}>Ready when you are.</p>
-              </>
-            ) : (
-              <>
-                <h1 style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '2rem', fontWeight: 500, color: '#F0EAE0', letterSpacing: '0.02em' }}>Remi</h1>
-                <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.75rem', color: '#7A6B5A', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal Chef</p>
-                <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.75rem', fontStyle: 'italic', color: '#00C080', marginTop: 6, textAlign: 'center' }}>Eat like a chef. Train like an athlete. Live like both.</p>
-              </>
-            )}
-          </div>
+  const [greeting, setGreeting] = useState(() => {
+    if (!isReturning) return null
+    try {
+      const cached = JSON.parse(localStorage.getItem('lhc_greeting') || 'null')
+      const today = new Date().toISOString().slice(0, 10)
+      if (cached?.date === today && cached?.text) return cached.text
+    } catch {}
+    return null
+  })
+  const [greetingLoading, setGreetingLoading] = useState(isReturning && !greeting)
+
+  useEffect(() => {
+    if (!isReturning) return
+    const today = new Date().toISOString().slice(0, 10)
+    try {
+      const cached = JSON.parse(localStorage.getItem('lhc_greeting') || 'null')
+      if (cached?.date === today && cached?.text) {
+        setGreeting(cached.text)
+        setGreetingLoading(false)
+        return
+      }
+    } catch {}
+    const hour = new Date().getHours()
+    const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
+    fetch('/api/remi-corner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'greeting', profile: mapProfileForApi(profile), timeOfDay }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.tip) {
+          localStorage.setItem('lhc_greeting', JSON.stringify({ text: d.tip, date: today }))
+          setGreeting(d.tip)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setGreetingLoading(false))
+  }, [isReturning])
+
+  if (isReturning) {
+    return (
+      <div style={{ minHeight: '100dvh', backgroundColor: '#0F0D0B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '64px 24px 48px' }}>
+        <style>{WELCOME_STYLES}</style>
+
+        {/* Top: wordmark */}
+        <div className="splash-el splash-el-0" style={{ textAlign: 'center', position: 'relative' }}>
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 220, height: 220, borderRadius: '50%',
+            background: 'radial-gradient(ellipse, rgba(193,104,58,0.12) 0%, transparent 70%)',
+            pointerEvents: 'none', zIndex: 0,
+          }} />
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 32, color: '#F0EAE0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
+            Remi
+          </h1>
+          <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 10, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 8, position: 'relative', zIndex: 1 }}>
+            Personal Chef · Coach · Guide
+          </p>
         </div>
 
-        {/* Did You Cook? card — shown for sessions 12–48h old */}
-        {didYouCookSession && !cookedConfirmation && (
-          <div style={{ backgroundColor: '#1A1612', border: '1px solid #2A2A2A', borderRadius: 16, padding: '20px 16px', textAlign: 'left' }}>
-            <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0EAE0', fontSize: '0.9375rem', marginBottom: 6 }}>
-              Did you cook yesterday?
-            </p>
-            <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: '#888', fontSize: '0.8125rem', lineHeight: 1.5, marginBottom: 16 }}>
-              You got meal ideas — did any of them land on the plate?
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={onCookedYes}
-                style={{ flex: 1, backgroundColor: '#00E5A0', color: '#0F0D0B', borderRadius: 10, padding: '10px 0', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}
-              >
-                Yes, cooked it
-              </button>
-              <button
-                onClick={onCookedNo}
-                style={{ flex: 1, backgroundColor: 'transparent', color: '#666', borderRadius: 10, padding: '10px 0', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: '0.875rem', border: '1px solid #2A2A2A', cursor: 'pointer' }}
-              >
-                Didn't get to it
-              </button>
-            </div>
+        {/* Middle: greeting + did-you-cook */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: 380, gap: 20, padding: '32px 0' }}>
+          <div className="splash-el splash-el-1" style={{ textAlign: 'center', width: '100%' }}>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 36, color: '#F0EAE0', lineHeight: 1.15, margin: '0 0 14px' }}>
+              Welcome back, {profile.name}.
+            </h2>
+            {greetingLoading ? (
+              <div className="greeting-skeleton" style={{ height: 20, width: '60%', borderRadius: 8, backgroundColor: 'rgba(240,234,224,0.08)', margin: '0 auto' }} />
+            ) : greeting ? (
+              <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 300, fontSize: 18, color: '#7A6B5A', lineHeight: 1.55, margin: 0 }}>
+                {greeting}
+              </p>
+            ) : null}
           </div>
-        )}
 
-        {cookedConfirmation && (
-          <div style={{ backgroundColor: '#1A1612', border: '1px solid #00E5A0', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
-            <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: '#00E5A0', fontSize: '0.875rem', fontWeight: 600 }}>{cookedConfirmation}</p>
-          </div>
-        )}
-
-        {!isReturning && (
-          <div className="space-y-3 text-left">
-            {[
-              'Built around what you have',
-              'Macros adjusted to your training',
-              'Chef quality. Nutritionist approved.',
-            ].map(text => (
-              <div key={text} className="flex items-center gap-3">
-                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0, display: 'inline-block' }} />
-                <span style={{ fontSize: '0.875rem', color: '#F0EAE0' }}>{text}</span>
+          {didYouCookSession && !cookedConfirmation && (
+            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1612', border: '1px solid rgba(240,234,224,0.12)', borderRadius: 16, padding: '20px 16px', textAlign: 'left', width: '100%' }}>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#F0EAE0', fontSize: '0.9375rem', marginBottom: 6 }}>
+                Did you cook yesterday?
+              </p>
+              <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: '#7A6B5A', fontSize: '0.8125rem', lineHeight: 1.5, marginBottom: 16 }}>
+                You got meal ideas — did any of them land on the plate?
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={onCookedYes} style={{ flex: 1, backgroundColor: '#C1683A', color: '#F0EAE0', borderRadius: 10, padding: '10px 0', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
+                  Yes, cooked it
+                </button>
+                <button onClick={onCookedNo} style={{ flex: 1, backgroundColor: 'transparent', color: '#7A6B5A', borderRadius: 10, padding: '10px 0', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: '0.875rem', border: '1px solid rgba(240,234,224,0.12)', cursor: 'pointer' }}>
+                  Didn't get to it
+                </button>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
 
-        <div className="space-y-3">
+          {cookedConfirmation && (
+            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1612', border: '1px solid rgba(193,104,58,0.3)', borderRadius: 16, padding: '16px', textAlign: 'center', width: '100%' }}>
+              <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: '#C1683A', fontSize: '0.875rem', fontWeight: 600 }}>{cookedConfirmation}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom: CTA */}
+        <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380 }}>
           <button
             onClick={onStart}
-            style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0F0D0B', borderRadius: 14, padding: '14px 0', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: '0.9375rem' }}
+            style={{ width: '100%', backgroundColor: '#C1683A', color: '#F0EAE0', borderRadius: 16, height: 56, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: 16, border: 'none', cursor: 'pointer' }}
           >
-            {isReturning ? "Let's cook →" : 'Get started →'}
+            Let's Cook
           </button>
-          {!isReturning && <p style={{ fontSize: '0.7rem', color: '#555555', letterSpacing: '0.04em' }}>Free · No account needed</p>}
         </div>
+      </div>
+    )
+  }
+
+  // New user
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0F0D0B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
+      <style>{WELCOME_STYLES}</style>
+
+      {/* Top: wordmark */}
+      <div className="splash-el splash-el-0" style={{ textAlign: 'center', position: 'relative' }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 300, height: 300, borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(193,104,58,0.12) 0%, transparent 70%)',
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 48, color: '#F0EAE0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
+          Remi
+        </h1>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12, position: 'relative', zIndex: 1 }}>
+          Personal Chef · Coach · Guide
+        </p>
+      </div>
+
+      {/* Middle: tagline */}
+      <div className="splash-el splash-el-2" style={{ textAlign: 'center', maxWidth: 320 }}>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 300, fontSize: 16, color: '#7A6B5A', lineHeight: 1.65, margin: 0 }}>
+          Eat like a chef. Train like an athlete. Live like both.
+        </p>
+      </div>
+
+      {/* Bottom: CTA */}
+      <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380 }}>
+        <button
+          onClick={onStart}
+          style={{ width: '100%', backgroundColor: '#C1683A', color: '#F0EAE0', borderRadius: 16, height: 56, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: 16, border: 'none', cursor: 'pointer' }}
+        >
+          Get Started
+        </button>
       </div>
     </div>
   )
@@ -1949,12 +2056,15 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
     <div className="rounded-2xl overflow-hidden relative" style={{ backgroundColor: '#1A1612', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', border: '1px solid #2A2A2A' }}>
       <button onClick={onOpen} className="w-full text-left block">
         <CardImageHeader dishName={dish.name} cuisine={dish.chef?.cuisine} initialUrl={dish._imgUrl} />
-        <div className="px-5 pb-5 pt-4 space-y-2">
+        <div className="px-4 pb-4 pt-3 space-y-2">
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 16, color: '#F0EAE0', lineHeight: 1.2, margin: 0 }}>
+            {dish.name}
+          </h3>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold tabular-nums" style={{ color: '#00E5A0' }}>
+            <span className="text-xl font-bold tabular-nums" style={{ color: '#7A9E7E', fontVariantNumeric: 'tabular-nums' }}>
               {dish.dietician?.macros?.calories ?? '—'}
             </span>
-            <span className="text-sm" style={{ color: '#7A6B5A' }}>kcal</span>
+            <span className="text-xs" style={{ color: '#7A6B5A' }}>kcal</span>
           </div>
           {(dish.dietician?.cookTime && dish.dietician.cookTime !== '—') && (
             <p className="text-xs" style={{ color: '#7A6B5A' }}>
@@ -2421,24 +2531,20 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   key={recipe._id}
                   onClick={() => onOpenRecipe(recipe)}
                   className="rounded-xl overflow-hidden text-left active:opacity-80 transition-opacity"
-                  style={{ backgroundColor: '#1A1612', border: '1px solid #2A2A2A' }}
+                  style={{ backgroundColor: '#1A1612', border: '1px solid rgba(240,234,224,0.08)' }}
                 >
-                  <div className="relative w-full h-24 overflow-hidden" style={{ backgroundColor: '#00E5A0' }}>
+                  <div className="w-full overflow-hidden" style={{ aspectRatio: '16/9', backgroundColor: '#2A2A2A', borderRadius: '10px 10px 0 0' }}>
                     {recipe._imgUrl && (
-                      <img src={recipe._imgUrl} alt={recipe.name} className="w-full h-full object-cover" />
+                      <img src={recipe._imgUrl} alt={recipe.name} className="w-full h-full object-cover" style={{ display: 'block' }} />
                     )}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 60%)' }} />
-                    <p className="absolute bottom-0 left-0 right-0 px-2.5 pb-1.5 text-xs font-semibold text-white leading-tight line-clamp-2">
+                  </div>
+                  <div className="px-2.5 py-2.5 space-y-0.5">
+                    <p className="text-xs font-semibold leading-tight line-clamp-2" style={{ color: '#F0EAE0', fontFamily: "'Playfair Display', serif" }}>
                       {recipe.name}
                     </p>
-                  </div>
-                  <div className="px-2.5 py-2 flex items-center justify-between">
-                    <span className="text-sm font-bold tabular-nums" style={{ color: '#00E5A0' }}>
+                    <span className="text-xs tabular-nums" style={{ color: '#7A9E7E', fontVariantNumeric: 'tabular-nums' }}>
                       {recipe.dietician?.macros?.calories ?? '—'} kcal
                     </span>
-                    {recipe.dietician?.difficulty && (
-                      <span className="text-[10px] font-medium" style={{ color: '#7A6B5A' }}>{recipe.dietician.difficulty}</span>
-                    )}
                   </div>
                 </button>
               ))}
@@ -4217,46 +4323,28 @@ export default function App() {
         {/* ── Main chat column ── */}
         <div className="flex flex-col flex-1 min-w-0">
 
-          {/* Header */}
-          <div className="shrink-0 px-4 py-3.5 backdrop-blur-sm flex items-center justify-between" style={{ backgroundColor: 'rgba(13,13,13,0.92)', borderBottom: '1px solid #2A2A2A' }}>
-            <div className="flex items-center gap-2.5">
-              <RemiLogo size={28} />
-              <div>
-                <h1 className="font-sans font-bold" style={{ fontSize: 18, color: '#F0EAE0', letterSpacing: '0.01em' }}>Remi</h1>
-                <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 10, letterSpacing: '0.1em', color: '#00E5A0', textTransform: 'uppercase' }}>Personal Chef · Dietician · Coach</p>
-              </div>
-            </div>
-            {/* Desktop nav only — mobile uses BottomNav */}
-            <div className="hidden sm:flex items-center gap-2">
-              <button
-                onClick={() => setView('dashboard')}
-                className="text-xs transition-colors duration-200 flex items-center gap-1 px-2 py-1 rounded-lg"
-                style={{ color: '#7A6B5A', border: '1px solid #2A2A2A' }}
-              >
-                Stats
-              </button>
-              <button
-                onClick={() => setView('onboarding')}
-                className="text-xs transition-colors duration-200 flex items-center gap-1 px-2 py-1 rounded-lg"
-                style={{ color: '#7A6B5A', border: '1px solid #2A2A2A' }}
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 8a2 2 0 100-4 2 2 0 000 4zM10 12a6 6 0 00-5.33 3.235A8.966 8.966 0 0010 18a8.966 8.966 0 005.33-2.765A6 6 0 0010 12z"/>
-                </svg>
-                {profile?.name ?? 'Profile'}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile insights strip — only shown below lg breakpoint */}
-          <div className="lg:hidden">
-            <InsightsMobileStrip />
+          {/* Desktop-only minimal nav — mobile uses BottomNav */}
+          <div className="hidden sm:flex shrink-0 px-4 pt-3 pb-0 justify-end gap-2">
+            <button
+              onClick={() => setView('dashboard')}
+              className="text-xs transition-colors duration-200 px-2.5 py-1.5 rounded-lg"
+              style={{ color: '#7A6B5A', border: '1px solid rgba(240,234,224,0.1)', backgroundColor: 'transparent' }}
+            >
+              Stats
+            </button>
+            <button
+              onClick={() => setView('onboarding')}
+              className="text-xs transition-colors duration-200 px-2.5 py-1.5 rounded-lg"
+              style={{ color: '#7A6B5A', border: '1px solid rgba(240,234,224,0.1)', backgroundColor: 'transparent' }}
+            >
+              {profile?.name ?? 'Profile'}
+            </button>
           </div>
 
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-3 relative z-10 pb-20 lg:pb-5">
             {displayMessages.map(msg => (
-              <ChatBubble key={msg.id} role={msg.role} content={msg.content} userName={profile?.name} />
+              <ChatBubble key={msg.id} role={msg.role} content={msg.content} userName={profile?.name} isOpening={!!(msg.seed && msg.role === 'assistant')} />
             ))}
             {streaming && streamContent && (
               <ChatBubble role="assistant" content={streamContent} isStreaming userName={profile?.name} />
@@ -4311,7 +4399,15 @@ export default function App() {
           )}
 
           {/* Input bar */}
-          <div className="shrink-0 px-4 pt-2.5 pb-3 relative z-10" style={{ borderTop: suggestions.length > 0 ? 'none' : '1px solid #2A2A2A', backgroundColor: '#0F0D0B', touchAction: 'manipulation' }}>
+          <div
+            className="shrink-0 px-4 pt-2.5 relative z-10"
+            style={{
+              borderTop: suggestions.length > 0 ? 'none' : '1px solid rgba(240,234,224,0.08)',
+              backgroundColor: '#0F0D0B',
+              touchAction: 'manipulation',
+              paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+            }}
+          >
             <form onSubmit={handleSubmit} className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
@@ -4333,26 +4429,28 @@ export default function App() {
                 placeholder="Type here..."
                 rows={1}
                 disabled={streaming}
-                className="flex-1 rounded-2xl px-4 py-3 focus:outline-none disabled:opacity-50 transition leading-snug"
+                className="flex-1 focus:outline-none disabled:opacity-50 leading-snug"
                 style={{
                   fontSize: 16,
                   minHeight: 44,
                   maxHeight: 120,
                   resize: 'none',
                   overflowY: 'auto',
-                  backgroundColor: '#141414',
-                  border: inputFocused ? '1.5px solid #00E5A0' : '1px solid #2A2A2A',
-                  boxShadow: inputFocused ? '0 0 0 3px rgba(0,229,160,0.1)' : 'none',
-                  color: '#E8E8E8',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  backgroundColor: '#1A1612',
+                  border: inputFocused ? '1.5px solid rgba(193,104,58,0.6)' : '1px solid rgba(240,234,224,0.12)',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  color: '#F0EAE0',
+                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  transition: 'border-color 0.15s',
                 }}
               />
               {streaming ? (
                 <button
                   type="button"
                   onClick={handleStop}
-                  style={{ backgroundColor: '#00E5A0', width: 44, height: 44, flexShrink: 0, color: '#0F0D0B' }}
-                  className="flex items-center justify-center rounded-full text-xs font-semibold active:opacity-80 transition-opacity"
+                  style={{ backgroundColor: '#C1683A', width: 44, height: 44, flexShrink: 0, color: '#F0EAE0', borderRadius: 10, border: 'none', cursor: 'pointer' }}
+                  className="flex items-center justify-center text-xs font-semibold active:opacity-80 transition-opacity"
                   aria-label="Stop"
                 >
                   ■
@@ -4361,14 +4459,18 @@ export default function App() {
                 <button
                   type="submit"
                   style={{
-                    backgroundColor: input.trim() ? '#00E5A0' : '#2A2A2A',
-                    color: input.trim() ? '#0F0D0B' : '#7A6B5A',
+                    backgroundColor: input.trim() ? '#C1683A' : 'rgba(240,234,224,0.06)',
+                    color: '#F0EAE0',
                     width: 44,
                     height: 44,
                     flexShrink: 0,
+                    borderRadius: 10,
+                    border: 'none',
+                    cursor: input.trim() ? 'pointer' : 'default',
                     transition: 'background-color 0.15s',
+                    opacity: input.trim() ? 1 : 0.4,
                   }}
-                  className="flex items-center justify-center rounded-full active:opacity-80"
+                  className="flex items-center justify-center active:opacity-80"
                   aria-label="Send"
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" style={{ marginLeft: 2 }}>
@@ -4379,11 +4481,10 @@ export default function App() {
             </form>
           </div>
 
-          {/* Spacer — on mobile, reserves height for the fixed BottomNav so it
-              never overlaps the input bar. Height = BottomNav (56px) + iOS safe area. */}
+          {/* Spacer — reserves height for the fixed BottomNav on mobile */}
           <div
             className="shrink-0 lg:hidden"
-            style={{ height: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}
+            style={{ height: 56 }}
           />
         </div>
 

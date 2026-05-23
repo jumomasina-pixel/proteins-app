@@ -18,6 +18,14 @@ const PERFORM_PROMPT = (p) => {
   return `You are a performance nutritionist. Give one specific tip on how nutrition can improve performance in ${sport}${freq}.${philosophy} Focus on timing, recovery, or a specific nutrient. Direct, actionable, 2–3 sentences. No generic advice.`
 }
 
+const GREETING_PROMPT = (p, timeOfDay) => {
+  const name = p?.name || 'Chef'
+  const goal = p?.goal || 'maintain'
+  const sport = p?.primarySport || 'general training'
+  const freq = p?.trainingFreq || 'regularly'
+  return `Generate one sentence greeting for ${name}. Their goal is ${goal}, primary sport is ${sport}, training frequency is ${freq}. Current time of day: ${timeOfDay || 'day'}. The sentence should feel like a coach who knows them well — precise, warm, not performative. No exclamation marks. Under 20 words.`
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -28,9 +36,25 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set' })
   }
 
-  const { tab, profile } = req.body
+  const { tab, type, profile, timeOfDay } = req.body
+
+  if (type === 'greeting') {
+    const client = new Anthropic({ apiKey })
+    try {
+      const message = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 80,
+        messages: [{ role: 'user', content: GREETING_PROMPT(profile, timeOfDay) }],
+      })
+      return res.status(200).json({ tip: message.content[0]?.text?.trim() ?? '' })
+    } catch (err) {
+      console.error('[remi-corner] greeting error:', err)
+      return res.status(500).json({ error: err.message })
+    }
+  }
+
   if (!tab) {
-    return res.status(400).json({ error: 'tab is required' })
+    return res.status(400).json({ error: 'tab or type is required' })
   }
 
   const prompt = tab === 'perform' ? PERFORM_PROMPT(profile) : FUEL_PROMPT(profile)
