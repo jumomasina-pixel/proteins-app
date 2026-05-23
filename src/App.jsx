@@ -2276,6 +2276,27 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
   )
 }
 
+const ONBOARDING_STYLES = `
+  @keyframes ob-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .ob-step { animation: ob-fade-up 0.28s ease both; }
+
+  @keyframes remi-scale-in {
+    0%   { opacity: 0; transform: scale(0.55); }
+    65%  { transform: scale(1.07); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .remi-scale-in { animation: remi-scale-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+  @keyframes remi-word-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .remi-word-up { animation: remi-word-up 0.38s ease 0.28s both; }
+`
+
 // ── Onboarding (3-step) ──────────────────────────────────────────────────────
 
 function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, onPTClick }) {
@@ -2331,100 +2352,143 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
     onComplete(remiProfile, buildFridgeMessage())
   }
 
-  const pillStyle = (selected) => ({
-    padding: '9px 16px', borderRadius: 10,
+  const cardStyle = (selected) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    minHeight: 64,
+    padding: '14px 20px',
+    borderRadius: 14,
     border: `1.5px solid ${selected ? '#00E5A0' : '#2A2A2A'}`,
-    backgroundColor: selected ? '#252525' : '#1A1A1A',
-    color: selected ? '#00C080' : '#888888',
-    fontFamily: 'Inter, sans-serif', fontSize: '0.875rem',
-    fontWeight: selected ? 500 : 400, cursor: 'pointer', transition: 'all 0.15s',
+    backgroundColor: selected ? 'rgba(0,229,160,0.07)' : '#141414',
+    color: selected ? '#00E5A0' : '#CCCCCC',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '0.9375rem',
+    fontWeight: selected ? 500 : 400,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    textAlign: 'left',
   })
 
   const inputStyle = {
-    width: '100%', borderRadius: 12, backgroundColor: '#1A1A1A',
+    width: '100%', borderRadius: 12, backgroundColor: '#141414',
     border: '1px solid #2A2A2A', color: '#F0F0F0',
-    padding: '12px 16px', fontFamily: 'Inter, sans-serif', fontSize: 16,
-    outline: 'none',
+    padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16,
+    outline: 'none', boxSizing: 'border-box',
   }
 
   const labelStyle = {
-    fontSize: '0.7rem', color: '#888888', display: 'block',
-    marginBottom: 6, letterSpacing: '0.08em', textTransform: 'uppercase',
+    fontSize: '0.65rem', color: '#555', display: 'block',
+    marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase',
+    fontFamily: 'Inter, sans-serif',
   }
 
-  function ProgressDots() {
-    return (
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
-        {[1, 2, 3].map(s => (
-          <div key={s} style={{
-            height: 6, width: s === step ? 24 : 8, borderRadius: 10,
-            backgroundColor: s <= step ? '#00E5A0' : '#2A2A2A',
-            transition: 'all 0.25s ease',
-          }} />
-        ))}
-      </div>
-    )
+  const headingStyle = {
+    fontFamily: 'Syne, sans-serif',
+    fontWeight: 700,
+    fontSize: 'clamp(1.75rem, 6vw, 2.25rem)',
+    color: '#F0F0F0',
+    lineHeight: 1.1,
+    marginBottom: 8,
   }
+
+  const subStyle = {
+    fontSize: '0.9rem',
+    color: '#666',
+    fontFamily: 'Inter, sans-serif',
+    lineHeight: 1.5,
+  }
+
+  const checkIcon = (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" style={{ color: '#00E5A0', flexShrink: 0 }}>
+      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd"/>
+    </svg>
+  )
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-10" style={{ backgroundColor: '#0D0D0D' }}>
-      <div className="w-full max-w-sm mx-auto flex flex-col" style={{ minHeight: 'calc(100dvh - 5rem)' }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
+      <style>{ONBOARDING_STYLES}</style>
 
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={step > 1 && !hasProfile ? () => setStep(s => s - 1) : onBack}
-            style={{ color: '#888888', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+      {/* Mint progress line — fixed across very top */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1A1A', zIndex: 100 }}>
+        <div style={{
+          height: '100%',
+          width: `${(step / 3) * 100}%`,
+          backgroundColor: '#00E5A0',
+          transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          borderRadius: '0 2px 2px 0',
+        }} />
+      </div>
+
+      {/* Content column */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 32px' }}>
+
+        {/* Back + step counter */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 44 }}>
+          <button
+            onClick={step > 1 && !hasProfile ? () => setStep(s => s - 1) : onBack}
+            style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
             </svg>
           </button>
-          {!hasProfile && <ProgressDots />}
+          {!hasProfile && (
+            <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.7rem', color: '#444', letterSpacing: '0.12em' }}>
+              {step} / 3
+            </span>
+          )}
         </div>
 
-        <div className="flex-1 space-y-6">
+        {/* Step content — keyed so entering re-triggers the fade-up */}
+        <div key={step} className="ob-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 28 }}>
 
+          {/* ── Step 1: Goal + weights ── */}
           {step === 1 && (
-            <div className="space-y-6">
+            <>
               <div>
-                <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F0F0F0', marginBottom: 6 }}>
-                  What's the goal, chef?
-                </h2>
-                <p style={{ fontSize: '0.875rem', color: '#888888' }}>Remi adjusts every dish around this.</p>
+                <h2 style={headingStyle}>What's the goal?</h2>
+                <p style={subStyle}>Remi adjusts every dish around this.</p>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {REMI_GOAL_OPTIONS.map(o => (
-                  <button key={o.value} onClick={() => setGoal(o.value)} style={pillStyle(goal === o.value)}>
-                    {o.label}{o.desc ? ` — ${o.desc}` : ''}{goal === o.value ? ' ✓' : ''}
+                  <button key={o.value} onClick={() => setGoal(o.value)} style={cardStyle(goal === o.value)}>
+                    <span>
+                      {o.label}
+                      {o.desc && <span style={{ color: '#555', fontWeight: 400 }}> — {o.desc}</span>}
+                    </span>
+                    {goal === o.value && checkIcon}
                   </button>
                 ))}
               </div>
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label style={labelStyle}>Current weight</label>
-                  <div className="flex gap-2 items-center">
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <input type="number" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="84" style={inputStyle} />
-                    <span style={{ color: '#888888', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
+                    <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>kg</span>
                   </div>
                 </div>
                 <div>
                   <label style={labelStyle}>Target weight</label>
-                  <div className="flex gap-2 items-center">
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} placeholder="78" style={inputStyle} />
-                    <span style={{ color: '#888888', fontSize: '0.875rem', flexShrink: 0 }}>kg</span>
+                    <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>kg</span>
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
 
+          {/* ── Step 2: Training ── */}
           {step === 2 && (
-            <div className="space-y-6">
+            <>
               <div>
-                <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F0F0F0', marginBottom: 6 }}>
-                  How do you train?
-                </h2>
-                <p style={{ fontSize: '0.875rem', color: '#888888' }}>Remi adjusts macros on training vs rest days.</p>
+                <h2 style={headingStyle}>How do you train?</h2>
+                <p style={subStyle}>Remi adjusts macros on training vs rest days.</p>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {REMI_TRAINING_OPTIONS.map(o => {
                   const isNone = o.value === 'none'
                   const sel = isNone ? training.includes('none') : training.includes(o.value)
@@ -2433,8 +2497,9 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                       if (isNone) { setTraining(['none']); return }
                       const filtered = training.filter(t => t !== 'none')
                       setTraining(sel ? filtered.filter(t => t !== o.value) : [...filtered, o.value])
-                    }} style={pillStyle(sel)}>
-                      {o.label}
+                    }} style={cardStyle(sel)}>
+                      <span>{o.label}</span>
+                      {sel && checkIcon}
                     </button>
                   )
                 })}
@@ -2443,28 +2508,37 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                 <label style={labelStyle}>Days per week</label>
                 <input type="number" min={0} max={7} value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="4" style={inputStyle} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 14, backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-                <span style={{ fontSize: '0.9rem', color: '#F0F0F0', fontFamily: 'Inter, sans-serif' }}>
-                  {trainingToday ? 'Today is a training day' : 'Today is a rest day'}
-                </span>
-                <button onClick={() => {
+              {/* Training today — styled as a card */}
+              <button
+                onClick={() => {
                   const next = !trainingToday
                   setTrainingToday(next)
                   localStorage.setItem('remi_training_today', JSON.stringify(next))
-                }} style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: trainingToday ? '#00E5A0' : '#2A2A2A', position: 'relative', flexShrink: 0, border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}>
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', minHeight: 64, padding: '14px 20px', borderRadius: 14,
+                  border: `1.5px solid ${trainingToday ? '#00E5A0' : '#2A2A2A'}`,
+                  backgroundColor: trainingToday ? 'rgba(0,229,160,0.07)' : '#141414',
+                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.9375rem', color: trainingToday ? '#00E5A0' : '#CCCCCC', fontWeight: trainingToday ? 500 : 400 }}>
+                  {trainingToday ? 'Training day today' : 'Rest day today'}
+                </span>
+                <div style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: trainingToday ? '#00E5A0' : '#2A2A2A', position: 'relative', flexShrink: 0, transition: 'background-color 0.2s' }}>
                   <span style={{ position: 'absolute', top: 2, left: trainingToday ? 22 : 2, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s', display: 'block' }} />
-                </button>
-              </div>
-            </div>
+                </div>
+              </button>
+            </>
           )}
 
+          {/* ── Step 3: Fridge ── */}
           {step === 3 && (
-            <div className="space-y-6">
+            <>
               <div>
-                <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '1.5rem', color: '#F0F0F0', marginBottom: 6 }}>
-                  What's in the fridge?
-                </h2>
-                <p style={{ fontSize: '0.875rem', color: '#888888' }}>Tell Remi what you've got. He'll handle the rest.</p>
+                <h2 style={headingStyle}>What's in the fridge?</h2>
+                <p style={subStyle}>Tell Remi what you've got. He'll handle the rest.</p>
               </div>
               <div>
                 <input
@@ -2474,14 +2548,16 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                   placeholder="chicken, rice, broccoli... (Enter to add)"
                   style={inputStyle}
                 />
-                <p style={{ fontSize: '0.75rem', color: '#555555', marginTop: 6 }}>Press Enter or comma to add each ingredient</p>
+                <p style={{ fontSize: '0.75rem', color: '#444', marginTop: 8, fontFamily: 'Inter, sans-serif' }}>
+                  Press Enter or comma to add each ingredient
+                </p>
               </div>
               {ingredients.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {ingredients.map((ing, i) => {
                     const c = CLASSIFY_COLORS[ing.type]
                     return (
-                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, backgroundColor: '#1A1A1A', border: `1.5px solid ${c.border}`, fontSize: '0.8125rem', color: '#F0F0F0', fontFamily: 'Inter, sans-serif' }}>
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, backgroundColor: '#141414', border: `1.5px solid ${c.border}`, fontSize: '0.8125rem', color: '#F0F0F0', fontFamily: 'Inter, sans-serif' }}>
                         <span>{ing.name}</span>
                         <span style={{ fontSize: '0.6rem', color: c.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{ing.type}</span>
                         <button onClick={() => setIngredients(prev => prev.filter((_, j) => j !== i))} style={{ color: '#555555', cursor: 'pointer', background: 'none', border: 'none', padding: 0, lineHeight: 1, fontSize: '1.1rem' }}>×</button>
@@ -2490,32 +2566,53 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                   })}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 
-        <div className="mt-8 space-y-3">
+        {/* CTA */}
+        <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {step < 3 ? (
-            <button onClick={() => { if (canProceed()) setStep(s => s + 1) }} disabled={!canProceed()}
-              style={{ width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#555555', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #2A2A2A', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
-              Next →
+            <button
+              onClick={() => { if (canProceed()) setStep(s => s + 1) }}
+              disabled={!canProceed()}
+              style={{
+                width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#141414',
+                color: canProceed() ? '#0D0D0D' : '#333',
+                borderRadius: 14, padding: '16px 0',
+                fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem',
+                border: canProceed() ? 'none' : '1px solid #2A2A2A',
+                cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
+              }}
+            >
+              Continue →
             </button>
           ) : isLocked ? (
             <>
-              <button disabled style={{ width: '100%', backgroundColor: '#1A1A1A', color: '#555555', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: '1px solid #C9A84C', cursor: 'not-allowed' }}>
-                🔒 Kitchen's closed for today
+              <button disabled style={{ width: '100%', backgroundColor: '#141414', color: '#333', borderRadius: 14, padding: '16px 0', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', border: '1px solid #C9A84C', cursor: 'not-allowed' }}>
+                Kitchen's closed for today
               </button>
-              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#555555' }}>
+              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#555' }}>
                 <button onClick={onProClick} style={{ background: 'none', border: 'none', color: '#C9A84C', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>Go Pro →</button> to keep cooking
               </p>
-              <p style={{ textAlign: 'center', marginTop: 6 }}>
-                <button onClick={onPTClick} style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'Inter, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
+              <p style={{ textAlign: 'center', marginTop: 4 }}>
+                <button onClick={onPTClick} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: 'Inter, sans-serif', textDecoration: 'underline' }}>Are you a PT?</button>
               </p>
             </>
           ) : (
-            <button onClick={handleCook} disabled={!canProceed()}
-              style={{ width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#555555', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem', border: canProceed() ? 'none' : '1px solid #2A2A2A', cursor: canProceed() ? 'pointer' : 'not-allowed' }}>
-              Let him cook 🔥
+            <button
+              onClick={handleCook}
+              disabled={!canProceed()}
+              style={{
+                width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#141414',
+                color: canProceed() ? '#0D0D0D' : '#333',
+                borderRadius: 14, padding: '16px 0',
+                fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem',
+                border: canProceed() ? 'none' : '1px solid #2A2A2A',
+                cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
+              }}
+            >
+              Let him cook
             </button>
           )}
         </div>
@@ -2527,41 +2624,27 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
 // ── Profile complete ───────────────────────────────────────────────────────────
 
 function ProfileComplete({ profile, onEnter }) {
-  const [heroUrl, setHeroUrl] = useState(null)
-
-  useEffect(() => {
-    fetch('/api/unsplash?query=athlete+meal+prep+food')
-      .then(r => r.json())
-      .then(d => { if (d.url) setHeroUrl(d.url) })
-      .catch(() => {})
-  }, [])
-
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy flex flex-col relative overflow-hidden">
-      <PaperTexture />
-      <div className="relative w-full h-64 sm:h-80 shrink-0 overflow-hidden">
-        {heroUrl
-          ? <img src={heroUrl} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full" style={{ backgroundColor: '#00E5A0' }} />
-        }
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, #0D0D0D 100%)' }} />
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 relative z-10 -mt-8">
-        <div className="w-full max-w-xs sm:max-w-sm text-center space-y-6">
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-snug">
-            Ready, {profile.name}.
-          </h2>
-          <p className="text-charcoal-muted leading-relaxed">
-            Let's build meals that work as hard as you do.
-          </p>
-          <button
-            onClick={onEnter}
-            className="w-full py-4 rounded-xl font-semibold text-base active:opacity-80 transition-opacity"
-            style={{ backgroundColor: '#00E5A0', color: '#0D0D0D', boxShadow: '0 2px 8px rgba(0,229,160,0.35)' }}
-          >
-            Enter the kitchen →
-          </button>
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
+      <style>{ONBOARDING_STYLES}</style>
+      <div style={{ textAlign: 'center', maxWidth: 360, width: '100%' }}>
+        <div className="remi-scale-in" style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+          <RemiLogo size={64} />
         </div>
+        <h2 className="remi-word-up" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.5rem, 8vw, 3.5rem)', color: '#F0F0F0', lineHeight: 1.05, marginBottom: 16 }}>
+          Remi is ready.
+        </h2>
+        <p className="remi-word-up" style={{ fontSize: '0.9375rem', color: '#666', fontFamily: 'Inter, sans-serif', lineHeight: 1.6, marginBottom: 48, animationDelay: '0.42s' }}>
+          Your kitchen, personalised.
+        </p>
+        <button
+          onClick={onEnter}
+          style={{ width: '100%', padding: '16px 24px', borderRadius: 14, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', boxShadow: '0 2px 16px rgba(0,229,160,0.3)', transition: 'opacity 0.15s ease' }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        >
+          Enter the kitchen →
+        </button>
       </div>
     </div>
   )
