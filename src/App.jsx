@@ -1631,7 +1631,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
           </button>
         </div>
         {isChef && (
-          <p className="text-center text-sm italic" style={{ color: '#E55A5A', marginTop: '-1rem' }}>
+          <p style={{ color: '#888888', fontSize: 13, fontFamily: 'Inter, sans-serif', textAlign: 'center', marginTop: 8, fontStyle: 'normal' }}>
             No judgment. Enjoy every bite.
           </p>
         )}
@@ -1871,7 +1871,7 @@ const WELCOME_STYLES = `
   .greeting-skeleton { animation: greeting-pulse 1.5s ease-in-out infinite; }
 `
 
-function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCookedNo, cookedConfirmation }) {
+function WelcomeScreen({ onStart, onDashboard, profile, didYouCookSession, onCookedYes, onCookedNo, cookedConfirmation }) {
   const isReturning = !!profile?.name
 
   const [greeting, setGreeting] = useState(() => {
@@ -1916,7 +1916,7 @@ function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCoo
 
   if (isReturning) {
     return (
-      <div style={{ minHeight: '100dvh', backgroundColor: '#0F0D0B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '64px 24px 48px' }}>
+      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '64px 24px 48px' }}>
         <style>{WELCOME_STYLES}</style>
 
         {/* Top: wordmark */}
@@ -1925,13 +1925,13 @@ function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCoo
             position: 'absolute', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
             width: 220, height: 220, borderRadius: '50%',
-            background: 'radial-gradient(ellipse, rgba(193,104,58,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse, rgba(0,229,160,0.08) 0%, transparent 70%)',
             pointerEvents: 'none', zIndex: 0,
           }} />
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 32, color: '#F0EAE0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 32, color: '#F0F0F0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
             Remi
           </h1>
-          <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 10, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 8, position: 'relative', zIndex: 1 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 8, position: 'relative', zIndex: 1 }}>
             Personal Chef · Coach · Guide
           </p>
         </div>
@@ -1939,31 +1939,31 @@ function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCoo
         {/* Middle: greeting + did-you-cook */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: 380, gap: 20, padding: '32px 0' }}>
           <div className="splash-el splash-el-1" style={{ textAlign: 'center', width: '100%' }}>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 36, color: '#F0EAE0', lineHeight: 1.15, margin: '0 0 14px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 36, color: '#F0F0F0', lineHeight: 1.15, margin: '0 0 14px' }}>
               Welcome back, {profile.name}.
             </h2>
             {greetingLoading ? (
-              <div className="greeting-skeleton" style={{ height: 20, width: '60%', borderRadius: 8, backgroundColor: 'rgba(240,234,224,0.08)', margin: '0 auto' }} />
+              <div className="greeting-skeleton" style={{ height: 20, width: '60%', borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', margin: '0 auto' }} />
             ) : greeting ? (
-              <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 300, fontSize: 18, color: '#7A6B5A', lineHeight: 1.55, margin: 0 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 16, color: '#888888', lineHeight: 1.55, margin: 0 }}>
                 {greeting}
               </p>
             ) : null}
           </div>
 
           {didYouCookSession && !cookedConfirmation && (
-            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1612', border: '1px solid rgba(240,234,224,0.12)', borderRadius: 16, padding: '20px 16px', textAlign: 'left', width: '100%' }}>
-              <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#F0EAE0', fontSize: '0.9375rem', marginBottom: 6 }}>
+            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '20px 16px', textAlign: 'left', width: '100%' }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, color: '#F0F0F0', fontSize: '0.9375rem', marginBottom: 6 }}>
                 Did you cook yesterday?
               </p>
-              <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: '#7A6B5A', fontSize: '0.8125rem', lineHeight: 1.5, marginBottom: 16 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', color: '#888888', fontSize: '0.8125rem', lineHeight: 1.5, marginBottom: 16 }}>
                 You got meal ideas — did any of them land on the plate?
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={onCookedYes} style={{ flex: 1, backgroundColor: '#C1683A', color: '#F0EAE0', borderRadius: 10, padding: '10px 0', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
+                <button onClick={onCookedYes} style={{ flex: 1, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, padding: '10px 0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
                   Yes, cooked it
                 </button>
-                <button onClick={onCookedNo} style={{ flex: 1, backgroundColor: 'transparent', color: '#7A6B5A', borderRadius: 10, padding: '10px 0', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: '0.875rem', border: '1px solid rgba(240,234,224,0.12)', cursor: 'pointer' }}>
+                <button onClick={onCookedNo} style={{ flex: 1, backgroundColor: 'transparent', color: '#888888', borderRadius: 8, padding: '10px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.875rem', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
                   Didn't get to it
                 </button>
               </div>
@@ -1971,19 +1971,25 @@ function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCoo
           )}
 
           {cookedConfirmation && (
-            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1612', border: '1px solid rgba(193,104,58,0.3)', borderRadius: 16, padding: '16px', textAlign: 'center', width: '100%' }}>
-              <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: '#C1683A', fontSize: '0.875rem', fontWeight: 600 }}>{cookedConfirmation}</p>
+            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(0,229,160,0.2)', borderRadius: 8, padding: '16px', textAlign: 'center', width: '100%' }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', color: '#00E5A0', fontSize: '0.875rem', fontWeight: 600 }}>{cookedConfirmation}</p>
             </div>
           )}
         </div>
 
-        {/* Bottom: CTA */}
-        <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380 }}>
+        {/* Bottom: two-pill CTA */}
+        <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380, display: 'flex', gap: 12 }}>
+          <button
+            onClick={onDashboard}
+            style={{ flex: 1, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
+          >
+            My Dashboard
+          </button>
           <button
             onClick={onStart}
-            style={{ width: '100%', backgroundColor: '#C1683A', color: '#F0EAE0', borderRadius: 16, height: 56, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: 16, border: 'none', cursor: 'pointer' }}
+            style={{ flex: 1, backgroundColor: '#1A1A1A', color: '#00E5A0', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: '1px solid #00E5A0', cursor: 'pointer' }}
           >
-            Let's Cook
+            Open the Fridge
           </button>
         </div>
       </div>
@@ -1992,7 +1998,7 @@ function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCoo
 
   // New user
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: '#0F0D0B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
       <style>{WELCOME_STYLES}</style>
 
       {/* Top: wordmark */}
@@ -2001,20 +2007,20 @@ function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCoo
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           width: 300, height: 300, borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(193,104,58,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(0,229,160,0.08) 0%, transparent 70%)',
           pointerEvents: 'none', zIndex: 0,
         }} />
-        <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 48, color: '#F0EAE0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 48, color: '#F0F0F0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
           Remi
         </h1>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12, position: 'relative', zIndex: 1 }}>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12, position: 'relative', zIndex: 1 }}>
           Personal Chef · Coach · Guide
         </p>
       </div>
 
       {/* Middle: tagline */}
       <div className="splash-el splash-el-2" style={{ textAlign: 'center', maxWidth: 320 }}>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 300, fontSize: 16, color: '#7A6B5A', lineHeight: 1.65, margin: 0 }}>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, fontSize: 16, color: '#888888', lineHeight: 1.65, margin: 0 }}>
           Eat like a chef. Train like an athlete. Live like both.
         </p>
       </div>
@@ -2023,7 +2029,7 @@ function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCoo
       <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380 }}>
         <button
           onClick={onStart}
-          style={{ width: '100%', backgroundColor: '#C1683A', color: '#F0EAE0', borderRadius: 16, height: 56, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, fontSize: 16, border: 'none', cursor: 'pointer' }}
+          style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
         >
           Get Started
         </button>
@@ -3997,6 +4003,7 @@ export default function App() {
     return (
       <WelcomeScreen
         onStart={() => profile ? setView('chat') : setView('onboarding')}
+        onDashboard={() => setView('dashboard')}
         profile={profile}
         didYouCookSession={didYouCookSession}
         onCookedYes={handleCookedYes}
