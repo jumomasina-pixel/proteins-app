@@ -4,13 +4,13 @@
 
 @layer base {
   html, body, #root {
-    background-color: #0A1A12;
-    color: #c8e0cc;
+    background-color: #0F0D0B;
+    color: #F0EAE0;
     font-size: 16px;
     line-height: 1.6;
   }
   body {
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
