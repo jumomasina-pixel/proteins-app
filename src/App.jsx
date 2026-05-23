@@ -11,7 +11,7 @@ posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
 // Any existing storage that doesn't carry a matching version will be wiped and
 // the user will restart from the welcome screen as a new user.
 
-const PROFILE_VERSION = 6
+const PROFILE_VERSION = 7
 
 const LS_KEYS = ['remi_profile', 'lhc_profile', 'lhc_saved_recipes', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
 
@@ -39,7 +39,7 @@ function mapProfileForApi(p) {
   const days = Number(p.daysPerWeek) || 0
   const freq = days === 0 ? 'rarely' : days <= 2 ? '1-2x' : days <= 4 ? '3-4x' : '5-6x'
   const typeMap = { weights: 'Weights', boxing: 'Boxing & Martial Arts', cardio: 'Cardio', sport: 'Team Sports' }
-  const trainingTypes = (p.training || []).filter(t => t !== 'none').map(t => typeMap[t] || t)
+  const trainingTypes = (p.trainingTypes || p.training || []).filter(t => t !== 'none' && t !== 'None').map(t => typeMap[t] || t)
   const goalAmount = (p.currentWeight && p.targetWeight && p.goal === 'cut')
     ? String(Math.max(0, Number(p.currentWeight) - Number(p.targetWeight)))
     : ''
@@ -51,8 +51,14 @@ function mapProfileForApi(p) {
     goalAmount,
     trainingFreq: freq,
     trainingTypes: trainingTypes.length ? trainingTypes : ['None'],
+    primarySport: p.primarySport || '',
     avoidFoods: p.avoidFoods || '',
     kitchenLevel: 'home cook',
+    sportGoal: p.sportGoal || '',
+    weightCutMode: !!p.weightCutMode,
+    fightDate: p.fightDate || '',
+    targetWeight: p.targetWeight || null,
+    trainingPhilosophy: p.trainingPhilosophy || null,
   }
 }
 
@@ -369,6 +375,93 @@ const REMI_TRAINING_OPTIONS = [
   { value: 'cardio',  label: 'Cardio' },
   { value: 'sport',   label: 'Sport' },
   { value: 'none',    label: "None / I don't train" },
+]
+
+const REMI_TRAINING_TYPES_V5 = [
+  'Boxing', 'Muay Thai', 'BJJ / Grappling', 'MMA', 'Wrestling',
+  'Weightlifting', 'Powerlifting', 'CrossFit', 'HIIT', 'Running',
+  'Cycling', 'Swimming', 'Rowing', 'Pilates', 'Yoga',
+  'Football / AFL', 'Basketball', 'Tennis', 'Golf', 'Other',
+]
+
+const COMBAT_SPORTS = ['Boxing', 'Muay Thai', 'BJJ / Grappling', 'MMA', 'Wrestling']
+
+const SPORT_GOAL_OPTIONS = [
+  "I have a fight / competition coming up",
+  "I'm training for an event (race, tournament, game)",
+  "I want to hit a performance milestone",
+  "Just building the habit",
+  "No specific goal right now",
+]
+
+const TRAINING_PHILOSOPHY_MAP = {
+  'Boxing': {
+    q: "Which school of boxing do you most identify with?",
+    opts: ['Soviet / Eastern European system', 'Cuban system', 'Mexican style', 'American freestyle', 'Philly Shell / Defence-first', 'I just follow what works'],
+  },
+  'Muay Thai': {
+    q: "What's your Muay Thai influence?",
+    opts: ['Traditional Thai style', 'Dutch kickboxing hybrid', 'K-1 / sport Muay Thai', 'Pure Saenchai-style movement', "I'm still figuring it out"],
+  },
+  'BJJ / Grappling': {
+    q: "What's your grappling philosophy?",
+    opts: ['Gracie / self-defence roots', 'Sport BJJ / competition', 'Leg lock / modern meta', 'Wrestling-heavy base', 'I just want to survive on the mat'],
+  },
+  'MMA': {
+    q: "Who shapes your MMA approach?",
+    opts: ['Strikers who wrestle (GSP / Wonderboy style)', 'Grapplers who strike (Khabib / Usman style)', 'Pure pressure / volume', 'Counterpunching / movement', 'Still building my base'],
+  },
+  'Running': {
+    q: "What kind of runner are you?",
+    opts: ['Endurance / ultra distance', 'Road racing (5K–marathon)', 'Trail running', 'Speed / track work', 'Just building the base'],
+  },
+  'Swimming': {
+    q: "What's your swimming focus?",
+    opts: ['Open water / distance', 'Pool competition', 'Squad / club training', 'Fitness / cross-training', 'Just getting laps in'],
+  },
+  'CrossFit': {
+    q: "What's your CrossFit motivation?",
+    opts: ['Competition / Regionals', 'General fitness', 'Olympic lifting focus', 'Endurance WODs', 'Community and consistency'],
+  },
+  'Weightlifting': {
+    q: "What's your lifting philosophy?",
+    opts: ['Conjugate / Westside method', '5/3/1 or linear progression', 'Olympic / snatch and clean', 'Hypertrophy / bodybuilding hybrid', 'Intuitive / auto-regulation'],
+  },
+  'Powerlifting': {
+    q: "What's your lifting philosophy?",
+    opts: ['Conjugate / Westside method', '5/3/1 or linear progression', 'Olympic / snatch and clean', 'Hypertrophy / bodybuilding hybrid', 'Intuitive / auto-regulation'],
+  },
+  'Pilates': {
+    q: "What draws you to Pilates?",
+    opts: ['Injury rehabilitation', 'Strength and control', 'Flexibility and mobility', 'Complementing another sport', 'Mind-body connection'],
+  },
+  'Football / AFL': {
+    q: "What's your football focus?",
+    opts: ['Explosive power and speed', 'Endurance and engine', 'Skill and game sense', 'Strength and contested work', 'Team fitness / social footy'],
+  },
+  'Basketball': {
+    q: "What's your basketball focus?",
+    opts: ['Explosiveness and vertical', 'Conditioning and endurance', 'Skill development', 'Strength and physicality', 'Pickup / recreational'],
+  },
+  'Tennis': {
+    q: "What's your tennis approach?",
+    opts: ['Baseline power', 'Serve and volley', 'Consistency and defence', 'Athletic conditioning', 'Social / recreational'],
+  },
+}
+
+const INGREDIENT_SUGGESTIONS = [
+  'Chicken breast', 'Chicken thigh', 'Salmon', 'Tuna', 'Beef mince', 'Steak', 'Pork loin', 'Lamb',
+  'Eggs', 'Tofu', 'Tempeh', 'Chickpeas', 'Lentils', 'Black beans', 'Kidney beans', 'Shrimp / Prawns',
+  'Cod', 'Sardines', 'Turkey', 'Bacon', 'Ham', 'Greek yoghurt', 'Cottage cheese', 'Cheddar',
+  'Mozzarella', 'Feta', 'Milk', 'Butter', 'Cream', 'Rice', 'Pasta', 'Quinoa', 'Oats', 'Bread',
+  'Tortillas', 'Potato', 'Sweet potato', 'Noodles', 'Couscous', 'Garlic', 'Onion', 'Tomato',
+  'Capsicum', 'Spinach', 'Broccoli', 'Zucchini', 'Mushroom', 'Carrot', 'Corn', 'Avocado',
+  'Cucumber', 'Kale', 'Cabbage', 'Bok choy', 'Asparagus', 'Green beans', 'Peas', 'Celery',
+  'Leek', 'Pumpkin', 'Eggplant', 'Olive oil', 'Coconut oil', 'Soy sauce', 'Fish sauce',
+  'Oyster sauce', 'Hoisin sauce', 'Hot sauce', 'Sriracha', 'Tomato paste', 'Diced tomatoes',
+  'Coconut milk', 'Stock / Broth', 'Lemon', 'Lime', 'Chilli', 'Ginger', 'Cumin', 'Paprika',
+  'Turmeric', 'Oregano', 'Basil', 'Coriander', 'Parsley', 'Honey', 'Maple syrup',
+  'Dijon mustard', 'Mayonnaise', 'Peanut butter', 'Almonds', 'Cashews', 'Walnuts',
 ]
 
 function classifyIngredient(name) {
@@ -1714,7 +1807,9 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
 const WELCOME_STYLES = ``
 
-function WelcomeScreen({ onStart }) {
+function WelcomeScreen({ onStart, profile, didYouCookSession, onCookedYes, onCookedNo, cookedConfirmation }) {
+  const isReturning = !!profile?.name
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#0D0D0D' }}>
       <style>{WELCOME_STYLES}</style>
@@ -1722,31 +1817,78 @@ function WelcomeScreen({ onStart }) {
         <div className="flex flex-col items-center gap-5">
           <RemiLogo size={56} />
           <div>
-            <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F0F0F0', letterSpacing: '0.02em' }}>Remi</h1>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', color: '#888888', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal Chef</p>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', fontStyle: 'italic', color: '#00C080', marginTop: 6, textAlign: 'center' }}>Eat like a chef. Train like an athlete. Live like both.</p>
+            {isReturning ? (
+              <>
+                <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F0F0F0', letterSpacing: '0.02em' }}>
+                  Welcome back, {profile.name}.
+                </h1>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', fontStyle: 'italic', color: '#00C080', marginTop: 6, textAlign: 'center' }}>Ready when you are.</p>
+              </>
+            ) : (
+              <>
+                <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: '2rem', fontWeight: 500, color: '#F0F0F0', letterSpacing: '0.02em' }}>Remi</h1>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', color: '#888888', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>Personal Chef</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', fontStyle: 'italic', color: '#00C080', marginTop: 6, textAlign: 'center' }}>Eat like a chef. Train like an athlete. Live like both.</p>
+              </>
+            )}
           </div>
         </div>
-        <div className="space-y-3 text-left">
-          {[
-            'Built around what you have',
-            'Macros adjusted to your training',
-            'Chef quality. Nutritionist approved.',
-          ].map(text => (
-            <div key={text} className="flex items-center gap-3">
-              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0, display: 'inline-block' }} />
-              <span style={{ fontSize: '0.875rem', color: '#F0F0F0' }}>{text}</span>
+
+        {/* Did You Cook? card — shown for sessions 12–48h old */}
+        {didYouCookSession && !cookedConfirmation && (
+          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 16, padding: '20px 16px', textAlign: 'left' }}>
+            <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0F0F0', fontSize: '0.9375rem', marginBottom: 6 }}>
+              Did you cook yesterday?
+            </p>
+            <p style={{ fontFamily: 'Inter, sans-serif', color: '#888', fontSize: '0.8125rem', lineHeight: 1.5, marginBottom: 16 }}>
+              You got meal ideas — did any of them land on the plate?
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={onCookedYes}
+                style={{ flex: 1, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 10, padding: '10px 0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}
+              >
+                Yes, cooked it
+              </button>
+              <button
+                onClick={onCookedNo}
+                style={{ flex: 1, backgroundColor: 'transparent', color: '#666', borderRadius: 10, padding: '10px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.875rem', border: '1px solid #2A2A2A', cursor: 'pointer' }}
+              >
+                Didn't get to it
+              </button>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {cookedConfirmation && (
+          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid #00E5A0', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', color: '#00E5A0', fontSize: '0.875rem', fontWeight: 600 }}>{cookedConfirmation}</p>
+          </div>
+        )}
+
+        {!isReturning && (
+          <div className="space-y-3 text-left">
+            {[
+              'Built around what you have',
+              'Macros adjusted to your training',
+              'Chef quality. Nutritionist approved.',
+            ].map(text => (
+              <div key={text} className="flex items-center gap-3">
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0, display: 'inline-block' }} />
+                <span style={{ fontSize: '0.875rem', color: '#F0F0F0' }}>{text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-3">
           <button
             onClick={onStart}
             style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 14, padding: '14px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.9375rem' }}
           >
-            Get started →
+            {isReturning ? "Let's cook →" : 'Get started →'}
           </button>
-          <p style={{ fontSize: '0.7rem', color: '#555555', letterSpacing: '0.04em' }}>Free · No account needed</p>
+          {!isReturning && <p style={{ fontSize: '0.7rem', color: '#555555', letterSpacing: '0.04em' }}>Free · No account needed</p>}
         </div>
       </div>
     </div>
@@ -1876,6 +2018,102 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Remi's Corner ─────────────────────────────────────────────────────────────
+
+function RemiCorner({ profile }) {
+  const [tab, setTab] = useState('fuel')
+  const [tip, setTip] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const cacheKey = `lhc_corner_tips_${new Date().toISOString().slice(0, 10)}`
+
+  async function fetchTip(activeTab) {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/remi-corner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tab: activeTab, profile: mapProfileForApi(profile) }),
+      })
+      const data = await res.json()
+      if (data.tip) {
+        setTip(data.tip)
+        try {
+          const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}')
+          cached[activeTab] = data.tip
+          localStorage.setItem(cacheKey, JSON.stringify(cached))
+        } catch {}
+      } else {
+        setError('Could not load tip.')
+      }
+    } catch {
+      setError('Could not load tip.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}')
+      if (cached[tab]) { setTip(cached[tab]); return }
+    } catch {}
+    fetchTip(tab)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
+
+  const sectionCard = { backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }
+
+  return (
+    <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
+      <div className="flex items-center justify-between">
+        <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#888888' }}>Remi's Corner</p>
+        <button
+          onClick={() => { setTip(null); fetchTip(tab) }}
+          disabled={loading}
+          className="text-[11px] font-medium transition-opacity active:opacity-70"
+          style={{ color: '#00E5A0', opacity: loading ? 0.4 : 1 }}
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* Tab toggle */}
+      <div className="flex gap-2">
+        {[{ id: 'fuel', label: '🥗 Fuel' }, { id: 'perform', label: '💪 Perform' }].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: tab === t.id ? '#00E5A0' : '#252525',
+              color: tab === t.id ? '#0D0D0D' : '#888888',
+              border: tab === t.id ? 'none' : '1px solid #2A2A2A',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="space-y-2 animate-pulse">
+          {[100, 85, 60].map(w => (
+            <div key={w} className="h-3 rounded-full" style={{ backgroundColor: '#2A2A2A', width: `${w}%` }} />
+          ))}
+        </div>
+      ) : error ? (
+        <p className="text-xs" style={{ color: '#666' }}>{error}</p>
+      ) : tip ? (
+        <p className="text-sm leading-relaxed" style={{ color: '#C8C8C8', fontFamily: 'Inter, sans-serif' }}>{tip}</p>
+      ) : null}
     </div>
   )
 }
@@ -2012,6 +2250,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             </div>
           ))}
         </div>
+
+        {/* ── Remi's Corner ── */}
+        <RemiCorner profile={profile} />
 
         {/* ── Money saved + Weekly progress ring ── */}
         {(() => {
@@ -2328,56 +2569,75 @@ const ONBOARDING_STYLES = `
 // ── Onboarding (3-step) ──────────────────────────────────────────────────────
 
 function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, onPTClick }) {
-  const hasProfile = initialProfile?.goal && Array.isArray(initialProfile?.training)
-  const [step, setStep] = useState(hasProfile ? 3 : 1)
+  const hasProfile = initialProfile?.goal && (Array.isArray(initialProfile?.trainingTypes) || Array.isArray(initialProfile?.training))
+  const [step, setStep] = useState(hasProfile ? 5 : 1)
   const [goal, setGoal] = useState(initialProfile?.goal || 'cut')
   const [currentWeight, setCurrentWeight] = useState(String(initialProfile?.currentWeight || ''))
   const [targetWeight, setTargetWeight] = useState(String(initialProfile?.targetWeight || ''))
-  const [training, setTraining] = useState(initialProfile?.training || [])
+  const [trainingTypes, setTrainingTypes] = useState(initialProfile?.trainingTypes || [])
+  const [primarySport, setPrimarySport] = useState(initialProfile?.primarySport || '')
   const [daysPerWeek, setDaysPerWeek] = useState(String(initialProfile?.daysPerWeek || ''))
   const [trainingToday, setTrainingToday] = useState(
     initialProfile?.trainingToday !== undefined ? initialProfile.trainingToday : true
   )
-  const [ingredients, setIngredients] = useState([])
-  const [ingredientInput, setIngredientInput] = useState('')
+  const [sportGoal, setSportGoal] = useState(initialProfile?.sportGoal || '')
+  const [fightDate, setFightDate] = useState(initialProfile?.fightDate || '')
+  const [fightWeight, setFightWeight] = useState(
+    initialProfile?.weightCutMode && initialProfile?.targetWeight
+      ? String(initialProfile.targetWeight) : ''
+  )
+  const [trainingPhilosophy, setTrainingPhilosophy] = useState(
+    initialProfile?.trainingPhilosophy !== undefined ? (initialProfile.trainingPhilosophy || '') : ''
+  )
+
+  const TOTAL_STEPS = 5
 
   function canProceed() {
     if (step === 1) return currentWeight.trim().length > 0
-    if (step === 2) return daysPerWeek.trim().length > 0 || training.includes('none')
-    if (step === 3) return ingredients.length > 0
+    if (step === 2) return trainingTypes.length > 0
+    if (step === 3) return primarySport.length > 0
+    if (step === 4) return sportGoal.length > 0
+    if (step === 5) return true
     return true
   }
 
-  function addIngredient(raw) {
-    const trimmed = raw.trim().replace(/,$/, '').trim()
-    if (!trimmed) return
-    const type = classifyIngredient(trimmed)
-    setIngredients(prev => [...prev, { name: trimmed, type }])
-    setIngredientInput('')
-  }
-
-  function handleIngredientKeyDown(e) {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault()
-      addIngredient(ingredientInput)
+  function goNext() {
+    if (!canProceed()) return
+    if (step === 2 && trainingTypes.length === 1) {
+      setPrimarySport(trainingTypes[0])
+      setStep(4)
+    } else {
+      setStep(s => s + 1)
     }
   }
 
-  function buildFridgeMessage() {
-    return "I want meal ideas. In the fridge I've got: " + ingredients.map(i => i.name).join(', ') + '.'
+  function goBack() {
+    if (step === 4 && trainingTypes.length === 1) setStep(2)
+    else if (step > 1 && !hasProfile) setStep(s => s - 1)
+    else onBack()
   }
 
-  function handleCook() {
-    if (!canProceed() || isLocked) return
+  function handleCook(philosophyOverride) {
+    if (isLocked) return
+    const philosophy = philosophyOverride !== undefined ? philosophyOverride : trainingPhilosophy
+    const isCombatWeightCut = sportGoal === "I have a fight / competition coming up" &&
+      COMBAT_SPORTS.includes(primarySport) &&
+      fightDate.trim() !== '' && fightWeight.trim() !== ''
     const remiProfile = {
       goal,
       currentWeight: Number(currentWeight) || undefined,
-      targetWeight: targetWeight ? Number(targetWeight) : undefined,
-      training,
+      targetWeight: isCombatWeightCut ? Number(fightWeight) : (targetWeight ? Number(targetWeight) : undefined),
+      trainingTypes,
+      primarySport,
+      training: trainingTypes,
       daysPerWeek: Number(daysPerWeek) || 0,
       trainingToday,
+      sportGoal,
+      fightDate: isCombatWeightCut ? fightDate : '',
+      weightCutMode: isCombatWeightCut,
+      trainingPhilosophy: philosophy || null,
     }
-    onComplete(remiProfile, buildFridgeMessage())
+    onComplete(remiProfile, '')
   }
 
   const cardStyle = (selected) => ({
@@ -2397,6 +2657,25 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
     cursor: 'pointer',
     transition: 'all 0.15s ease',
     textAlign: 'left',
+  })
+
+  const pillStyle = (selected) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '9px 8px',
+    borderRadius: 24,
+    border: `1.5px solid ${selected ? '#00E5A0' : '#2A2A2A'}`,
+    backgroundColor: selected ? 'rgba(0,229,160,0.12)' : '#141414',
+    color: selected ? '#00E5A0' : '#888888',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '0.8125rem',
+    fontWeight: selected ? 600 : 400,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    textAlign: 'center',
+    lineHeight: 1.3,
+    width: '100%',
   })
 
   const inputStyle = {
@@ -2442,7 +2721,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1A1A', zIndex: 100 }}>
         <div style={{
           height: '100%',
-          width: `${(step / 3) * 100}%`,
+          width: `${(step / TOTAL_STEPS) * 100}%`,
           backgroundColor: '#00E5A0',
           transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           borderRadius: '0 2px 2px 0',
@@ -2455,7 +2734,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
         {/* Back + step counter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 44 }}>
           <button
-            onClick={step > 1 && !hasProfile ? () => setStep(s => s - 1) : onBack}
+            onClick={goBack}
             style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
@@ -2464,7 +2743,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           </button>
           {!hasProfile && (
             <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.7rem', color: '#444', letterSpacing: '0.12em' }}>
-              {step} / 3
+              {step} / {TOTAL_STEPS}
             </span>
           )}
         </div>
@@ -2509,25 +2788,23 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
             </>
           )}
 
-          {/* ── Step 2: Training ── */}
+          {/* ── Step 2: Training types ── */}
           {step === 2 && (
             <>
               <div>
                 <h2 style={headingStyle}>How do you train?</h2>
-                <p style={subStyle}>Remi adjusts macros on training vs rest days.</p>
+                <p style={subStyle}>Select everything that applies.</p>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {REMI_TRAINING_OPTIONS.map(o => {
-                  const isNone = o.value === 'none'
-                  const sel = isNone ? training.includes('none') : training.includes(o.value)
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {REMI_TRAINING_TYPES_V5.map(type => {
+                  const sel = trainingTypes.includes(type)
                   return (
-                    <button key={o.value} onClick={() => {
-                      if (isNone) { setTraining(['none']); return }
-                      const filtered = training.filter(t => t !== 'none')
-                      setTraining(sel ? filtered.filter(t => t !== o.value) : [...filtered, o.value])
-                    }} style={cardStyle(sel)}>
-                      <span>{o.label}</span>
-                      {sel && checkIcon}
+                    <button
+                      key={type}
+                      onClick={() => setTrainingTypes(prev => sel ? prev.filter(t => t !== type) : [...prev, type])}
+                      style={pillStyle(sel)}
+                    >
+                      {type}
                     </button>
                   )
                 })}
@@ -2536,7 +2813,6 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                 <label style={labelStyle}>Days per week</label>
                 <input type="number" min={0} max={7} value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="4" style={inputStyle} />
               </div>
-              {/* Training today — styled as a card */}
               <button
                 onClick={() => {
                   const next = !trainingToday
@@ -2561,48 +2837,102 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
             </>
           )}
 
-          {/* ── Step 3: Fridge ── */}
+          {/* ── Step 3: Primary sport ── */}
           {step === 3 && (
             <>
               <div>
-                <h2 style={headingStyle}>What's in the fridge?</h2>
-                <p style={subStyle}>Tell Remi what you've got. He'll handle the rest.</p>
+                <h2 style={headingStyle}>What's your main training focus?</h2>
+                <p style={subStyle}>Pick one — Remi will build around this.</p>
               </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {trainingTypes.map(type => {
+                  const sel = primarySport === type
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setPrimarySport(type)}
+                      style={pillStyle(sel)}
+                    >
+                      {type}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── Step 4: Sport goals ── */}
+          {step === 4 && (
+            <>
               <div>
-                <input
-                  type="text" value={ingredientInput}
-                  onChange={e => setIngredientInput(e.target.value)}
-                  onKeyDown={handleIngredientKeyDown}
-                  placeholder="chicken, rice, broccoli... (Enter to add)"
-                  style={inputStyle}
-                />
-                <p style={{ fontSize: '0.75rem', color: '#444', marginTop: 8, fontFamily: 'Inter, sans-serif' }}>
-                  Press Enter or comma to add each ingredient
-                </p>
+                <h2 style={headingStyle}>Do you have a specific goal coming up?</h2>
               </div>
-              {ingredients.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {ingredients.map((ing, i) => {
-                    const c = CLASSIFY_COLORS[ing.type]
-                    return (
-                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, backgroundColor: '#141414', border: `1.5px solid ${c.border}`, fontSize: '0.8125rem', color: '#F0F0F0', fontFamily: 'Inter, sans-serif' }}>
-                        <span>{ing.name}</span>
-                        <span style={{ fontSize: '0.6rem', color: c.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{ing.type}</span>
-                        <button onClick={() => setIngredients(prev => prev.filter((_, j) => j !== i))} style={{ color: '#555555', cursor: 'pointer', background: 'none', border: 'none', padding: 0, lineHeight: 1, fontSize: '1.1rem' }}>×</button>
-                      </span>
-                    )
-                  })}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {SPORT_GOAL_OPTIONS.map(option => (
+                  <button key={option} onClick={() => setSportGoal(option)} style={cardStyle(sportGoal === option)}>
+                    <span>{option}</span>
+                    {sportGoal === option && checkIcon}
+                  </button>
+                ))}
+              </div>
+
+              {sportGoal === "I have a fight / competition coming up" && COMBAT_SPORTS.includes(primarySport) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 20px', borderRadius: 14, border: '1px solid #2A2A2A', backgroundColor: '#0D0D0D' }}>
+                  <p style={{ fontSize: '0.8125rem', color: '#666', fontFamily: 'Inter, sans-serif' }}>Tell Remi about the cut.</p>
+                  <div>
+                    <label style={labelStyle}>Fight / competition date</label>
+                    <input type="date" value={fightDate} onChange={e => setFightDate(e.target.value)}
+                      style={{ ...inputStyle, colorScheme: 'dark' }} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Target weight (kg)</label>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <input type="number" value={fightWeight} onChange={e => setFightWeight(e.target.value)}
+                        placeholder="70" style={inputStyle} />
+                      <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>kg</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </>
           )}
+
+          {/* ── Step 5: Training philosophy ── */}
+          {step === 5 && (() => {
+            const phil = TRAINING_PHILOSOPHY_MAP[primarySport]
+            return (
+              <>
+                <div>
+                  <h2 style={headingStyle}>{phil ? phil.q : "Is there an athlete or coach who shapes how you train?"}</h2>
+                  {!phil && <p style={subStyle}>Optional — skip if you're not sure yet.</p>}
+                </div>
+                {phil ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {phil.opts.map(opt => (
+                      <button key={opt} onClick={() => setTrainingPhilosophy(opt)} style={pillStyle(trainingPhilosophy === opt)}>
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={trainingPhilosophy}
+                    onChange={e => setTrainingPhilosophy(e.target.value)}
+                    placeholder="e.g. a specific coach, athlete, or training philosophy"
+                    style={inputStyle}
+                  />
+                )}
+              </>
+            )
+          })()}
         </div>
 
         {/* CTA */}
         <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {step < 3 ? (
+          {step < TOTAL_STEPS ? (
             <button
-              onClick={() => { if (canProceed()) setStep(s => s + 1) }}
+              onClick={goNext}
               disabled={!canProceed()}
               style={{
                 width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#141414',
@@ -2628,20 +2958,30 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
               </p>
             </>
           ) : (
-            <button
-              onClick={handleCook}
-              disabled={!canProceed()}
-              style={{
-                width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#141414',
-                color: canProceed() ? '#0D0D0D' : '#333',
-                borderRadius: 14, padding: '16px 0',
-                fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem',
-                border: canProceed() ? 'none' : '1px solid #2A2A2A',
-                cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
-              }}
-            >
-              Let him cook
-            </button>
+            <>
+              <button
+                onClick={() => handleCook()}
+                disabled={!canProceed()}
+                style={{
+                  width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#141414',
+                  color: canProceed() ? '#0D0D0D' : '#333',
+                  borderRadius: 14, padding: '16px 0',
+                  fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem',
+                  border: canProceed() ? 'none' : '1px solid #2A2A2A',
+                  cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
+                }}
+              >
+                Let him cook
+              </button>
+              {step === TOTAL_STEPS && (
+                <button
+                  onClick={() => handleCook(null)}
+                  style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.8rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer', textAlign: 'center', padding: '4px 0', textDecoration: 'underline', width: '100%' }}
+                >
+                  Skip →
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -3099,9 +3439,7 @@ export default function App() {
   const [stats,          setStats]          = useState(() => {
     try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
-  const [view,           setView]           = useState(
-    () => loadProfileOrEvict() !== null ? 'chat' : 'welcome'
-  )
+  const [view,           setView]           = useState('welcome')
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
   const [viewingDishImg, setViewingDishImg] = useState(null)
@@ -3121,7 +3459,33 @@ export default function App() {
     () => new URLSearchParams(window.location.search).get('pt') === 'founder'
   )
 
-  const [inputFocused, setInputFocused] = useState(false)
+  const [inputFocused,      setInputFocused]      = useState(false)
+  const [cookedConfirmation, setCookedConfirmation] = useState(null)
+  const [suggestions,        setSuggestions]        = useState([])
+
+  // Did You Cook — find the most recent session that is 12–48h old
+  const didYouCookSession = useMemo(() => {
+    const now = Date.now()
+    return sessions.find(s => {
+      const age = now - new Date(s.date).getTime()
+      return age >= 12 * 3600 * 1000 && age <= 48 * 3600 * 1000
+    }) ?? null
+  }, [sessions])
+
+  function handleCookedYes() {
+    // Update streak
+    const today = new Date().toISOString().slice(0, 10)
+    const last  = streak.lastDate
+    const isConsecutive = last === new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const next  = { count: isConsecutive ? streak.count + 1 : 1, lastDate: today }
+    setStreak(next)
+    localStorage.setItem('lhc_streak', JSON.stringify(next))
+    setCookedConfirmation('Streak updated. Keep it going.')
+  }
+
+  function handleCookedNo() {
+    setCookedConfirmation("No worries — what are we making today?")
+  }
 
   const scrollRef      = useRef(null)
   const abortRef       = useRef(null)
@@ -3138,6 +3502,18 @@ export default function App() {
     if (!input && inputRef.current) {
       inputRef.current.style.height = 'auto'
     }
+  }, [input])
+
+  // Ingredient autocomplete suggestions
+  useEffect(() => {
+    if (input.length < 2) { setSuggestions([]); return }
+    const q = input.toLowerCase()
+    const lastWord = q.split(/[,\s]+/).filter(Boolean).pop() || ''
+    if (lastWord.length < 2) { setSuggestions([]); return }
+    const matches = INGREDIENT_SUGGESTIONS
+      .filter(s => s.toLowerCase().includes(lastWord) && !input.toLowerCase().includes(s.toLowerCase()))
+      .slice(0, 8)
+    setSuggestions(matches)
   }, [input])
 
   const displayMessages = messages.filter(m => !(m.seed && m.role === 'user'))
@@ -3451,7 +3827,16 @@ export default function App() {
 
   // ── View: Welcome ────────────────────────────────────────────────────────────
   if (view === 'welcome') {
-    return <WelcomeScreen onStart={() => setView('onboarding')} />
+    return (
+      <WelcomeScreen
+        onStart={() => profile ? setView('chat') : setView('onboarding')}
+        profile={profile}
+        didYouCookSession={didYouCookSession}
+        onCookedYes={handleCookedYes}
+        onCookedNo={handleCookedNo}
+        cookedConfirmation={cookedConfirmation}
+      />
+    )
   }
 
   // ── View: Onboarding ─────────────────────────────────────────────────────────
@@ -3475,8 +3860,12 @@ export default function App() {
               days_per_week: remiProfile.daysPerWeek,
             })
             posthog.capture('onboarding_completed', { goal: remiProfile.goal, training: remiProfile.training })
-            setPendingFridgeMsg(fridgeMessage || '')
-            setShowCookModal(true)
+            if (fridgeMessage) {
+              setPendingFridgeMsg(fridgeMessage)
+              setShowCookModal(true)
+            } else {
+              setView('chat')
+            }
           }}
         />
         {showCookModal && (
@@ -3862,8 +4251,34 @@ export default function App() {
             </div>
           )}
 
+          {/* Ingredient autocomplete chips */}
+          {suggestions.length > 0 && (
+            <div
+              className="shrink-0 px-4 py-2 flex gap-2 overflow-x-auto"
+              style={{ borderTop: '1px solid #2A2A2A', backgroundColor: '#0D0D0D', scrollbarWidth: 'none' }}
+            >
+              {suggestions.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    const trimmed = input.trimEnd()
+                    const separator = trimmed.endsWith(',') ? ' ' : trimmed ? ', ' : ''
+                    setInput(trimmed + separator + s)
+                    setSuggestions([])
+                    setTimeout(() => inputRef.current?.focus(), 0)
+                  }}
+                  className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap active:opacity-70 transition-opacity"
+                  style={{ backgroundColor: '#1A1A1A', color: '#00E5A0', border: '1px solid #00C080' }}
+                >
+                  + {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Input bar */}
-          <div className="shrink-0 px-4 pt-2.5 pb-3 relative z-10" style={{ borderTop: '1px solid #2A2A2A', backgroundColor: '#0D0D0D', touchAction: 'manipulation' }}>
+          <div className="shrink-0 px-4 pt-2.5 pb-3 relative z-10" style={{ borderTop: suggestions.length > 0 ? 'none' : '1px solid #2A2A2A', backgroundColor: '#0D0D0D', touchAction: 'manipulation' }}>
             <form onSubmit={handleSubmit} className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
