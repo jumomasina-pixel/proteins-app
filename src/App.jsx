@@ -744,7 +744,7 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors duration-200"
             style={{ color: active ? '#00E5A0' : '#888888' }}
             aria-label={item.label}
           >
@@ -810,10 +810,11 @@ function MacroRow({ macros }) {
   return (
     <div className="grid grid-cols-4 gap-2">
       {MACROS.map(({ key, label, unit }) => (
-        <div key={key} className="flex flex-col items-center bg-sage-pale rounded-xl px-2 py-3 border border-sage/25">
-          <span className="text-lg sm:text-xl font-bold leading-none tabular-nums text-sage-dark">{macros[key]}</span>
-          <span className="text-[9px] text-sage mt-0.5 uppercase tracking-wide">{unit}</span>
-          <span className="text-[11px] text-charcoal-light mt-0.5">{label}</span>
+        <div key={key} className="flex flex-col items-center rounded-xl px-2 py-3"
+          style={{ backgroundColor: 'rgba(0,229,160,0.07)', border: '1px solid rgba(0,229,160,0.18)' }}>
+          <span className="text-lg sm:text-xl font-bold leading-none tabular-nums" style={{ color: '#00E5A0' }}>{macros[key]}</span>
+          <span className="text-[9px] mt-0.5 uppercase tracking-wide" style={{ color: '#00C080' }}>{unit}</span>
+          <span className="text-[11px] mt-0.5" style={{ color: '#888888' }}>{label}</span>
         </div>
       ))}
     </div>
@@ -939,7 +940,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   const somethingElseBtn = (
     <button
       onClick={handleSomethingElse}
-      className="shrink-0 py-2 px-4 rounded-xl text-sm font-medium transition-colors"
+      className="shrink-0 py-2 px-4 rounded-xl text-sm font-medium transition-colors duration-200"
       style={{ color: '#888888', backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}
     >
       Something else →
@@ -976,7 +977,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
     return (
       <div className="space-y-2.5">
         {/* Proteins row */}
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Proteins</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>Proteins</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {PROTEIN_CARDS.map(card => (
             <button
@@ -992,7 +993,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
         </div>
 
         {/* Pantry / veggie row */}
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Also have:</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>Also have:</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {PANTRY_CARDS.map(card => (
             <button
@@ -1029,7 +1030,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   if (type === 'cuisine') {
     return (
       <div className="space-y-2.5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">Pick a style</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>Pick a style</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {CUISINE_CARDS.map(card => (
             <button
@@ -1051,7 +1052,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   if (type === 'time') {
     return (
       <div className="space-y-2.5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-charcoal-muted">How long have you got?</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>How long have you got?</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {TIME_CARDS.map(card => (
             <button
@@ -1395,7 +1396,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
   const chefAccent = '#C9A84C'
 
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy pb-44 sm:pb-28">
+    <div className="animate-fade-in min-h-screen pb-44 sm:pb-28" style={{ backgroundColor: '#0D0D0D' }}>
       <PaperTexture />
 
       {/* Toast — tappable when action exists */}
@@ -1409,8 +1410,8 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       >
         <button
           onClick={toast.action ?? undefined}
-          className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg flex items-center gap-1.5 whitespace-nowrap"
-          style={{ backgroundColor: '#F0F0F0', cursor: toast.action ? 'pointer' : 'default' }}
+          className="px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg flex items-center gap-1.5 whitespace-nowrap"
+          style={{ backgroundColor: '#1A1A1A', color: '#F0F0F0', border: '1px solid #2A2A2A', cursor: toast.action ? 'pointer' : 'default' }}
         >
           {toast.message}
           {toast.action && <span className="opacity-60 text-xs">→</span>}
@@ -1424,14 +1425,13 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.05) 75%, transparent 100%)' }} />
           <div className="absolute top-0 left-0 right-0 px-4 pt-6 max-w-2xl mx-auto">
-            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors drop-shadow">
+            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors duration-200 drop-shadow">
               {BACK_ARROW} Back to dishes
             </button>
           </div>
           <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 max-w-2xl mx-auto">
             {chef.cuisine && <p className="text-xs font-medium text-white/65 uppercase tracking-widest mb-2">{chef.cuisine}</p>}
-            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white leading-tight"
-              style={{ textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.875rem, 5vw, 3rem)', color: '#fff', lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
               {dish.name}
             </h1>
           </div>
@@ -1439,7 +1439,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       ) : (
         <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#00E5A0' }}>
           <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
-            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors">
+            <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors duration-200">
               {BACK_ARROW} Back to dishes
             </button>
           </div>
@@ -1450,7 +1450,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       <div className="max-w-2xl mx-auto px-4 pt-6 space-y-8 relative">
 
         {!imgUrl && (
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal leading-tight">{dish.name}</h1>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.875rem, 6vw, 2.5rem)', color: '#F0F0F0', lineHeight: 1.15 }}>{dish.name}</h1>
         )}
 
         {/* ── Mode toggle + Share ── */}
@@ -1512,7 +1512,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
               )}
             </div>
 
-            {chef.restaurant && <p className="text-sm text-charcoal leading-relaxed">{chef.restaurant}</p>}
+            {chef.restaurant && <p className="text-sm leading-relaxed" style={{ color: '#CCCCCC' }}>{chef.restaurant}</p>}
 
             {chef.calories && (
               <div className="inline-flex items-center gap-1.5 text-xs border px-3 py-1.5 rounded-full"
@@ -1535,16 +1535,16 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
         {/* ── DIETICIAN MODE ── */}
         {!isChef && (
-          <section className="space-y-6 pl-5 border-l-4 border-sage">
+          <section className="space-y-6 pl-5 border-l-4" style={{ borderColor: '#00E5A0' }}>
             <MacroRow macros={dietician.macros} />
 
             {dietician.whatChanges.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-3">What changes</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#888888' }}>What changes</h3>
                 <ul className="space-y-2">
                   {dietician.whatChanges.map((item, i) => (
-                    <li key={i} className="flex gap-2.5 text-sm text-charcoal leading-snug">
-                      <span className="text-sage font-bold shrink-0 mt-px">✓</span>{item}
+                    <li key={i} className="flex gap-2.5 text-sm leading-snug" style={{ color: '#CCCCCC' }}>
+                      <span className="font-bold shrink-0 mt-px" style={{ color: '#00E5A0' }}>✓</span>{item}
                     </li>
                   ))}
                 </ul>
@@ -1553,15 +1553,15 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
             {dietician.keyTechnique && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted mb-2">Key technique</h3>
-                <p className="text-sm text-charcoal leading-relaxed">{dietician.keyTechnique}</p>
+                <h3 className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#888888' }}>Key technique</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#CCCCCC' }}>{dietician.keyTechnique}</p>
               </div>
             )}
 
             {dietician.cookSteps.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted">Quick cook steps</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>Quick cook steps</h3>
                   {dietician.cookTime && dietician.cookTime !== '—' && (
                     <span className="text-xs font-medium" style={{ color: '#888888' }}>
                       Total: ~{dietician.cookTime} mins
@@ -1573,8 +1573,8 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
             )}
 
             {dietician.note && (
-              <div className="rounded-xl bg-sage-pale border border-sage/25 px-5 py-4">
-                <p className="text-sm text-sage-dark leading-relaxed">{dietician.note}</p>
+              <div className="rounded-xl px-5 py-4" style={{ backgroundColor: 'rgba(0,229,160,0.06)', border: '1px solid rgba(0,229,160,0.18)' }}>
+                <p className="text-sm leading-relaxed" style={{ color: '#00C080' }}>{dietician.note}</p>
               </div>
             )}
           </section>
@@ -1583,7 +1583,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
         {/* ── WHAT YOU'LL NEED ── */}
         {missingIngredients.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-charcoal-muted">
+            <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#888888' }}>
               What You'll Need
             </h3>
             <div
@@ -1666,7 +1666,7 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
       )}
 
       {/* ── Action bar ── */}
-      <div className="fixed bottom-0 inset-x-0 z-50 bg-sandy/95 backdrop-blur-sm border-t border-sandy-border sm:static sm:inset-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:max-w-2xl sm:mx-auto sm:mt-8 sm:px-4">
+      <div className="fixed bottom-0 inset-x-0 z-50 bg-[rgba(13,13,13,0.97)] border-t border-[#2A2A2A] backdrop-blur-sm sm:static sm:inset-auto sm:bg-transparent sm:border-0 sm:backdrop-blur-none sm:max-w-2xl sm:mx-auto sm:mt-8 sm:px-4">
         {/* Divider (mobile only — desktop uses mt-8 spacing above) */}
         <div className="sm:hidden h-px mx-4 mt-0" style={{ backgroundColor: '#2A2A2A' }} />
         <div className="p-4 space-y-2.5">
@@ -1782,7 +1782,7 @@ function ChefLoader() {
 function SavedDishCard({ dish, onOpen, onRemove }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   return (
-    <div className="rounded-2xl bg-cream shadow-card overflow-hidden relative">
+    <div className="rounded-2xl overflow-hidden relative" style={{ backgroundColor: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', border: '1px solid #2A2A2A' }}>
       <button onClick={onOpen} className="w-full text-left block">
         <CardImageHeader dishName={dish.name} cuisine={dish.chef?.cuisine} initialUrl={dish._imgUrl} />
         <div className="px-5 pb-5 pt-4 space-y-2">
@@ -1790,10 +1790,10 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
             <span className="text-2xl font-bold tabular-nums" style={{ color: '#00E5A0' }}>
               {dish.dietician?.macros?.calories ?? '—'}
             </span>
-            <span className="text-sm text-charcoal-muted">kcal</span>
+            <span className="text-sm" style={{ color: '#888888' }}>kcal</span>
           </div>
           {(dish.dietician?.cookTime && dish.dietician.cookTime !== '—') && (
-            <p className="text-xs text-charcoal-muted">
+            <p className="text-xs" style={{ color: '#888888' }}>
               {dish.dietician.cookTime} mins
               {dish.dietician.difficulty ? ` · ${dish.dietician.difficulty}` : ''}
             </p>
@@ -1806,20 +1806,21 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
         {confirmDelete ? (
           <div className="flex gap-1 items-center">
             <button onClick={() => { onRemove(); setConfirmDelete(false) }}
-              className="text-xs font-semibold px-2.5 py-1 rounded-lg text-white"
-              style={{ backgroundColor: '#00E5A0' }}>
+              className="text-xs font-semibold px-2.5 py-1 rounded-lg"
+              style={{ backgroundColor: '#00E5A0', color: '#0D0D0D' }}>
               Remove
             </button>
             <button onClick={() => setConfirmDelete(false)}
-              className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-sandy-border bg-sandy text-charcoal">
+              className="text-xs font-semibold px-2.5 py-1 rounded-lg"
+              style={{ backgroundColor: '#1A1A1A', color: '#888888', border: '1px solid #2A2A2A' }}>
               Cancel
             </button>
           </div>
         ) : (
           <button
             onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal-muted hover:text-terracotta transition-colors"
-            style={{ backgroundColor: 'rgba(26,26,26,0.92)', border: '1px solid #2A2A2A' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200"
+            style={{ color: '#888888', backgroundColor: 'rgba(26,26,26,0.92)', border: '1px solid #2A2A2A' }}
             aria-label="Remove recipe"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1836,20 +1837,21 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
 
 function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy px-4 py-10 sm:py-14 relative">
+    <div className="animate-fade-in min-h-screen px-4 py-10 sm:py-14 relative" style={{ backgroundColor: '#0D0D0D' }}>
       <PaperTexture />
       <div className="max-w-3xl mx-auto space-y-8 relative">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="font-serif text-4xl font-extrabold tracking-wide text-charcoal">My Recipes 📖</h1>
-            <p className="text-charcoal-muted text-sm mt-1.5">
+            <h1 className="text-4xl font-extrabold tracking-tight" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0F0F0' }}>My Recipes</h1>
+            <p className="text-sm mt-1.5" style={{ color: '#888888' }}>
               {savedRecipes.length > 0
                 ? `${savedRecipes.length} saved recipe${savedRecipes.length !== 1 ? 's' : ''}`
                 : 'Your bookmarked recipes live here'}
             </p>
           </div>
           <button onClick={onClose}
-            className="shrink-0 text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors mt-1.5">
+            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200 mt-1.5"
+            style={{ color: '#888888', border: '1px solid #2A2A2A' }}>
             ← Back
           </button>
         </div>
@@ -1857,7 +1859,7 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
         {savedRecipes.length === 0 ? (
           <div className="text-center py-24 space-y-4">
             <div className="text-6xl leading-none">📚</div>
-            <p className="text-charcoal-muted text-sm max-w-xs mx-auto leading-relaxed">
+            <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: '#888888' }}>
               Nothing saved yet. Start cooking and bookmark your favourites.
             </p>
           </div>
@@ -1953,7 +1955,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
     Number(profile.goalAmount) > 0
 
   return (
-    <div className="animate-fade-in min-h-screen bg-sandy px-4 pt-10 pb-24 lg:pb-14 sm:pt-14 relative">
+    <div className="animate-fade-in min-h-screen px-4 pt-10 pb-24 lg:pb-14 sm:pt-14 relative" style={{ backgroundColor: '#0D0D0D' }}>
       <PaperTexture />
       <div className="max-w-2xl mx-auto space-y-5 relative">
 
@@ -1963,13 +1965,14 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#888888' }}>
               Good {timeOfDay}
             </p>
-            <h1 className="font-serif text-4xl font-extrabold leading-none" style={{ color: '#F0F0F0' }}>
+            <h1 className="text-4xl font-extrabold leading-none" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0F0F0' }}>
               {profile?.name ?? 'Chef'}.
             </h1>
           </div>
           <button
             onClick={onClose}
-            className="hidden sm:block shrink-0 text-xs font-medium text-charcoal-muted hover:text-terracotta border border-sandy-border hover:border-terracotta/40 px-3 py-1.5 rounded-lg transition-colors mt-1.5"
+            className="hidden sm:block shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200 mt-1.5"
+            style={{ color: '#888888', border: '1px solid #2A2A2A' }}
           >
             ← Back
           </button>
@@ -2095,10 +2098,10 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           <div className="flex items-center gap-3">
             <span className="text-3xl leading-none">{goalInfo.emoji}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-charcoal-muted mb-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#888888' }}>
                 {activeGoals.length > 1 ? 'Goals' : 'Goal'}
               </p>
-              <p className="font-serif text-xl font-bold text-charcoal">{goalInfo.label}</p>
+              <p className="text-xl font-bold" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0F0F0' }}>{goalInfo.label}</p>
               {extraGoals.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {extraGoals.map(g => (
@@ -2112,7 +2115,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             </div>
             <button
               onClick={onEditProfile}
-              className="text-xs font-medium transition-colors shrink-0"
+              className="text-xs font-medium transition-colors duration-200 shrink-0"
               style={{ color: '#00E5A0' }}
             >
               Edit →
@@ -2121,15 +2124,15 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}>
               <p className="text-base font-bold tabular-nums" style={{ color: '#00E5A0' }}>{calTarget}</p>
-              <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">kcal / day</p>
+              <p className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: '#888888' }}>kcal / day</p>
             </div>
             <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A' }}>
               <p className="text-base font-bold tabular-nums" style={{ color: '#00B87A' }}>{protTarget}g+</p>
-              <p className="text-[10px] uppercase tracking-wide text-charcoal-muted mt-0.5">protein / day</p>
+              <p className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: '#888888' }}>protein / day</p>
             </div>
           </div>
           {profile?.weight && (
-            <p className="text-xs text-charcoal-muted">
+            <p className="text-xs" style={{ color: '#888888' }}>
               Based on {profile.weight}kg
               {profile.trainingFreq ? ` · trains ${profile.trainingFreq}/week` : ''}
             </p>
@@ -2143,7 +2146,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#888888' }}>Saved Recipes</p>
               <button
                 onClick={onViewSaved}
-                className="text-xs font-medium transition-colors"
+                className="text-xs font-medium transition-colors duration-200"
                 style={{ color: '#00E5A0' }}
               >
                 See all ({savedRecipes.length}) →
@@ -2171,7 +2174,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                       {recipe.dietician?.macros?.calories ?? '—'} kcal
                     </span>
                     {recipe.dietician?.difficulty && (
-                      <span className="text-[10px] font-medium text-charcoal-muted">{recipe.dietician.difficulty}</span>
+                      <span className="text-[10px] font-medium" style={{ color: '#888888' }}>{recipe.dietician.difficulty}</span>
                     )}
                   </div>
                 </button>
@@ -2191,8 +2194,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 return (
                   <div key={cuisine} className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-charcoal">{cuisine}</span>
-                      <span className="text-xs text-charcoal-muted">{count} {count === 1 ? 'time' : 'times'}</span>
+                      <span className="text-sm font-medium" style={{ color: '#E0E0E0' }}>{cuisine}</span>
+                      <span className="text-xs" style={{ color: '#888888' }}>{count} {count === 1 ? 'time' : 'times'}</span>
                     </div>
                     <div className="h-1.5 rounded-full" style={{ backgroundColor: '#2A2A2A' }}>
                       <div className="h-full rounded-full transition-all duration-500"
@@ -2215,8 +2218,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 {PROTEIN_CARDS.find(p => p.value === topProtein[0])?.emoji ?? '🍽️'}
               </div>
               <div>
-                <p className="font-semibold text-charcoal capitalize">{topProtein[0]}</p>
-                <p className="text-xs text-charcoal-muted mt-0.5">
+                <p className="font-semibold capitalize" style={{ color: '#E0E0E0' }}>{topProtein[0]}</p>
+                <p className="text-xs mt-0.5" style={{ color: '#888888' }}>
                   Used in {topProtein[1]} session{topProtein[1] !== 1 ? 's' : ''} — your most-cooked protein
                 </p>
               </div>
@@ -2232,7 +2235,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               {last3Sessions.map(session => (
                 <div key={session.id} className="rounded-xl px-4 py-3.5 space-y-2" style={sectionCard}>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-muted">
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#888888' }}>
                       {fmtDate(session.date)}
                     </span>
                     {session.cuisine && (
@@ -2243,9 +2246,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     )}
                   </div>
                   {session.proteins?.length > 0 && (
-                    <p className="text-sm text-charcoal">
+                    <p className="text-sm" style={{ color: '#E0E0E0' }}>
                       <span className="font-medium">Proteins:</span>{' '}
-                      <span className="text-charcoal-muted">{session.proteins.join(', ')}</span>
+                      <span style={{ color: '#888888' }}>{session.proteins.join(', ')}</span>
                     </p>
                   )}
                   {session.dishes?.length > 0 && (
@@ -2282,7 +2285,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {last3Sessions.length === 0 && last4Recipes.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <div className="text-5xl leading-none">🍽️</div>
-            <p className="text-charcoal-muted text-sm max-w-xs mx-auto leading-relaxed">
+            <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: '#888888' }}>
               Your dashboard fills up as you cook. Start a session and get your first recipes.
             </p>
           </div>
@@ -3629,19 +3632,19 @@ export default function App() {
                 <div className="hidden sm:flex flex-col gap-2 mt-1.5 shrink-0 items-end">
                   <button
                     onClick={() => setView('dashboard')}
-                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200"
                     style={{ color: '#888888', border: '1px solid #2A2A2A' }}
                   >
-                    Dashboard
+                    Stats
                   </button>
                   <div className="flex gap-2">
                     {savedRecipes.length > 0 && (
                       <button
                         onClick={() => { setSavedBackTo('cards'); setView('saved') }}
-                        className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                        className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200 flex items-center gap-1"
                         style={{ color: '#888888', border: '1px solid #2A2A2A' }}
                       >
-                        My Recipes
+                        Saved
                         <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold" style={{ backgroundColor: '#00E5A0', color: '#0D0D0D' }}>
                           {savedRecipes.length}
                         </span>
@@ -3649,7 +3652,7 @@ export default function App() {
                     )}
                     <button
                       onClick={handleReset}
-                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200"
                       style={{ color: '#888888', border: '1px solid #2A2A2A' }}
                     >
                       Cook again
@@ -3805,14 +3808,14 @@ export default function App() {
             <div className="hidden sm:flex items-center gap-2">
               <button
                 onClick={() => setView('dashboard')}
-                className="text-xs transition-colors flex items-center gap-1 px-2 py-1 rounded-lg"
+                className="text-xs transition-colors duration-200 flex items-center gap-1 px-2 py-1 rounded-lg"
                 style={{ color: '#888888', border: '1px solid #2A2A2A' }}
               >
-                Dashboard
+                Stats
               </button>
               <button
                 onClick={() => setView('onboarding')}
-                className="text-xs transition-colors flex items-center gap-1 px-2 py-1 rounded-lg"
+                className="text-xs transition-colors duration-200 flex items-center gap-1 px-2 py-1 rounded-lg"
                 style={{ color: '#888888', border: '1px solid #2A2A2A' }}
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -3842,7 +3845,7 @@ export default function App() {
 
           {/* Error banner */}
           {error && (
-            <div className="shrink-0 mx-4 mb-2 rounded-xl border border-terracotta/30 bg-terracotta-pale px-4 py-2.5 text-xs text-terracotta relative z-10">
+            <div className="shrink-0 mx-4 mb-2 rounded-xl px-4 py-2.5 text-xs relative z-10" style={{ backgroundColor: 'rgba(229,90,90,0.1)', border: '1px solid rgba(229,90,90,0.3)', color: '#E55A5A' }}>
               {error}
             </div>
           )}
