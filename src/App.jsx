@@ -3707,15 +3707,23 @@ export default function App() {
           localStorage.setItem('supabase.auth.token', JSON.stringify(session))
           applySession(session, data.role)
 
-          // Check localStorage first, then fall back to Supabase DB row
+          // Source 1: localStorage profile
           let currentProfile = loadProfileOrEvict()
+          const localName = (currentProfile?.name || '').trim()
 
-          if (!currentProfile?.name && data.dbProfile?.name) {
-            // Reconstruct profile from Supabase row (cross-device returning user)
+          // Source 2: Supabase DB row (cross-device returning user)
+          const dbName = (data.dbProfile?.name || '').trim()
+
+          // A name MUST exist in at least one source to be considered a returning user.
+          // An empty, whitespace-only, or missing name always means new user → onboarding.
+          const resolvedName = localName || dbName
+
+          if (!localName && dbName) {
+            // Reconstruct profile from DB for cross-device sign-in
             const dp = data.dbProfile
-            const reconstructed = {
+            currentProfile = {
               version: PROFILE_VERSION,
-              name: dp.name,
+              name: dbName,
               primarySport: dp.sport || '',
               trainingTypes: dp.sport ? [dp.sport] : [],
               training: dp.sport ? [dp.sport] : [],
@@ -3724,18 +3732,18 @@ export default function App() {
               currentWeight: dp.weight || null,
               completedAt: Date.now(),
             }
-            localStorage.setItem('lhc_profile', JSON.stringify(reconstructed))
-            currentProfile = reconstructed
+            localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
           }
 
-          setProfile(currentProfile)
-          saveUserIfNew(data.user.email, currentProfile)
-
-          // Returning user (has name from localStorage or DB) → Dashboard
-          // New user → 3-step onboarding
-          if (currentProfile?.name) {
+          if (resolvedName) {
+            // Returning user — has a confirmed name in localStorage or DB
+            setProfile(currentProfile)
+            saveUserIfNew(data.user.email, currentProfile)
             setView('dashboard')
           } else {
+            // New user — no name anywhere → 3-step onboarding
+            // Do NOT call saveUserIfNew here — it would create an empty placeholder row
+            setProfile(null)
             setView('onboarding')
           }
         })
@@ -4037,6 +4045,7 @@ export default function App() {
       'remi_role',
       'remi_email_captured',
       'lhc_profile',
+      'remi_profile',
       'remi_user_email',
     ].forEach(k => localStorage.removeItem(k))
 
