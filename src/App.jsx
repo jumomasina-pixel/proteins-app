@@ -1199,18 +1199,6 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl, initi
           />
         )}
       </div>
-      {photographer && imgUrl && (
-        <p style={{
-          fontFamily: 'Inter, sans-serif',
-          fontSize: 11,
-          color: '#888888',
-          margin: '4px 0 0',
-          padding: '0 4px',
-          lineHeight: 1.4,
-        }}>
-          Photo by {photographer} on Unsplash
-        </p>
-      )}
     </div>
   )
 }
@@ -1522,11 +1510,6 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
               Back to dishes
             </button>
           </div>
-          {photographer && (
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', margin: '4px 0 0', padding: '0 16px', lineHeight: 1.4 }}>
-              Photo by {photographer} on Unsplash
-            </p>
-          )}
         </>
       ) : (
         <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#00E5A0' }}>
@@ -2428,11 +2411,6 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     <span className="text-xs tabular-nums" style={{ color: '#7A9E7E', fontVariantNumeric: 'tabular-nums' }}>
                       {recipe.dietician?.macros?.calories ?? '—'} kcal
                     </span>
-                    {recipe._imgUrl && recipe._imgCredit && (
-                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#555555', margin: 0, lineHeight: 1.3 }}>
-                        Photo: {recipe._imgCredit} / Unsplash
-                      </p>
-                    )}
                   </div>
                 </button>
               ))}
