@@ -3687,6 +3687,13 @@ function IntelView({ isPro, onProClick }) {
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const FORCE_RESET_VERSION = 1
+  if (localStorage.getItem('remi_force_reset') !== String(FORCE_RESET_VERSION)) {
+    localStorage.clear()
+    localStorage.setItem('remi_force_reset', String(FORCE_RESET_VERSION))
+    window.location.reload()
+  }
+
   const [messages,       setMessages]       = useState(() => {
     const p = loadProfileOrEvict()
     const s = (() => { try { const r = localStorage.getItem('lhc_sessions'); return r ? JSON.parse(r) : [] } catch { return [] } })()
