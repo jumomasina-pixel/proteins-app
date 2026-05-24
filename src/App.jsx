@@ -44,7 +44,7 @@ function mapProfileForApi(p) {
     ? String(Math.max(0, Number(p.currentWeight) - Number(p.targetWeight)))
     : ''
   return {
-    name: p.name || 'Chef',
+    name: p.name || 'there',
     weight: p.currentWeight,
     goal: oldGoal,
     goals: [oldGoal],
@@ -1637,7 +1637,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
             {chef.steps?.length > 0 && (
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#7A6B5A' }}>
-                  Chef's method
+                  Remi's method
                 </h3>
                 <CookStepsList steps={chef.steps} accentColor={chefAccent} />
               </div>
@@ -1910,7 +1910,7 @@ function WelcomeScreen({ onStart, onDashboard, profile, didYouCookSession, onCoo
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: 380, gap: 20, padding: '32px 0' }}>
           <div className="splash-el splash-el-1" style={{ textAlign: 'center', width: '100%' }}>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 36, color: '#F0F0F0', lineHeight: 1.15, margin: '0 0 14px' }}>
-              Welcome back, {profile.name}.
+              Back, {profile.name}.
             </h2>
             {greetingLoading ? (
               <div className="greeting-skeleton" style={{ height: 20, width: '60%', borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', margin: '0 auto' }} />
@@ -1950,16 +1950,16 @@ function WelcomeScreen({ onStart, onDashboard, profile, didYouCookSession, onCoo
         {/* Bottom: two-pill CTA */}
         <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380, display: 'flex', gap: 12 }}>
           <button
-            onClick={onDashboard}
+            onClick={onStart}
             style={{ flex: 1, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
           >
-            My Dashboard
+            Open the Fridge
           </button>
           <button
-            onClick={onStart}
-            style={{ flex: 1, backgroundColor: '#1A1A1A', color: '#00E5A0', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: '1px solid #00E5A0', cursor: 'pointer' }}
+            onClick={onDashboard}
+            style={{ flex: 1, backgroundColor: '#1A1A1A', color: '#F0F0F0', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}
           >
-            Open the Fridge
+            My Dashboard
           </button>
         </div>
       </div>
@@ -2334,11 +2334,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* Header — back button only on desktop; mobile uses BottomNav */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#7A6B5A' }}>
-              Good {timeOfDay}
-            </p>
             <h1 className="text-4xl font-extrabold leading-none" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0EAE0' }}>
-              {profile?.name ?? 'Chef'}.
+              Back, {profile?.name}.
             </h1>
           </div>
           <button
@@ -2761,7 +2758,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
       COMBAT_SPORTS.includes(primarySport) &&
       fightDate.trim() !== '' && fightWeight.trim() !== ''
     const remiProfile = {
-      name: name.trim() || 'Chef',
+      name: name.trim() || 'there',
       goal,
       currentWeight: Number(currentWeight) || undefined,
       targetWeight: isCombatWeightCut ? Number(fightWeight) : (targetWeight ? Number(targetWeight) : undefined),
@@ -3598,7 +3595,7 @@ export default function App() {
   const [stats,          setStats]          = useState(() => {
     try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
-  const [view,           setView]           = useState('welcome')
+  const [view,           setView]           = useState(() => loadProfileOrEvict()?.name ? 'dashboard' : 'welcome')
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
   const [viewingDishImg, setViewingDishImg] = useState(null)

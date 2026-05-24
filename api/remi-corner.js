@@ -19,7 +19,7 @@ const PERFORM_PROMPT = (p) => {
 }
 
 const GREETING_PROMPT = (p, timeOfDay) => {
-  const name = p?.name || 'Chef'
+  const name = p?.name || 'there'
   const goal = p?.goal || 'maintain'
   const sport = p?.primarySport || 'general training'
   const freq = p?.trainingFreq || 'regularly'
