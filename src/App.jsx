@@ -2677,6 +2677,25 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         >
           Start cooking →
         </button>
+
+        {/* ── Sign out ── */}
+        <div style={{ textAlign: 'center', paddingBottom: 8 }}>
+          <button
+            onClick={() => {
+              localStorage.removeItem('supabase.auth.token')
+              localStorage.removeItem('remi_role')
+              localStorage.removeItem('remi_email_captured')
+              window.location.reload()
+            }}
+            style={{
+              background: 'none', border: 'none',
+              fontFamily: 'Inter, sans-serif', fontSize: 12,
+              color: '#555555', cursor: 'pointer', padding: '4px 0',
+            }}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -3128,7 +3147,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                   cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
                 }}
               >
-                Let him cook
+                Get started
               </button>
               {step === TOTAL_STEPS && (
                 <button
@@ -3411,87 +3430,72 @@ function PreCookModal({ onConfirm, onCancel }) {
   )
 }
 
-// ── Email capture modal ───────────────────────────────────────────────────────
+// ── Auth modal (magic link) ───────────────────────────────────────────────────
 
-function EmailCaptureModal({ profile, onClose }) {
+function AuthModal({ profile, isReturning = false, onSessionEstablished }) {
   const [email,   setEmail]   = useState('')
   const [error,   setError]   = useState('')
   const [loading, setLoading] = useState(false)
+  const [sent,    setSent]    = useState(false)
 
   const isValidEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
   async function handleSubmit() {
-    if (!isValidEmail(email)) {
-      setError('Please enter a valid email address.')
-      return
-    }
+    if (!isValidEmail(email)) { setError('Enter a valid email address.'); return }
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('/api/save-user', {
+      const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name:   profile?.name          ?? '',
-          email:  email.trim(),
-          sport:  profile?.primarySport  ?? '',
-          goal:   profile?.goal          ?? '',
-          weight: profile?.currentWeight ?? null,
+          email: email.trim(),
+          redirectTo: window.location.origin,
         }),
       })
       if (!res.ok) throw new Error('non-ok')
-      localStorage.setItem('remi_email_captured', 'true')
-      const role = ADMIN_EMAILS.includes(email.trim().toLowerCase()) ? 'admin' : 'free'
-      localStorage.setItem('remi_role', role)
-      setLoading(false)
-      onClose()
+      setSent(true)
     } catch {
       setError('Something went wrong. Try again.')
+    } finally {
       setLoading(false)
     }
   }
 
-  function handleSkip() {
-    localStorage.setItem('remi_email_captured', 'skipped')
-    onClose()
+  const OVERLAY = {
+    position: 'fixed', inset: 0, zIndex: 3000,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '0 16px',
+  }
+  const CARD = {
+    backgroundColor: '#1A1A1A', borderRadius: 10, padding: 32,
+    width: '100%', maxWidth: 420,
+  }
+
+  if (sent) {
+    return (
+      <div style={OVERLAY}>
+        <div style={CARD}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 700, color: '#F0F0F0', margin: '0 0 12px', lineHeight: 1.2 }}>
+            Check your email.
+          </h2>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, lineHeight: 1.6 }}>
+            Remi sent you a link. Come back once you've clicked it — it signs you in automatically.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 3000,
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 16px',
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: '#1A1A1A',
-          borderRadius: 10,
-          padding: 32,
-          width: '100%',
-          maxWidth: 420,
-        }}
-      >
-        <h2 style={{
-          fontFamily: 'Syne, sans-serif',
-          fontSize: 22,
-          fontWeight: 700,
-          color: '#F0F0F0',
-          margin: '0 0 10px',
-          lineHeight: 1.2,
-        }}>
-          One last thing, {profile?.name}.
+    <div style={OVERLAY}>
+      <div style={CARD}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 700, color: '#F0F0F0', margin: '0 0 10px', lineHeight: 1.2 }}>
+          {isReturning ? 'Welcome back.' : `One last thing, ${profile?.name}.`}
         </h2>
-        <p style={{
-          fontFamily: 'Inter, sans-serif',
-          fontSize: 14,
-          color: '#888888',
-          margin: '0 0 24px',
-          lineHeight: 1.55,
-        }}>
-          Where should Remi reach you? We'll use this to send you updates and personalised tips.
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: '0 0 24px', lineHeight: 1.55 }}>
+          Enter your email and we'll send you a sign-in link.
         </p>
 
         <input
@@ -3504,30 +3508,17 @@ function EmailCaptureModal({ profile, onClose }) {
           autoComplete="email"
           inputMode="email"
           style={{
-            display: 'block',
-            width: '100%',
-            boxSizing: 'border-box',
+            display: 'block', width: '100%', boxSizing: 'border-box',
             backgroundColor: '#0D0D0D',
             border: `1px solid ${error ? '#FF4D4D' : 'rgba(255,255,255,0.12)'}`,
-            borderRadius: 8,
-            padding: '14px 16px',
-            color: '#F0F0F0',
-            fontFamily: 'Inter, sans-serif',
-            fontSize: 16,
-            outline: 'none',
-            marginBottom: error ? 8 : 16,
-            transition: 'border-color 150ms ease',
+            borderRadius: 8, padding: '14px 16px', color: '#F0F0F0',
+            fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none',
+            marginBottom: error ? 8 : 16, transition: 'border-color 150ms ease',
           }}
         />
 
         {error && (
-          <p style={{
-            fontFamily: 'Inter, sans-serif',
-            fontSize: 13,
-            color: '#FF4D4D',
-            margin: '0 0 16px',
-            lineHeight: 1.4,
-          }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', margin: '0 0 16px', lineHeight: 1.4 }}>
             {error}
           </p>
         )}
@@ -3536,43 +3527,19 @@ function EmailCaptureModal({ profile, onClose }) {
           onClick={handleSubmit}
           disabled={loading}
           style={{
-            display: 'block',
-            width: '100%',
-            height: 48,
-            backgroundColor: '#00E5A0',
-            color: '#0D0D0D',
-            borderRadius: 8,
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 600,
-            fontSize: 15,
-            border: 'none',
-            cursor: loading ? 'wait' : 'pointer',
-            marginBottom: 16,
-            opacity: loading ? 0.7 : 1,
-            transition: 'opacity 150ms ease',
+            display: 'block', width: '100%', height: 48,
+            backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8,
+            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15,
+            border: 'none', cursor: loading ? 'wait' : 'pointer',
+            marginBottom: 12, opacity: loading ? 0.7 : 1, transition: 'opacity 150ms ease',
           }}
         >
-          {loading ? 'Saving…' : 'Save my profile'}
+          {loading ? 'Sending…' : 'Send me a link'}
         </button>
 
-        <div style={{ textAlign: 'center' }}>
-          <button
-            onClick={handleSkip}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 13,
-              color: '#888888',
-              cursor: 'pointer',
-              padding: '4px 0',
-              textDecoration: 'underline',
-              textDecorationColor: 'rgba(136,136,136,0.35)',
-            }}
-          >
-            Continue without saving
-          </button>
-        </div>
+        <p style={{ textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>
+          No password needed. Ever.
+        </p>
       </div>
     </div>
   )
@@ -3778,7 +3745,7 @@ export default function App() {
   const [error,               setError]               = useState(null)
   const [isAdmin,             setIsAdmin]             = useState(() => localStorage.getItem('remi_role') === 'admin')
   const [showCookModal,       setShowCookModal]       = useState(false)
-  const [showEmailModal,      setShowEmailModal]      = useState(false)
+  const [showAuthModal,       setShowAuthModal]       = useState(false)
   const [pendingFridgeMsg,    setPendingFridgeMsg]    = useState('')
   const [genCount,            setGenCount]            = useState(() => {
     const key = 'remi_gens_' + new Date().toISOString().slice(0, 10)
@@ -3821,6 +3788,93 @@ export default function App() {
   const abortRef       = useRef(null)
   const inputRef       = useRef(null)
   const sessionDataRef = useRef({ proteins: [], cuisine: '', time: '' })
+
+  // ── Supabase auth helpers ──────────────────────────────────────────────────
+
+  function applySession(session) {
+    const email = session?.user?.email?.toLowerCase() ?? ''
+    const isAdminUser = ADMIN_EMAILS.includes(email)
+    localStorage.setItem('remi_role', isAdminUser ? 'admin' : 'free')
+    setIsAdmin(isAdminUser)
+  }
+
+  async function saveUserIfNew(email, currentProfile) {
+    try {
+      await fetch('/api/save-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:   currentProfile?.name          ?? '',
+          email:  email,
+          sport:  currentProfile?.primarySport  ?? '',
+          goal:   currentProfile?.goal          ?? '',
+          weight: currentProfile?.currentWeight ?? null,
+        }),
+      })
+    } catch (err) {
+      console.error('[saveUserIfNew]', err)
+    }
+  }
+
+  // ── Session detection on mount ─────────────────────────────────────────────
+
+  useEffect(() => {
+    // Part 3: Handle magic link callback — access_token in URL hash
+    const hash = window.location.hash
+    if (hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
+      const accessToken  = params.get('access_token')
+      const refreshToken = params.get('refresh_token') ?? ''
+
+      if (accessToken) {
+        // Clear the hash immediately so it doesn't linger
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+
+        fetch('/api/auth-user', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data.user) {
+              const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
+              localStorage.setItem('supabase.auth.token', JSON.stringify(session))
+              applySession(session)
+              // Part 4: insert user row if first sign-in (idempotent)
+              const currentProfile = loadProfileOrEvict()
+              saveUserIfNew(data.user.email, currentProfile)
+              setView('dashboard')
+            }
+          })
+          .catch(err => console.error('[auth-callback]', err))
+      }
+      return
+    }
+
+    // Part 2: Check existing stored session
+    const raw = localStorage.getItem('supabase.auth.token')
+    if (!raw) return
+    let stored
+    try { stored = JSON.parse(raw) } catch { localStorage.removeItem('supabase.auth.token'); return }
+
+    const token = stored?.access_token
+    if (!token) return
+
+    fetch('/api/auth-user', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.user) {
+          applySession({ ...stored, user: data.user })
+        } else {
+          // Token expired / invalid — clear session, stay on current view
+          localStorage.removeItem('supabase.auth.token')
+          localStorage.removeItem('remi_role')
+          setIsAdmin(false)
+        }
+      })
+      .catch(() => { /* Network error — do nothing, keep current view */ })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const el = scrollRef.current
@@ -4221,24 +4275,21 @@ export default function App() {
               days_per_week: remiProfile.daysPerWeek,
             })
             posthog.capture('onboarding_completed', { goal: remiProfile.goal, training: remiProfile.training })
-            if (!localStorage.getItem('remi_email_captured')) {
-              setShowEmailModal(true)
+            // Show auth modal only if no active Supabase session
+            if (!localStorage.getItem('supabase.auth.token')) {
+              setShowAuthModal(true)
             } else if (fridgeMessage) {
               setPendingFridgeMsg(fridgeMessage)
               setShowCookModal(true)
             } else {
-              setView('chat')
+              setView('dashboard')
             }
           }}
         />
-        {showEmailModal && (
-          <EmailCaptureModal
+        {showAuthModal && (
+          <AuthModal
             profile={profile}
-            onClose={() => {
-              setIsAdmin(localStorage.getItem('remi_role') === 'admin')
-              setShowEmailModal(false)
-              setView('dashboard')
-            }}
+            isReturning={false}
           />
         )}
         {showCookModal && (

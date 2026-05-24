@@ -3,21 +3,32 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { name, email, sport, goal, weight } = req.body
+  const { email, redirectTo } = req.body
+
+  if (!email) {
+    return res.status(400).json({ error: 'email is required' })
+  }
 
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_ANON_KEY
 
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(500).json({ error: 'Supabase env vars not set' })
+  }
+
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/users`, {
+    const response = await fetch(`${supabaseUrl}/auth/v1/otp`, {
       method: 'POST',
       headers: {
         'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal,resolution=ignore-duplicates',
       },
-      body: JSON.stringify({ name, email, sport, goal, weight }),
+      body: JSON.stringify({
+        email,
+        options: {
+          emailRedirectTo: redirectTo || 'https://myremi.io',
+        },
+      }),
     })
 
     if (!response.ok) {
@@ -27,7 +38,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true })
   } catch (err) {
-    console.error('[save-user]', err)
+    console.error('[send-otp]', err)
     return res.status(500).json({ error: err.message })
   }
 }
