@@ -13,6 +13,8 @@ posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
 
 const PROFILE_VERSION = 7
 
+const ADMIN_EMAILS = ['jumomasina@gmail.com']
+
 const LS_KEYS = ['remi_profile', 'lhc_profile', 'lhc_saved_recipes', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
 
 function loadProfileOrEvict() {
@@ -754,7 +756,7 @@ function CrownBadge() {
   )
 }
 
-function BottomNav({ activeView, onNavigate, isPro = false }) {
+function BottomNav({ activeView, onNavigate, isPro = false, isAdmin = false }) {
   const NAV_ITEMS = [
     {
       id: 'chat',
@@ -825,7 +827,7 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
           >
             <div style={{ position: 'relative', display: 'inline-flex' }}>
               {item.icon(active)}
-              {item.id === 'intel' && !isPro && (
+              {item.id === 'intel' && !isPro && !isAdmin && (
                 <span style={{ position: 'absolute', top: -5, right: -7, lineHeight: 1 }}>
                   <CrownBadge />
                 </span>
@@ -2254,7 +2256,7 @@ function RemiCorner({ profile }) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false }) {
   const cuisineFreq = useMemo(() => {
     const counts = {}
     savedRecipes.forEach(r => {
@@ -2337,6 +2339,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             <h1 className="text-4xl font-extrabold leading-none" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0EAE0' }}>
               Back, {profile?.name}.
             </h1>
+            {isAdmin && (
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', marginTop: 4 }}>Admin view</p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -3436,6 +3441,8 @@ function EmailCaptureModal({ profile, onClose }) {
       })
       if (!res.ok) throw new Error('non-ok')
       localStorage.setItem('remi_email_captured', 'true')
+      const role = ADMIN_EMAILS.includes(email.trim().toLowerCase()) ? 'admin' : 'free'
+      localStorage.setItem('remi_role', role)
       setLoading(false)
       onClose()
     } catch {
@@ -3769,6 +3776,7 @@ export default function App() {
   const [shoppingListCopied,  setShoppingListCopied]  = useState(false)
   const [checkedIngredients,  setCheckedIngredients]  = useState(new Set())
   const [error,               setError]               = useState(null)
+  const [isAdmin,             setIsAdmin]             = useState(() => localStorage.getItem('remi_role') === 'admin')
   const [showCookModal,       setShowCookModal]       = useState(false)
   const [showEmailModal,      setShowEmailModal]      = useState(false)
   const [pendingFridgeMsg,    setPendingFridgeMsg]    = useState('')
@@ -4198,7 +4206,7 @@ export default function App() {
       <>
         <Onboarding
           initialProfile={profile}
-          isLocked={genCount >= 3}
+          isLocked={!isAdmin && genCount >= 3}
           onBack={() => setView(profile ? 'chat' : 'welcome')}
           onProClick={() => setShowProModal(true)}
           onPTClick={() => setShowPTPage(true)}
@@ -4227,6 +4235,7 @@ export default function App() {
           <EmailCaptureModal
             profile={profile}
             onClose={() => {
+              setIsAdmin(localStorage.getItem('remi_role') === 'admin')
               setShowEmailModal(false)
               setView('dashboard')
             }}
@@ -4277,11 +4286,12 @@ export default function App() {
           onQuickStart={handleReset}
           onEditProfile={() => setView('onboarding')}
           onViewSaved={() => { setSavedBackTo('dashboard'); setView('saved') }}
+          isAdmin={isAdmin}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
           else setView(v)
-        }} />
+        }} isAdmin={isAdmin} />
       </>
     )
   }
@@ -4290,12 +4300,12 @@ export default function App() {
   if (view === 'intel') {
     return (
       <>
-        <IntelView isPro={false} onProClick={() => setShowProModal(true)} />
+        <IntelView isPro={isAdmin} onProClick={() => setShowProModal(true)} />
         <BottomNav activeView="intel" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('intel'); setView('saved') }
           else if (v === 'chat') handleReset()
           else setView(v)
-        }} />
+        }} isAdmin={isAdmin} />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
@@ -4319,7 +4329,7 @@ export default function App() {
           if (v === 'saved') return
           setSavedBackTo('saved')
           setView(v)
-        }} />
+        }} isAdmin={isAdmin} />
       </>
     )
   }
@@ -4355,7 +4365,7 @@ export default function App() {
           <div className="flex-1 min-w-0 overflow-y-auto px-4 py-10 sm:py-14 pb-20 lg:pb-14" style={{ backgroundColor: '#0F0D0B' }}>
             <div className="max-w-3xl mx-auto space-y-8 relative">
               {/* Gen counter + locked banner */}
-              {genCount >= 3 ? (
+              {!isAdmin && genCount >= 3 ? (
                 <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: '#1A1A0A', border: '1px solid #C9A84C' }}>
                   <div className="flex items-center gap-3">
                     <span style={{ fontSize: '1.25rem' }}>🔒</span>
@@ -4523,7 +4533,7 @@ export default function App() {
           if (v === 'saved') { setSavedBackTo('cards'); setView('saved') }
           else if (v === 'chat') handleReset()
           else setView(v)
-        }} />
+        }} isAdmin={isAdmin} />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
@@ -4722,7 +4732,7 @@ export default function App() {
       <BottomNav activeView="chat" onNavigate={v => {
         if (v === 'saved') { setSavedBackTo('chat'); setView('saved') }
         else setView(v)
-      }} />
+      }} isAdmin={isAdmin} />
       {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
     </>
   )
