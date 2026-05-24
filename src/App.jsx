@@ -3957,6 +3957,36 @@ export default function App() {
     setView('chat')
   }
 
+  function handleResetProfile() {
+    posthog.capture('profile_reset')
+    // Wipe all persisted data
+    LS_KEYS.forEach(k => localStorage.removeItem(k))
+    localStorage.removeItem('lhc_greeting')
+    localStorage.removeItem('remi_training_today')
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('lhc_corner_tips'))
+      .forEach(k => localStorage.removeItem(k))
+    // Reset all in-memory state
+    setProfile(null)
+    setSavedRecipes([])
+    setSessions([])
+    setStreak({ count: 0, lastDate: null })
+    setStats({ totalRecipes: 0, totalCalSaved: 0 })
+    setCookedConfirmation(null)
+    setMessages(SEED)
+    setDishes(null)
+    setDishImages([])
+    setMissingIngredients([])
+    setSelectedDish(null)
+    setViewingDish(null)
+    setViewingDishImg(null)
+    setError(null)
+    setInput('')
+    setQuickReplyType(null)
+    sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
+    setView('welcome')
+  }
+
   function saveSession(parsedDishes) {
     const data = sessionDataRef.current
     if (!data.proteins?.length && !parsedDishes?.length) return
