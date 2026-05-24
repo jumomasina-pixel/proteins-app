@@ -3406,6 +3406,171 @@ function PreCookModal({ onConfirm, onCancel }) {
   )
 }
 
+// ── Email capture modal ───────────────────────────────────────────────────────
+
+function EmailCaptureModal({ profile, onClose }) {
+  const [email,   setEmail]   = useState('')
+  const [error,   setError]   = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const isValidEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+
+  async function handleSubmit() {
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/save-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:   profile?.name          ?? '',
+          email:  email.trim(),
+          sport:  profile?.primarySport  ?? '',
+          goal:   profile?.goal          ?? '',
+          weight: profile?.currentWeight ?? null,
+        }),
+      })
+      if (!res.ok) throw new Error('non-ok')
+      localStorage.setItem('remi_email_captured', 'true')
+      setLoading(false)
+      onClose()
+    } catch {
+      setError('Something went wrong. Try again.')
+      setLoading(false)
+    }
+  }
+
+  function handleSkip() {
+    localStorage.setItem('remi_email_captured', 'skipped')
+    onClose()
+  }
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 3000,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 16px',
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: '#1A1A1A',
+          borderRadius: 10,
+          padding: 32,
+          width: '100%',
+          maxWidth: 420,
+        }}
+      >
+        <h2 style={{
+          fontFamily: 'Syne, sans-serif',
+          fontSize: 22,
+          fontWeight: 700,
+          color: '#F0F0F0',
+          margin: '0 0 10px',
+          lineHeight: 1.2,
+        }}>
+          One last thing, {profile?.name}.
+        </h2>
+        <p style={{
+          fontFamily: 'Inter, sans-serif',
+          fontSize: 14,
+          color: '#888888',
+          margin: '0 0 24px',
+          lineHeight: 1.55,
+        }}>
+          Where should Remi reach you? We'll use this to send you updates and personalised tips.
+        </p>
+
+        <input
+          type="email"
+          value={email}
+          onChange={e => { setEmail(e.target.value); if (error) setError('') }}
+          onFocus={e  => { e.target.style.borderColor = '#00E5A0' }}
+          onBlur={e   => { e.target.style.borderColor = error ? '#FF4D4D' : 'rgba(255,255,255,0.12)' }}
+          placeholder="you@example.com"
+          autoComplete="email"
+          inputMode="email"
+          style={{
+            display: 'block',
+            width: '100%',
+            boxSizing: 'border-box',
+            backgroundColor: '#0D0D0D',
+            border: `1px solid ${error ? '#FF4D4D' : 'rgba(255,255,255,0.12)'}`,
+            borderRadius: 8,
+            padding: '14px 16px',
+            color: '#F0F0F0',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: 16,
+            outline: 'none',
+            marginBottom: error ? 8 : 16,
+            transition: 'border-color 150ms ease',
+          }}
+        />
+
+        {error && (
+          <p style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: 13,
+            color: '#FF4D4D',
+            margin: '0 0 16px',
+            lineHeight: 1.4,
+          }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: 48,
+            backgroundColor: '#00E5A0',
+            color: '#0D0D0D',
+            borderRadius: 8,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 600,
+            fontSize: 15,
+            border: 'none',
+            cursor: loading ? 'wait' : 'pointer',
+            marginBottom: 16,
+            opacity: loading ? 0.7 : 1,
+            transition: 'opacity 150ms ease',
+          }}
+        >
+          {loading ? 'Saving…' : 'Save my profile'}
+        </button>
+
+        <div style={{ textAlign: 'center' }}>
+          <button
+            onClick={handleSkip}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 13,
+              color: '#888888',
+              cursor: 'pointer',
+              padding: '4px 0',
+              textDecoration: 'underline',
+              textDecorationColor: 'rgba(136,136,136,0.35)',
+            }}
+          >
+            Continue without saving
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Intel view ────────────────────────────────────────────────────────────────
 
 const INTEL_CARDS = [
@@ -3605,6 +3770,7 @@ export default function App() {
   const [checkedIngredients,  setCheckedIngredients]  = useState(new Set())
   const [error,               setError]               = useState(null)
   const [showCookModal,       setShowCookModal]       = useState(false)
+  const [showEmailModal,      setShowEmailModal]      = useState(false)
   const [pendingFridgeMsg,    setPendingFridgeMsg]    = useState('')
   const [genCount,            setGenCount]            = useState(() => {
     const key = 'remi_gens_' + new Date().toISOString().slice(0, 10)
@@ -4047,7 +4213,9 @@ export default function App() {
               days_per_week: remiProfile.daysPerWeek,
             })
             posthog.capture('onboarding_completed', { goal: remiProfile.goal, training: remiProfile.training })
-            if (fridgeMessage) {
+            if (!localStorage.getItem('remi_email_captured')) {
+              setShowEmailModal(true)
+            } else if (fridgeMessage) {
               setPendingFridgeMsg(fridgeMessage)
               setShowCookModal(true)
             } else {
@@ -4055,6 +4223,15 @@ export default function App() {
             }
           }}
         />
+        {showEmailModal && (
+          <EmailCaptureModal
+            profile={profile}
+            onClose={() => {
+              setShowEmailModal(false)
+              setView('dashboard')
+            }}
+          />
+        )}
         {showCookModal && (
           <PreCookModal
             onConfirm={() => {
