@@ -822,7 +822,7 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors duration-200"
-            style={{ color: active ? '#C1683A' : '#7A6B5A' }}
+            style={{ color: active ? '#00E5A0' : '#7A6B5A' }}
             aria-label={item.label}
           >
             <div style={{ position: 'relative', display: 'inline-flex' }}>
@@ -1824,9 +1824,9 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
   )
 }
 
-// ── Welcome screen ────────────────────────────────────────────────────────────
+// ── Splash screen ─────────────────────────────────────────────────────────────
 
-const WELCOME_STYLES = `
+const SPLASH_STYLES = `
   @keyframes splash-fade {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -1836,142 +1836,12 @@ const WELCOME_STYLES = `
   .splash-el-1 { animation-delay: 150ms; }
   .splash-el-2 { animation-delay: 300ms; }
   .splash-el-3 { animation-delay: 450ms; }
-  @keyframes greeting-pulse {
-    0%, 100% { opacity: 0.08; }
-    50%       { opacity: 0.22; }
-  }
-  .greeting-skeleton { animation: greeting-pulse 1.5s ease-in-out infinite; }
 `
 
-function WelcomeScreen({ onStart, onDashboard, profile, didYouCookSession, onCookedYes, onCookedNo, cookedConfirmation }) {
-  const isReturning = !!profile?.name
-
-  const [greeting, setGreeting] = useState(() => {
-    if (!isReturning) return null
-    try {
-      const cached = JSON.parse(localStorage.getItem('lhc_greeting') || 'null')
-      const today = new Date().toISOString().slice(0, 10)
-      if (cached?.date === today && cached?.text) return cached.text
-    } catch {}
-    return null
-  })
-  const [greetingLoading, setGreetingLoading] = useState(isReturning && !greeting)
-
-  useEffect(() => {
-    if (!isReturning) return
-    const today = new Date().toISOString().slice(0, 10)
-    try {
-      const cached = JSON.parse(localStorage.getItem('lhc_greeting') || 'null')
-      if (cached?.date === today && cached?.text) {
-        setGreeting(cached.text)
-        setGreetingLoading(false)
-        return
-      }
-    } catch {}
-    const hour = new Date().getHours()
-    const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
-    fetch('/api/remi-corner', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'greeting', profile: mapProfileForApi(profile), timeOfDay }),
-    })
-      .then(r => r.json())
-      .then(d => {
-        if (d.tip) {
-          localStorage.setItem('lhc_greeting', JSON.stringify({ text: d.tip, date: today }))
-          setGreeting(d.tip)
-        }
-      })
-      .catch(() => {})
-      .finally(() => setGreetingLoading(false))
-  }, [isReturning])
-
-  if (isReturning) {
-    return (
-      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '64px 24px 48px' }}>
-        <style>{WELCOME_STYLES}</style>
-
-        {/* Top: wordmark */}
-        <div className="splash-el splash-el-0" style={{ textAlign: 'center', position: 'relative' }}>
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 220, height: 220, borderRadius: '50%',
-            background: 'radial-gradient(ellipse, rgba(0,229,160,0.08) 0%, transparent 70%)',
-            pointerEvents: 'none', zIndex: 0,
-          }} />
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 32, color: '#F0F0F0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
-            Remi
-          </h1>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 8, position: 'relative', zIndex: 1 }}>
-            Personal Chef · Coach · Guide
-          </p>
-        </div>
-
-        {/* Middle: greeting + did-you-cook */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: 380, gap: 20, padding: '32px 0' }}>
-          <div className="splash-el splash-el-1" style={{ textAlign: 'center', width: '100%' }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 36, color: '#F0F0F0', lineHeight: 1.15, margin: '0 0 14px' }}>
-              Back, {profile.name}.
-            </h2>
-            {greetingLoading ? (
-              <div className="greeting-skeleton" style={{ height: 20, width: '60%', borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', margin: '0 auto' }} />
-            ) : greeting ? (
-              <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 16, color: '#888888', lineHeight: 1.55, margin: 0 }}>
-                {greeting}
-              </p>
-            ) : null}
-          </div>
-
-          {didYouCookSession && !cookedConfirmation && (
-            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '20px 16px', textAlign: 'left', width: '100%' }}>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, color: '#F0F0F0', fontSize: '0.9375rem', marginBottom: 6 }}>
-                Did you cook yesterday?
-              </p>
-              <p style={{ fontFamily: 'Inter, sans-serif', color: '#888888', fontSize: '0.8125rem', lineHeight: 1.5, marginBottom: 16 }}>
-                You got meal ideas — did any of them land on the plate?
-              </p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={onCookedYes} style={{ flex: 1, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, padding: '10px 0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
-                  Yes, cooked it
-                </button>
-                <button onClick={onCookedNo} style={{ flex: 1, backgroundColor: 'transparent', color: '#888888', borderRadius: 8, padding: '10px 0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.875rem', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
-                  Didn't get to it
-                </button>
-              </div>
-            </div>
-          )}
-
-          {cookedConfirmation && (
-            <div className="splash-el splash-el-2" style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(0,229,160,0.2)', borderRadius: 8, padding: '16px', textAlign: 'center', width: '100%' }}>
-              <p style={{ fontFamily: 'Inter, sans-serif', color: '#00E5A0', fontSize: '0.875rem', fontWeight: 600 }}>{cookedConfirmation}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom: two-pill CTA */}
-        <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380, display: 'flex', gap: 12 }}>
-          <button
-            onClick={onStart}
-            style={{ flex: 1, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
-          >
-            Open the Fridge
-          </button>
-          <button
-            onClick={onDashboard}
-            style={{ flex: 1, backgroundColor: '#1A1A1A', color: '#F0F0F0', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}
-          >
-            My Dashboard
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // New user
+function SplashScreen({ onGetStarted }) {
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
-      <style>{WELCOME_STYLES}</style>
+      <style>{SPLASH_STYLES}</style>
 
       {/* Top: wordmark */}
       <div className="splash-el splash-el-0" style={{ textAlign: 'center', position: 'relative' }}>
@@ -1998,12 +1868,18 @@ function WelcomeScreen({ onStart, onDashboard, profile, didYouCookSession, onCoo
       </div>
 
       {/* Bottom: CTA */}
-      <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380 }}>
+      <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <button
-          onClick={onStart}
-          style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 52, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
+          onClick={onGetStarted}
+          style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 56, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
         >
-          Get Started
+          Get started
+        </button>
+        <button
+          onClick={onGetStarted}
+          style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
+        >
+          Already have an account? Sign in
         </button>
       </div>
     </div>
@@ -2732,162 +2608,91 @@ const ONBOARDING_STYLES = `
   .remi-word-up { animation: remi-word-up 0.38s ease 0.28s both; }
 `
 
-// ── Onboarding (3-step) ──────────────────────────────────────────────────────
+// ── Simple 3-step onboarding (new users only) ─────────────────────────────────
 
-function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, onPTClick }) {
-  const hasProfile = initialProfile?.goal && (Array.isArray(initialProfile?.trainingTypes) || Array.isArray(initialProfile?.training))
-  const [step, setStep] = useState(hasProfile ? 6 : 1)
-  const [goal, setGoal] = useState(initialProfile?.goal || 'cut')
-  const [currentWeight, setCurrentWeight] = useState(String(initialProfile?.currentWeight || ''))
-  const [targetWeight, setTargetWeight] = useState(String(initialProfile?.targetWeight || ''))
-  const [trainingTypes, setTrainingTypes] = useState(initialProfile?.trainingTypes || [])
-  const [primarySport, setPrimarySport] = useState(initialProfile?.primarySport || '')
-  const [daysPerWeek, setDaysPerWeek] = useState(String(initialProfile?.daysPerWeek || ''))
-  const [trainingToday, setTrainingToday] = useState(
-    initialProfile?.trainingToday !== undefined ? initialProfile.trainingToday : true
-  )
-  const [sportGoal, setSportGoal] = useState(initialProfile?.sportGoal || '')
-  const [fightDate, setFightDate] = useState(initialProfile?.fightDate || '')
-  const [fightWeight, setFightWeight] = useState(
-    initialProfile?.weightCutMode && initialProfile?.targetWeight
-      ? String(initialProfile.targetWeight) : ''
-  )
-  const [trainingPhilosophy, setTrainingPhilosophy] = useState(
-    initialProfile?.trainingPhilosophy !== undefined ? (initialProfile.trainingPhilosophy || '') : ''
-  )
-  const [name, setName] = useState(initialProfile?.name || '')
+const ONBOARDING_SPORT_OPTIONS = ['Boxing', 'MMA', 'CrossFit', 'Gym', 'Running', 'Cycling', 'Football', 'Other']
+const ONBOARDING_GOAL_OPTIONS  = ['Lose weight', 'Build muscle', 'Fight camp', 'Improve performance', 'Eat better']
 
-  const TOTAL_STEPS = 6
+function mapOnboardingGoal(label) {
+  if (label === 'Lose weight')        return 'cut'
+  if (label === 'Build muscle')       return 'bulk'
+  if (label === 'Fight camp')         return 'cut'
+  if (label === 'Improve performance') return 'performance'
+  if (label === 'Eat better')         return 'eat_clean'
+  return 'maintain'
+}
 
-  function canProceed() {
-    if (step === 1) return name.trim().length > 0
-    if (step === 2) return currentWeight.trim().length > 0
-    if (step === 3) return trainingTypes.length > 0
-    if (step === 4) return primarySport.length > 0
-    if (step === 5) return sportGoal.length > 0
-    if (step === 6) return true
-    return true
-  }
+function mapOnboardingSport(label) {
+  if (label === 'Gym')      return 'Weightlifting'
+  if (label === 'Football') return 'Football / AFL'
+  return label
+}
 
-  function goNext() {
-    if (!canProceed()) return
-    if (step === 3 && trainingTypes.length === 1) {
-      setPrimarySport(trainingTypes[0])
-      setStep(5)
-    } else {
-      setStep(s => s + 1)
-    }
-  }
+function Onboarding({ onComplete, onBack }) {
+  const [step, setStep] = useState(1)
+  const [name, setName] = useState('')
+  const [sport, setSport] = useState('')
+  const [goal, setGoal] = useState('')
 
-  function goBack() {
-    if (step === 5 && trainingTypes.length === 1) setStep(3)
-    else if (step > 1 && !hasProfile) setStep(s => s - 1)
-    else onBack()
-  }
-
-  function handleCook(philosophyOverride) {
-    if (isLocked) return
-    const philosophy = philosophyOverride !== undefined ? philosophyOverride : trainingPhilosophy
-    const isCombatWeightCut = sportGoal === "I have a fight / competition coming up" &&
-      COMBAT_SPORTS.includes(primarySport) &&
-      fightDate.trim() !== '' && fightWeight.trim() !== ''
-    const remiProfile = {
-      name: name.trim() || 'there',
-      goal,
-      currentWeight: Number(currentWeight) || undefined,
-      targetWeight: isCombatWeightCut ? Number(fightWeight) : (targetWeight ? Number(targetWeight) : undefined),
-      trainingTypes,
-      primarySport,
-      training: trainingTypes,
-      daysPerWeek: Number(daysPerWeek) || 0,
-      trainingToday,
-      sportGoal,
-      fightDate: isCombatWeightCut ? fightDate : '',
-      weightCutMode: isCombatWeightCut,
-      trainingPhilosophy: philosophy || null,
-    }
-    onComplete(remiProfile, 'ready')
-  }
-
-  const cardStyle = (selected) => ({
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    minHeight: 64,
-    padding: '14px 20px',
-    borderRadius: 14,
-    border: `1.5px solid ${selected ? '#00E5A0' : '#2A2A2A'}`,
-    backgroundColor: selected ? 'rgba(0,229,160,0.07)' : '#141414',
-    color: selected ? '#00E5A0' : '#CCCCCC',
-    fontFamily: "'IBM Plex Sans', sans-serif",
-    fontSize: '0.9375rem',
-    fontWeight: selected ? 500 : 400,
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-    textAlign: 'left',
-  })
-
-  const pillStyle = (selected) => ({
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '9px 8px',
-    borderRadius: 24,
-    border: `1.5px solid ${selected ? '#00E5A0' : '#2A2A2A'}`,
-    backgroundColor: selected ? 'rgba(0,229,160,0.12)' : '#141414',
-    color: selected ? '#00E5A0' : '#7A6B5A',
-    fontFamily: "'IBM Plex Sans', sans-serif",
-    fontSize: '0.8125rem',
-    fontWeight: selected ? 600 : 400,
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-    textAlign: 'center',
-    lineHeight: 1.3,
-    width: '100%',
-  })
-
-  const inputStyle = {
-    width: '100%', borderRadius: 12, backgroundColor: '#1A1A1A',
-    border: '1px solid rgba(255,255,255,0.08)', color: '#F0F0F0',
-    padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16,
-    outline: 'none', boxSizing: 'border-box',
-  }
-
-  const labelStyle = {
-    fontSize: '0.65rem', color: '#555', display: 'block',
-    marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase',
-    fontFamily: "'IBM Plex Sans', sans-serif",
-  }
+  const TOTAL_STEPS = 3
 
   const headingStyle = {
     fontFamily: 'Syne, sans-serif',
     fontWeight: 700,
     fontSize: 'clamp(1.75rem, 6vw, 2.25rem)',
-    color: '#F0EAE0',
+    color: '#F0F0F0',
     lineHeight: 1.1,
-    marginBottom: 8,
+    margin: 0,
   }
 
-  const subStyle = {
-    fontSize: '0.9rem',
-    color: '#666',
-    fontFamily: "'IBM Plex Sans', sans-serif",
-    lineHeight: 1.5,
+  const inputStyle = {
+    width: '100%', borderRadius: 8, backgroundColor: '#0D0D0D',
+    border: '1px solid rgba(255,255,255,0.12)', color: '#F0F0F0',
+    padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16,
+    outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms ease',
   }
 
-  const checkIcon = (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" style={{ color: '#00E5A0', flexShrink: 0 }}>
-      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd"/>
-    </svg>
-  )
+  const chipStyle = (selected) => ({
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    padding: '10px 18px', minHeight: 44, borderRadius: 8,
+    border: `1px solid ${selected ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
+    backgroundColor: selected ? '#00E5A0' : '#1A1A1A',
+    color: selected ? '#0D0D0D' : '#F0F0F0',
+    fontFamily: 'Inter, sans-serif', fontSize: 14,
+    fontWeight: selected ? 600 : 500,
+    cursor: 'pointer', transition: 'background 150ms ease, border-color 150ms ease',
+    whiteSpace: 'nowrap',
+  })
+
+  function canProceed() {
+    if (step === 1) return name.trim().length > 0
+    if (step === 2) return sport.length > 0
+    if (step === 3) return goal.length > 0
+    return false
+  }
+
+  function handleComplete() {
+    const mappedSport = mapOnboardingSport(sport)
+    const mappedGoal  = mapOnboardingGoal(goal)
+    const profile = {
+      version: PROFILE_VERSION,
+      name: name.trim(),
+      primarySport: mappedSport,
+      trainingTypes: [mappedSport],
+      training: [mappedSport],
+      goal: mappedGoal,
+      goals: [mappedGoal],
+      completedAt: Date.now(),
+    }
+    onComplete(profile)
+  }
 
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: '#0F0D0B', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
       <style>{ONBOARDING_STYLES}</style>
 
-      {/* Mint progress line — fixed across very top */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1612', zIndex: 100 }}>
+      {/* Mint progress line */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1A1A', zIndex: 100 }}>
         <div style={{
           height: '100%',
           width: `${(step / TOTAL_STEPS) * 100}%`,
@@ -2897,277 +2702,109 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
         }} />
       </div>
 
-      {/* Content column */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 32px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 40px' }}>
 
-        {/* Back + step counter */}
+        {/* Back arrow + step counter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 44 }}>
-          <button
-            onClick={goBack}
-            style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
-            </svg>
-          </button>
-          {!hasProfile && (
-            <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.7rem', color: '#444', letterSpacing: '0.12em' }}>
-              {step} / {TOTAL_STEPS}
-            </span>
+          {step > 1 ? (
+            <button
+              onClick={() => setStep(s => s - 1)}
+              style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
+              </svg>
+            </button>
+          ) : (
+            <div />
           )}
+          <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.7rem', color: '#555', letterSpacing: '0.12em' }}>
+            {step} / {TOTAL_STEPS}
+          </span>
         </div>
 
-        {/* Step content — keyed so entering re-triggers the fade-up */}
-        <div key={step} className="ob-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 28 }}>
+        {/* Step content */}
+        <div key={step} className="ob-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 32 }}>
 
-          {/* ── Step 1: Name ── */}
+          {/* Step 1: Name */}
           {step === 1 && (
             <>
-              <div>
-                <h2 style={headingStyle}>What should Remi call you?</h2>
-              </div>
-              <div>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && canProceed()) goNext() }}
-                  placeholder="Your first name"
-                  style={inputStyle}
-                  autoFocus
-                />
-              </div>
+              <h2 style={headingStyle}>What should Remi call you?</h2>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && canProceed()) setStep(2) }}
+                onFocus={e  => { e.target.style.borderColor = '#00E5A0' }}
+                onBlur={e   => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                placeholder="Your first name"
+                style={inputStyle}
+                autoFocus
+              />
             </>
           )}
 
-          {/* ── Step 2: Goal + weights ── */}
+          {/* Step 2: Sport */}
           {step === 2 && (
             <>
-              <div>
-                <h2 style={headingStyle}>What are we working toward?</h2>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {REMI_GOAL_OPTIONS.map(o => (
-                  <button key={o.value} onClick={() => setGoal(o.value)} style={cardStyle(goal === o.value)}>
-                    <span>
-                      {o.label}
-                      {o.desc && <span style={{ color: '#555', fontWeight: 400 }}> — {o.desc}</span>}
-                    </span>
-                    {goal === o.value && checkIcon}
+              <h2 style={headingStyle}>What's your main sport or training?</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {ONBOARDING_SPORT_OPTIONS.map(s => (
+                  <button key={s} onClick={() => setSport(s)} style={chipStyle(sport === s)}>
+                    {s}
                   </button>
                 ))}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div>
-                  <label style={labelStyle}>Current weight in kg.</label>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <input type="number" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="84" style={inputStyle} />
-                    <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: "'IBM Plex Sans', sans-serif" }}>kg</span>
-                  </div>
-                </div>
-                <div>
-                  <label style={labelStyle}>Target weight in kg.</label>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} placeholder="78" style={inputStyle} />
-                    <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: "'IBM Plex Sans', sans-serif" }}>kg</span>
-                  </div>
-                </div>
               </div>
             </>
           )}
 
-          {/* ── Step 3: Training types ── */}
+          {/* Step 3: Goal */}
           {step === 3 && (
             <>
-              <div>
-                <h2 style={headingStyle}>What does your training look like?</h2>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {REMI_TRAINING_TYPES_V5.map(type => {
-                  const sel = trainingTypes.includes(type)
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => setTrainingTypes(prev => sel ? prev.filter(t => t !== type) : [...prev, type])}
-                      style={pillStyle(sel)}
-                    >
-                      {type}
-                    </button>
-                  )
-                })}
-              </div>
-              <div>
-                <label style={labelStyle}>Days per week. Honest answer.</label>
-                <input type="number" min={0} max={7} value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="4" style={inputStyle} />
-              </div>
-              <button
-                onClick={() => {
-                  const next = !trainingToday
-                  setTrainingToday(next)
-                  localStorage.setItem('remi_training_today', JSON.stringify(next))
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', minHeight: 64, padding: '14px 20px', borderRadius: 14,
-                  border: `1.5px solid ${trainingToday ? '#00E5A0' : '#2A2A2A'}`,
-                  backgroundColor: trainingToday ? 'rgba(0,229,160,0.07)' : '#141414',
-                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s ease',
-                }}
-              >
-                <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.9375rem', color: trainingToday ? '#00E5A0' : '#CCCCCC', fontWeight: trainingToday ? 500 : 400 }}>
-                  {trainingToday ? 'Training day today' : 'Rest day today'}
-                </span>
-                <div style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: trainingToday ? '#00E5A0' : '#2A2A2A', position: 'relative', flexShrink: 0, transition: 'background-color 0.2s' }}>
-                  <span style={{ position: 'absolute', top: 2, left: trainingToday ? 22 : 2, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s', display: 'block' }} />
-                </div>
-              </button>
-            </>
-          )}
-
-          {/* ── Step 4: Primary sport ── */}
-          {step === 4 && (
-            <>
-              <div>
-                <h2 style={headingStyle}>Which one is your main focus?</h2>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {trainingTypes.map(type => {
-                  const sel = primarySport === type
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => setPrimarySport(type)}
-                      style={pillStyle(sel)}
-                    >
-                      {type}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
-
-          {/* ── Step 5: Sport goals ── */}
-          {step === 5 && (
-            <>
-              <div>
-                <h2 style={headingStyle}>Do you have a specific goal coming up?</h2>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {SPORT_GOAL_OPTIONS.map(option => (
-                  <button key={option} onClick={() => setSportGoal(option)} style={cardStyle(sportGoal === option)}>
-                    <span>{option}</span>
-                    {sportGoal === option && checkIcon}
+              <h2 style={headingStyle}>What's your goal right now?</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {ONBOARDING_GOAL_OPTIONS.map(g => (
+                  <button key={g} onClick={() => setGoal(g)} style={chipStyle(goal === g)}>
+                    {g}
                   </button>
                 ))}
               </div>
-
-              {sportGoal === "I have a fight / competition coming up" && COMBAT_SPORTS.includes(primarySport) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 20px', borderRadius: 14, border: '1px solid #2A2A2A', backgroundColor: '#0F0D0B' }}>
-                  <p style={{ fontSize: '0.8125rem', color: '#666', fontFamily: "'IBM Plex Sans', sans-serif" }}>Tell Remi about the cut.</p>
-                  <div>
-                    <label style={labelStyle}>Fight / competition date</label>
-                    <input type="date" value={fightDate} onChange={e => setFightDate(e.target.value)}
-                      style={{ ...inputStyle, colorScheme: 'dark' }} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Target weight (kg)</label>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <input type="number" value={fightWeight} onChange={e => setFightWeight(e.target.value)}
-                        placeholder="70" style={inputStyle} />
-                      <span style={{ color: '#555', fontSize: '0.875rem', flexShrink: 0, fontFamily: "'IBM Plex Sans', sans-serif" }}>kg</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
-
-          {/* ── Step 6: Training philosophy ── */}
-          {step === 6 && (() => {
-            const phil = TRAINING_PHILOSOPHY_MAP[primarySport]
-            return (
-              <>
-                <div>
-                  <h2 style={headingStyle}>{phil ? phil.q : "Is there an athlete or coach who shapes how you train?"}</h2>
-                  {!phil && <p style={subStyle}>Skip if you're not sure yet.</p>}
-                </div>
-                {phil ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {phil.opts.map(opt => (
-                      <button key={opt} onClick={() => setTrainingPhilosophy(opt)} style={pillStyle(trainingPhilosophy === opt)}>
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={trainingPhilosophy}
-                    onChange={e => setTrainingPhilosophy(e.target.value)}
-                    placeholder="e.g. a specific coach, athlete, or training philosophy"
-                    style={inputStyle}
-                  />
-                )}
-              </>
-            )
-          })()}
         </div>
 
         {/* CTA */}
-        <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ marginTop: 40 }}>
           {step < TOTAL_STEPS ? (
             <button
-              onClick={goNext}
+              onClick={() => canProceed() && setStep(s => s + 1)}
               disabled={!canProceed()}
               style={{
-                width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#141414',
-                color: canProceed() ? '#0F0D0B' : '#333',
-                borderRadius: 14, padding: '16px 0',
-                fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem',
-                border: canProceed() ? 'none' : '1px solid #2A2A2A',
+                width: '100%', height: 56,
+                backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A',
+                color: canProceed() ? '#0D0D0D' : '#444',
+                borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16,
+                border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)',
                 cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
               }}
             >
-              Continue →
+              Continue
             </button>
-          ) : isLocked ? (
-            <>
-              <button disabled style={{ width: '100%', backgroundColor: '#141414', color: '#333', borderRadius: 14, padding: '16px 0', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', border: '1px solid #C9A84C', cursor: 'not-allowed' }}>
-                Kitchen's closed for today
-              </button>
-              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#555' }}>
-                <button onClick={onProClick} style={{ background: 'none', border: 'none', color: '#C9A84C', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '0.75rem', fontFamily: "'IBM Plex Sans', sans-serif" }}>Go Pro →</button> to keep cooking
-              </p>
-              <p style={{ textAlign: 'center', marginTop: 4 }}>
-                <button onClick={onPTClick} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: "'IBM Plex Sans', sans-serif", textDecoration: 'underline' }}>Are you a PT?</button>
-              </p>
-            </>
           ) : (
-            <>
-              <button
-                onClick={() => handleCook()}
-                disabled={!canProceed()}
-                style={{
-                  width: '100%', backgroundColor: canProceed() ? '#00E5A0' : '#141414',
-                  color: canProceed() ? '#0F0D0B' : '#333',
-                  borderRadius: 14, padding: '16px 0',
-                  fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem',
-                  border: canProceed() ? 'none' : '1px solid #2A2A2A',
-                  cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
-                }}
-              >
-                Get started
-              </button>
-              {step === TOTAL_STEPS && (
-                <button
-                  onClick={() => handleCook(null)}
-                  style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.8rem', fontFamily: "'IBM Plex Sans', sans-serif", cursor: 'pointer', textAlign: 'center', padding: '4px 0', textDecoration: 'underline', width: '100%' }}
-                >
-                  Skip →
-                </button>
-              )}
-            </>
+            <button
+              onClick={() => canProceed() && handleComplete()}
+              disabled={!canProceed()}
+              style={{
+                width: '100%', height: 56,
+                backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A',
+                color: canProceed() ? '#0D0D0D' : '#444',
+                borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16,
+                border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
+              }}
+            >
+              Let's go
+            </button>
           )}
         </div>
       </div>
@@ -3440,30 +3077,39 @@ function PreCookModal({ onConfirm, onCancel }) {
   )
 }
 
-// ── Auth modal (magic link) ───────────────────────────────────────────────────
+// ── Auth screen (magic link) ──────────────────────────────────────────────────
 
-function AuthModal({ profile, isReturning = false, onSessionEstablished }) {
-  const [email,   setEmail]   = useState('')
-  const [error,   setError]   = useState('')
-  const [loading, setLoading] = useState(false)
-  const [sent,    setSent]    = useState(false)
+function AuthScreen({ onBack }) {
+  const [email,      setEmail]      = useState('')
+  const [error,      setError]      = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [sent,       setSent]       = useState(false)
+  const [canResend,  setCanResend]  = useState(false)
+  const [resending,  setResending]  = useState(false)
 
   const isValidEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+
+  useEffect(() => {
+    if (!sent) return
+    const t = setTimeout(() => setCanResend(true), 30000)
+    return () => clearTimeout(t)
+  }, [sent])
+
+  async function sendLink(addr) {
+    const res = await fetch('/api/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: addr, redirectTo: 'https://myremi.io' }),
+    })
+    if (!res.ok) throw new Error('non-ok')
+  }
 
   async function handleSubmit() {
     if (!isValidEmail(email)) { setError('Enter a valid email address.'); return }
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.trim(),
-          redirectTo: window.location.origin,
-        }),
-      })
-      if (!res.ok) throw new Error('non-ok')
+      await sendLink(email.trim())
       setSent(true)
     } catch {
       setError('Something went wrong. Try again.')
@@ -3472,46 +3118,73 @@ function AuthModal({ profile, isReturning = false, onSessionEstablished }) {
     }
   }
 
-  const OVERLAY = {
-    position: 'fixed', inset: 0, zIndex: 3000,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: '0 16px',
+  async function handleResend() {
+    if (!canResend || resending) return
+    setResending(true)
+    try {
+      await sendLink(email.trim())
+      setCanResend(false)
+      setTimeout(() => setCanResend(true), 30000)
+    } catch {}
+    finally { setResending(false) }
   }
-  const CARD = {
-    backgroundColor: '#1A1A1A', borderRadius: 10, padding: 32,
-    width: '100%', maxWidth: 420,
+
+  const SCREEN = {
+    minHeight: '100dvh', backgroundColor: '#0D0D0D',
+    display: 'flex', flexDirection: 'column',
+    maxWidth: 480, width: '100%', margin: '0 auto',
+    padding: '60px 24px 48px',
   }
 
   if (sent) {
     return (
-      <div style={OVERLAY}>
-        <div style={CARD}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 700, color: '#F0F0F0', margin: '0 0 12px', lineHeight: 1.2 }}>
+      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 380, width: '100%' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2rem, 7vw, 2.75rem)', color: '#F0F0F0', lineHeight: 1.1, margin: '0 0 16px' }}>
             Check your email.
-          </h2>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, lineHeight: 1.6 }}>
-            Remi sent you a link. Come back once you've clicked it — it signs you in automatically.
+          </h1>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#888888', lineHeight: 1.6, margin: '0 0 32px' }}>
+            Remi sent a link to <span style={{ color: '#F0F0F0' }}>{email}</span>. Tap it to continue.
           </p>
+          {canResend && (
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: resending ? 'wait' : 'pointer', padding: 0, textDecoration: 'underline', opacity: resending ? 0.5 : 1 }}
+            >
+              {resending ? 'Sending…' : 'Resend link'}
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
   return (
-    <div style={OVERLAY}>
-      <div style={CARD}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 700, color: '#F0F0F0', margin: '0 0 10px', lineHeight: 1.2 }}>
-          {isReturning ? 'Welcome back.' : `One last thing, ${profile?.name}.`}
-        </h2>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: '0 0 24px', lineHeight: 1.55 }}>
-          Enter your email and we'll send you a sign-in link.
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
+      <div style={SCREEN}>
+        {/* Back arrow */}
+        <button
+          onClick={onBack}
+          style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 56 }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
+          </svg>
+        </button>
+
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2rem, 7vw, 2.75rem)', color: '#F0F0F0', lineHeight: 1.1, margin: '0 0 12px' }}>
+          Enter your email.
+        </h1>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#888888', lineHeight: 1.55, margin: '0 0 32px' }}>
+          We'll send you a sign-in link. No password needed. Ever.
         </p>
 
         <input
           type="email"
           value={email}
           onChange={e => { setEmail(e.target.value); if (error) setError('') }}
+          onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
           onFocus={e  => { e.target.style.borderColor = '#00E5A0' }}
           onBlur={e   => { e.target.style.borderColor = error ? '#FF4D4D' : 'rgba(255,255,255,0.12)' }}
           placeholder="you@example.com"
@@ -3523,12 +3196,12 @@ function AuthModal({ profile, isReturning = false, onSessionEstablished }) {
             border: `1px solid ${error ? '#FF4D4D' : 'rgba(255,255,255,0.12)'}`,
             borderRadius: 8, padding: '14px 16px', color: '#F0F0F0',
             fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none',
-            marginBottom: error ? 8 : 16, transition: 'border-color 150ms ease',
+            marginBottom: error ? 8 : 20, transition: 'border-color 150ms ease',
           }}
         />
 
         {error && (
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', margin: '0 0 16px', lineHeight: 1.4 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', margin: '0 0 20px', lineHeight: 1.4 }}>
             {error}
           </p>
         )}
@@ -3537,19 +3210,15 @@ function AuthModal({ profile, isReturning = false, onSessionEstablished }) {
           onClick={handleSubmit}
           disabled={loading}
           style={{
-            display: 'block', width: '100%', height: 48,
+            width: '100%', height: 56,
             backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8,
-            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15,
+            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16,
             border: 'none', cursor: loading ? 'wait' : 'pointer',
-            marginBottom: 12, opacity: loading ? 0.7 : 1, transition: 'opacity 150ms ease',
+            opacity: loading ? 0.7 : 1, transition: 'opacity 150ms ease',
           }}
         >
           {loading ? 'Sending…' : 'Send me a link'}
         </button>
-
-        <p style={{ textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>
-          No password needed. Ever.
-        </p>
       </div>
     </div>
   )
@@ -3924,9 +3593,11 @@ export default function App() {
     try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
   const [view,           setView]           = useState(() => {
+    if (window.location.hash.includes('access_token')) return 'loading'
     const hasSession = !!localStorage.getItem('supabase.auth.token')
-    const hasProfile = hasSession && !!loadProfileOrEvict()?.name
-    return hasProfile ? 'dashboard' : 'welcome'
+    if (!hasSession) return 'splash'
+    const hasProfile = !!loadProfileOrEvict()?.name
+    return hasProfile ? 'dashboard' : 'onboarding'
   })
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
@@ -3938,9 +3609,6 @@ export default function App() {
   const [error,               setError]               = useState(null)
   const [isAdmin,             setIsAdmin]             = useState(() => localStorage.getItem('remi_role') === 'admin')
   const [isCoach,             setIsCoach]             = useState(() => localStorage.getItem('remi_role') === 'coach')
-  const [showCookModal,       setShowCookModal]       = useState(false)
-  const [showAuthModal,       setShowAuthModal]       = useState(false)
-  const [pendingFridgeMsg,    setPendingFridgeMsg]    = useState('')
   const [genCount,            setGenCount]            = useState(() => {
     const key = 'remi_gens_' + new Date().toISOString().slice(0, 10)
     return parseInt(localStorage.getItem(key) || '0', 10)
@@ -4018,66 +3686,69 @@ export default function App() {
   // ── Session detection on mount ─────────────────────────────────────────────
 
   useEffect(() => {
-    // Part 3: Handle magic link callback — access_token in URL hash
+    // ── Magic link callback — access_token in URL hash ──────────────────────
     const hash = window.location.hash
     if (hash.includes('access_token')) {
-      const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
+      const params       = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
       const accessToken  = params.get('access_token')
       const refreshToken = params.get('refresh_token') ?? ''
 
-      if (accessToken) {
-        // Clear the hash immediately so it doesn't linger
-        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      // Clear hash immediately
+      window.history.replaceState(null, '', '/')
 
-        fetch('/api/auth-user', {
-          headers: { Authorization: `Bearer ${accessToken}` },
+      if (!accessToken) { setView('splash'); return }
+
+      fetch('/api/auth-user', { headers: { Authorization: `Bearer ${accessToken}` } })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.user) { setView('splash'); return }
+
+          const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
+          localStorage.setItem('supabase.auth.token', JSON.stringify(session))
+          applySession(session, data.role)
+
+          const currentProfile = loadProfileOrEvict()
+          setProfile(currentProfile)
+          saveUserIfNew(data.user.email, currentProfile)
+
+          // Returning user (has a profile with name) → Dashboard
+          // New user (no profile or no name) → 3-step onboarding
+          if (currentProfile?.name) {
+            setView('dashboard')
+          } else {
+            setView('onboarding')
+          }
         })
-          .then(r => r.json())
-          .then(data => {
-            if (data.user) {
-              const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
-              localStorage.setItem('supabase.auth.token', JSON.stringify(session))
-              applySession(session, data.role)
-              // Restore profile into React state now that a session is confirmed
-              const currentProfile = loadProfileOrEvict()
-              setProfile(currentProfile)
-              // Part 4: insert user row if first sign-in (idempotent)
-              saveUserIfNew(data.user.email, currentProfile)
-              setView('dashboard')
-            }
-          })
-          .catch(err => console.error('[auth-callback]', err))
-      }
+        .catch(() => setView('splash'))
       return
     }
 
-    // Part 2: Check existing stored session
+    // ── Session restore — stored token ──────────────────────────────────────
     const raw = localStorage.getItem('supabase.auth.token')
-    if (!raw) return
+    if (!raw) return  // no token — view already set to 'splash' by initialiser
     let stored
-    try { stored = JSON.parse(raw) } catch { localStorage.removeItem('supabase.auth.token'); return }
+    try { stored = JSON.parse(raw) } catch { localStorage.removeItem('supabase.auth.token'); setView('splash'); return }
 
     const token = stored?.access_token
-    if (!token) return
+    if (!token) { setView('splash'); return }
 
-    fetch('/api/auth-user', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch('/api/auth-user', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
         if (data.user) {
           applySession({ ...stored, user: data.user }, data.role)
-          // Ensure profile state is populated (may be null if session was absent on init)
           if (!profile) setProfile(loadProfileOrEvict())
+          // view was already set to 'dashboard' or 'onboarding' by initialiser — no change needed
         } else {
-          // Token expired / invalid — clear session, stay on current view
+          // Expired / invalid — clear and show splash
           localStorage.removeItem('supabase.auth.token')
           localStorage.removeItem('remi_role')
           setIsAdmin(false)
           setIsCoach(false)
+          setView('splash')
         }
       })
-      .catch(() => { /* Network error — do nothing, keep current view */ })
+      .catch(() => { /* Network error — keep current view (dashboard) */ })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -4336,7 +4007,7 @@ export default function App() {
     setInput('')
     setQuickReplyType(null)
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
-    setView('welcome')
+    setView('splash')
   }
 
   function handleSignOut() {
@@ -4370,7 +4041,7 @@ export default function App() {
     setAwaitingDishes(false)
     setCookedConfirmation(null)
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
-    setView('welcome')
+    setView('splash')
   }
 
   function saveSession(parsedDishes) {
@@ -4458,7 +4129,7 @@ export default function App() {
       "For tonight's recipes you'll need:",
       ...unchecked.map(i => `• ${i}`),
       '',
-      'Generated by lethimcook4me.vercel.app',
+      'Generated by myremi.io',
     ].join('\n')
     navigator.clipboard.writeText(lines).then(() => {
       setShoppingListCopied(true)
@@ -4477,68 +4148,53 @@ export default function App() {
     )
   }
 
-  // ── View: Welcome ────────────────────────────────────────────────────────────
-  if (view === 'welcome') {
+  // ── View: Loading (auth callback in progress) ───────────────────────────────
+  if (view === 'loading') {
     return (
-      <WelcomeScreen
-        onStart={() => profile ? setView('chat') : setView('onboarding')}
-        onDashboard={() => setView('dashboard')}
-        profile={profile}
-        didYouCookSession={didYouCookSession}
-        onCookedYes={handleCookedYes}
-        onCookedNo={handleCookedNo}
-        cookedConfirmation={cookedConfirmation}
-      />
+      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <style>{CHAT_STYLES}</style>
+        <div className="flex items-center gap-3.5">
+          {[0, 1, 2].map(i => (
+            <span key={i} className="mint-dot" style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
+          ))}
+        </div>
+      </div>
     )
   }
 
-  // ── View: Onboarding ─────────────────────────────────────────────────────────
+  // ── View: Splash ─────────────────────────────────────────────────────────────
+  if (view === 'splash') {
+    return <SplashScreen onGetStarted={() => setView('auth')} />
+  }
+
+  // ── View: Auth (email input / magic link) ────────────────────────────────────
+  if (view === 'auth') {
+    return <AuthScreen onBack={() => setView('splash')} />
+  }
+
+  // ── View: Onboarding (new users — 3 steps) ───────────────────────────────────
   if (view === 'onboarding') {
     return (
       <>
         <Onboarding
-          initialProfile={profile}
-          isLocked={!isPro && genCount >= 3}
-          onBack={() => setView(profile ? 'chat' : 'welcome')}
-          onProClick={() => setShowProModal(true)}
-          onPTClick={() => setShowPTPage(true)}
-          onComplete={(remiProfile, fridgeMessage) => {
+          onBack={() => setView(profile ? 'dashboard' : 'splash')}
+          onComplete={remiProfile => {
             const saved = { ...remiProfile, completedAt: Date.now(), version: PROFILE_VERSION }
-            localStorage.setItem('remi_profile', JSON.stringify(saved))
+            localStorage.setItem('lhc_profile', JSON.stringify(saved))
             setProfile(saved)
-            posthog.identify(posthog.get_distinct_id(), {
-              name: remiProfile.name,
-              goal: remiProfile.goal,
-              training: remiProfile.training,
-              days_per_week: remiProfile.daysPerWeek,
-            })
-            posthog.capture('onboarding_completed', { goal: remiProfile.goal, training: remiProfile.training })
-            // Show auth modal only if no active Supabase session
-            if (!localStorage.getItem('supabase.auth.token')) {
-              setShowAuthModal(true)
-            } else if (fridgeMessage) {
-              setPendingFridgeMsg(fridgeMessage)
-              setShowCookModal(true)
-            } else {
-              setView('dashboard')
+            posthog.identify(posthog.get_distinct_id(), { name: remiProfile.name, goal: remiProfile.goal })
+            posthog.capture('onboarding_completed', { goal: remiProfile.goal, sport: remiProfile.primarySport })
+            // POST to save-user (best-effort, non-blocking)
+            const session = (() => { try { return JSON.parse(localStorage.getItem('supabase.auth.token') || 'null') } catch { return null } })()
+            if (session?.user?.email) {
+              fetch('/api/save-user', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: saved.name, email: session.user.email, sport: saved.primarySport, goal: saved.goal }),
+              }).catch(() => {})
             }
+            setView('dashboard')
           }}
         />
-        {showAuthModal && (
-          <AuthModal
-            profile={profile}
-            isReturning={false}
-          />
-        )}
-        {showCookModal && (
-          <PreCookModal
-            onConfirm={() => {
-              setShowCookModal(false)
-              setView('chat')
-            }}
-            onCancel={() => setShowCookModal(false)}
-          />
-        )}
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
