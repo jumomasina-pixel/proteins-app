@@ -32,11 +32,12 @@ export default async function handler(req, res) {
 
     const user = await userRes.json()
 
-    // 2. Read role from the users table (anon key + user's own token is fine for SELECT)
+    // 2. Read role + profile fields from the users table
     let dbRole = 'free'
+    let dbProfile = null
     try {
       const roleRes = await fetch(
-        `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}&select=role`,
+        `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
         {
           headers: {
             'apikey': supabaseKey,
@@ -46,15 +47,17 @@ export default async function handler(req, res) {
       )
       if (roleRes.ok) {
         const rows = await roleRes.json()
-        if (Array.isArray(rows) && rows.length > 0 && rows[0].role) {
-          dbRole = rows[0].role
+        if (Array.isArray(rows) && rows.length > 0) {
+          const row = rows[0]
+          if (row.role) dbRole = row.role
+          if (row.name) dbProfile = { name: row.name, sport: row.sport || null, goal: row.goal || null, weight: row.weight || null }
         }
       }
     } catch {
-      // Role lookup failure is non-fatal — default to 'free'
+      // Non-fatal — default to free / no profile
     }
 
-    return res.status(200).json({ user, role: dbRole })
+    return res.status(200).json({ user, role: dbRole, dbProfile })
   } catch (err) {
     console.error('[auth-user]', err)
     return res.status(500).json({ error: err.message })

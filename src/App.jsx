@@ -3707,12 +3707,32 @@ export default function App() {
           localStorage.setItem('supabase.auth.token', JSON.stringify(session))
           applySession(session, data.role)
 
-          const currentProfile = loadProfileOrEvict()
+          // Check localStorage first, then fall back to Supabase DB row
+          let currentProfile = loadProfileOrEvict()
+
+          if (!currentProfile?.name && data.dbProfile?.name) {
+            // Reconstruct profile from Supabase row (cross-device returning user)
+            const dp = data.dbProfile
+            const reconstructed = {
+              version: PROFILE_VERSION,
+              name: dp.name,
+              primarySport: dp.sport || '',
+              trainingTypes: dp.sport ? [dp.sport] : [],
+              training: dp.sport ? [dp.sport] : [],
+              goal: dp.goal || 'maintain',
+              goals: [dp.goal || 'maintain'],
+              currentWeight: dp.weight || null,
+              completedAt: Date.now(),
+            }
+            localStorage.setItem('lhc_profile', JSON.stringify(reconstructed))
+            currentProfile = reconstructed
+          }
+
           setProfile(currentProfile)
           saveUserIfNew(data.user.email, currentProfile)
 
-          // Returning user (has a profile with name) → Dashboard
-          // New user (no profile or no name) → 3-step onboarding
+          // Returning user (has name from localStorage or DB) → Dashboard
+          // New user → 3-step onboarding
           if (currentProfile?.name) {
             setView('dashboard')
           } else {
