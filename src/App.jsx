@@ -3923,7 +3923,11 @@ export default function App() {
   const [stats,          setStats]          = useState(() => {
     try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
-  const [view,           setView]           = useState(() => loadProfileOrEvict()?.name ? 'dashboard' : 'welcome')
+  const [view,           setView]           = useState(() => {
+    const hasProfile = !!loadProfileOrEvict()?.name
+    const hasSession = !!localStorage.getItem('supabase.auth.token')
+    return hasProfile && hasSession ? 'dashboard' : 'welcome'
+  })
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
   const [viewingDishImg, setViewingDishImg] = useState(null)
