@@ -2887,9 +2887,9 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
   })
 
   const inputStyle = {
-    width: '100%', borderRadius: 12, backgroundColor: '#141414',
-    border: '1px solid #2A2A2A', color: '#F0EAE0',
-    padding: '14px 18px', fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 16,
+    width: '100%', borderRadius: 12, backgroundColor: '#1A1A1A',
+    border: '1px solid rgba(255,255,255,0.08)', color: '#F0F0F0',
+    padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16,
     outline: 'none', boxSizing: 'border-box',
   }
 
@@ -2963,7 +2963,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
           {step === 1 && (
             <>
               <div>
-                <h2 style={headingStyle}>Let's start. What do I call you?</h2>
+                <h2 style={headingStyle}>What should Remi call you?</h2>
               </div>
               <div>
                 <input
@@ -2971,7 +2971,7 @@ function Onboarding({ initialProfile, onComplete, onBack, isLocked, onProClick, 
                   value={name}
                   onChange={e => setName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && canProceed()) goNext() }}
-                  placeholder="Your name"
+                  placeholder="Your first name"
                   style={inputStyle}
                   autoFocus
                 />
