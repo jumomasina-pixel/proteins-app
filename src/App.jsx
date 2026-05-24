@@ -1856,7 +1856,7 @@ function SplashScreen({ onGetStarted }) {
           Remi
         </h1>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12, position: 'relative', zIndex: 1 }}>
-          Personal Chef · Coach · Guide
+          Personal Chef · Nutritionist · Guide
         </p>
       </div>
 
