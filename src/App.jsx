@@ -2256,7 +2256,7 @@ function RemiCorner({ profile }) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut }) {
   const cuisineFreq = useMemo(() => {
     const counts = {}
     savedRecipes.forEach(r => {
@@ -2696,12 +2696,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             </button>
           )}
           <button
-            onClick={() => {
-              localStorage.removeItem('supabase.auth.token')
-              localStorage.removeItem('remi_role')
-              localStorage.removeItem('remi_email_captured')
-              window.location.reload()
-            }}
+            onClick={onSignOut}
             style={{
               background: 'none', border: 'none',
               fontFamily: 'Inter, sans-serif', fontSize: 12,
@@ -3908,7 +3903,12 @@ export default function App() {
   const [dishes,         setDishes]         = useState(null)
   const [dishImages,     setDishImages]     = useState([])
   const [quickReplyType, setQuickReplyType] = useState('proteins')   // 'proteins'|'cuisine'|'time'|null
-  const [profile,        setProfile]        = useState(() => loadProfileOrEvict())
+  const [profile,        setProfile]        = useState(() => {
+    // Never pre-populate profile if there is no active session —
+    // prevents the returning-user screen from showing after sign-out.
+    const hasSession = !!localStorage.getItem('supabase.auth.token')
+    return hasSession ? loadProfileOrEvict() : null
+  })
   const [savedRecipes,   setSavedRecipes]   = useState(() => {
     // loadProfileOrEvict() already cleared storage if version mismatched,
     // so a missing key here just means a genuine empty list.
@@ -3924,9 +3924,9 @@ export default function App() {
     try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
   const [view,           setView]           = useState(() => {
-    const hasProfile = !!loadProfileOrEvict()?.name
     const hasSession = !!localStorage.getItem('supabase.auth.token')
-    return hasProfile && hasSession ? 'dashboard' : 'welcome'
+    const hasProfile = hasSession && !!loadProfileOrEvict()?.name
+    return hasProfile ? 'dashboard' : 'welcome'
   })
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
@@ -4038,8 +4038,10 @@ export default function App() {
               const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
               localStorage.setItem('supabase.auth.token', JSON.stringify(session))
               applySession(session, data.role)
-              // Part 4: insert user row if first sign-in (idempotent)
+              // Restore profile into React state now that a session is confirmed
               const currentProfile = loadProfileOrEvict()
+              setProfile(currentProfile)
+              // Part 4: insert user row if first sign-in (idempotent)
               saveUserIfNew(data.user.email, currentProfile)
               setView('dashboard')
             }
@@ -4065,6 +4067,8 @@ export default function App() {
       .then(data => {
         if (data.user) {
           applySession({ ...stored, user: data.user }, data.role)
+          // Ensure profile state is populated (may be null if session was absent on init)
+          if (!profile) setProfile(loadProfileOrEvict())
         } else {
           // Token expired / invalid — clear session, stay on current view
           localStorage.removeItem('supabase.auth.token')
@@ -4335,6 +4339,40 @@ export default function App() {
     setView('welcome')
   }
 
+  function handleSignOut() {
+    // 1. Wipe auth and role keys from localStorage
+    ;[
+      'supabase.auth.token',
+      'remi_role',
+      'remi_email_captured',
+      'lhc_profile',
+      'remi_user_email',
+    ].forEach(k => localStorage.removeItem(k))
+
+    // 2. Reset all React state — no reload, no stale screen
+    setProfile(null)
+    setIsAdmin(false)
+    setIsCoach(false)
+    setMessages(SEED)
+    setDishes(null)
+    setDishImages([])
+    setMissingIngredients([])
+    setShoppingListCopied(false)
+    setCheckedIngredients(new Set())
+    setSelectedDish(null)
+    setViewingDish(null)
+    setViewingDishImg(null)
+    setError(null)
+    setInput('')
+    setQuickReplyType('proteins')
+    setStreaming(false)
+    setStreamContent('')
+    setAwaitingDishes(false)
+    setCookedConfirmation(null)
+    sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
+    setView('welcome')
+  }
+
   function saveSession(parsedDishes) {
     const data = sessionDataRef.current
     if (!data.proteins?.length && !parsedDishes?.length) return
@@ -4540,6 +4578,7 @@ export default function App() {
           isAdmin={isAdmin}
           isCoach={isCoach}
           onAdminPanel={() => setView('admin-panel')}
+          onSignOut={handleSignOut}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
