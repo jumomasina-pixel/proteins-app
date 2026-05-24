@@ -54,8 +54,8 @@ function mapProfileForApi(p) {
     trainingFreq: freq,
     trainingTypes: trainingTypes.length ? trainingTypes : ['None'],
     primarySport: p.primarySport || '',
-    avoidFoods: p.avoidFoods || '',
-    kitchenLevel: 'home cook',
+    avoidFoods: p.avoidFoods || p.foodsToAvoid || '',
+    kitchenLevel: p.kitchenSkill || 'home cook',
     sportGoal: p.sportGoal || '',
     weightCutMode: !!p.weightCutMode,
     fightDate: p.fightDate || '',
@@ -2608,84 +2608,135 @@ const ONBOARDING_STYLES = `
   .remi-word-up { animation: remi-word-up 0.38s ease 0.28s both; }
 `
 
-// ── Simple 3-step onboarding (new users only) ─────────────────────────────────
+// ── Full 11-step onboarding ────────────────────────────────────────────────────
 
-const ONBOARDING_SPORT_OPTIONS = ['Boxing', 'MMA', 'CrossFit', 'Gym', 'Running', 'Cycling', 'Football', 'Other']
-const ONBOARDING_GOAL_OPTIONS  = ['Lose weight', 'Build muscle', 'Fight camp', 'Improve performance', 'Eat better']
+const OB_GOALS_OPTIONS = [
+  'Lose weight', 'Build muscle', 'Improve performance',
+  'Fight camp / cut', 'Eat better', 'Maintain',
+]
 
-function mapOnboardingGoal(label) {
-  if (label === 'Lose weight')        return 'cut'
-  if (label === 'Build muscle')       return 'bulk'
-  if (label === 'Fight camp')         return 'cut'
-  if (label === 'Improve performance') return 'performance'
-  if (label === 'Eat better')         return 'eat_clean'
+const OB_TRAINING_FREQ_OPTIONS = [
+  'Every day', '5–6x per week', '3–4x per week', '1–2x per week', 'Rarely right now',
+]
+
+const OB_KITCHEN_OPTIONS = [
+  'I follow recipes',
+  'I know my way around',
+  'I can improvise',
+]
+
+function mapGoalForApi(goals) {
+  if (goals.includes('Fight camp / cut') || goals.includes('Lose weight')) return 'cut'
+  if (goals.includes('Build muscle')) return 'bulk'
+  if (goals.includes('Improve performance')) return 'performance'
+  if (goals.includes('Eat better')) return 'eat_clean'
   return 'maintain'
 }
 
-function mapOnboardingSport(label) {
-  if (label === 'Gym')      return 'Weightlifting'
-  if (label === 'Football') return 'Football / AFL'
-  return label
-}
-
 function Onboarding({ onComplete, onBack }) {
-  const [step, setStep] = useState(1)
-  const [name, setName] = useState('')
-  const [sport, setSport] = useState('')
-  const [goal, setGoal] = useState('')
+  const [step,              setStep]             = useState(1)
+  const [name,              setName]             = useState('')
+  const [weight,            setWeight]           = useState('')
+  const [goals,             setGoals]            = useState([])
+  const [targetWeight,      setTargetWeight]     = useState('')
+  const [trainingFreq,      setTrainingFreq]     = useState('')
+  const [trainingTypes,     setTrainingTypes]    = useState([])
+  const [primarySport,      setPrimarySport]     = useState('')
+  const [sportGoal,         setSportGoal]        = useState('')
+  const [fightDate,         setFightDate]        = useState('')
+  const [fightTargetWeight, setFightTargetWt]    = useState('')
+  const [philosophy,        setPhilosophy]       = useState(null)
+  const [foodsToAvoid,      setFoodsToAvoid]     = useState('')
+  const [kitchenSkill,      setKitchenSkill]     = useState('')
 
-  const TOTAL_STEPS = 3
+  const TOTAL_STEPS = 11
+  const isMaintain  = goals.includes('Maintain')
+  const isCombat    = trainingTypes.some(t => COMBAT_SPORTS.includes(t))
+  const isFightGoal = sportGoal === 'I have a fight / competition coming up'
 
-  const headingStyle = {
-    fontFamily: 'Syne, sans-serif',
-    fontWeight: 700,
-    fontSize: 'clamp(1.75rem, 6vw, 2.25rem)',
-    color: '#F0F0F0',
-    lineHeight: 1.1,
-    margin: 0,
+  function advanceStep() {
+    if (step === 3 && isMaintain) return setStep(5)
+    if (step === 6) {
+      if (trainingTypes.length === 1) { setPrimarySport(trainingTypes[0]); return setStep(8) }
+    }
+    setStep(s => s + 1)
   }
 
-  const inputStyle = {
-    width: '100%', borderRadius: 8, backgroundColor: '#0D0D0D',
-    border: '1px solid rgba(255,255,255,0.12)', color: '#F0F0F0',
-    padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16,
-    outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms ease',
+  function retreatStep() {
+    if (step === 1) { onBack(); return }
+    if (step === 5 && isMaintain) return setStep(3)
+    if (step === 8 && trainingTypes.length === 1) return setStep(6)
+    setStep(s => s - 1)
   }
-
-  const chipStyle = (selected) => ({
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    padding: '10px 18px', minHeight: 44, borderRadius: 8,
-    border: `1px solid ${selected ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
-    backgroundColor: selected ? '#00E5A0' : '#1A1A1A',
-    color: selected ? '#0D0D0D' : '#F0F0F0',
-    fontFamily: 'Inter, sans-serif', fontSize: 14,
-    fontWeight: selected ? 600 : 500,
-    cursor: 'pointer', transition: 'background 150ms ease, border-color 150ms ease',
-    whiteSpace: 'nowrap',
-  })
 
   function canProceed() {
-    if (step === 1) return name.trim().length > 0
-    if (step === 2) return sport.length > 0
-    if (step === 3) return goal.length > 0
-    return false
+    switch (step) {
+      case 1:  return name.trim().length > 0
+      case 2:  return weight !== '' && !isNaN(Number(weight)) && Number(weight) > 0
+      case 3:  return goals.length > 0
+      case 4:  return targetWeight !== '' && !isNaN(Number(targetWeight)) && Number(targetWeight) > 0
+      case 5:  return trainingFreq.length > 0
+      case 6:  return trainingTypes.length > 0
+      case 7:  return primarySport.length > 0
+      case 8: {
+        if (!sportGoal) return false
+        if (isCombat && isFightGoal) return fightDate.length > 0 && fightTargetWeight !== '' && Number(fightTargetWeight) > 0
+        return true
+      }
+      case 9:  return true
+      case 10: return true
+      case 11: return kitchenSkill.length > 0
+      default: return false
+    }
   }
 
   function handleComplete() {
-    const mappedSport = mapOnboardingSport(sport)
-    const mappedGoal  = mapOnboardingGoal(goal)
-    const profile = {
-      version: PROFILE_VERSION,
-      name: name.trim(),
-      primarySport: mappedSport,
-      trainingTypes: [mappedSport],
-      training: [mappedSport],
-      goal: mappedGoal,
-      goals: [mappedGoal],
-      completedAt: Date.now(),
-    }
-    onComplete(profile)
+    const resolvedPrimary = trainingTypes.length === 1 ? trainingTypes[0] : primarySport
+    const weightCut = isCombat && isFightGoal && !!fightDate && !!fightTargetWeight
+    const goal = mapGoalForApi(goals)
+    onComplete({
+      version:          PROFILE_VERSION,
+      name:             name.trim(),
+      weight:           Number(weight) || null,
+      currentWeight:    Number(weight) || null,
+      goals,
+      goal,
+      targetWeight:     isMaintain ? null : (Number(targetWeight) || null),
+      trainingFrequency: trainingFreq,
+      trainingTypes,
+      training:         trainingTypes,
+      primarySport:     resolvedPrimary,
+      sportGoal,
+      fightDate:        weightCut ? fightDate : '',
+      fightTargetWeight: weightCut ? (Number(fightTargetWeight) || null) : null,
+      weightCutMode:    weightCut,
+      trainingPhilosophy: philosophy,
+      foodsToAvoid:     foodsToAvoid.trim(),
+      avoidFoods:       foodsToAvoid.trim(),
+      kitchenSkill,
+    })
   }
+
+  const HS = { fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.75rem, 6vw, 2.25rem)', color: '#F0F0F0', lineHeight: 1.1, margin: 0 }
+  const IS = { width: '100%', borderRadius: 8, backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', color: '#F0F0F0', padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms ease' }
+  const CS = sel => ({
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    padding: '10px 18px', minHeight: 44, borderRadius: 8,
+    border: `1px solid ${sel ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
+    backgroundColor: sel ? '#00E5A0' : '#1A1A1A',
+    color: sel ? '#0D0D0D' : '#F0F0F0',
+    fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: sel ? 600 : 500,
+    cursor: 'pointer', transition: 'background 150ms ease, border-color 150ms ease', whiteSpace: 'nowrap',
+  })
+
+  const resolvedPrimary = trainingTypes.length === 1 ? trainingTypes[0] : primarySport
+  const philInfo = TRAINING_PHILOSOPHY_MAP[resolvedPrimary] || null
+
+  const backArrow = (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
+    </svg>
+  )
 
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
@@ -2693,31 +2744,16 @@ function Onboarding({ onComplete, onBack }) {
 
       {/* Mint progress line */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1A1A', zIndex: 100 }}>
-        <div style={{
-          height: '100%',
-          width: `${(step / TOTAL_STEPS) * 100}%`,
-          backgroundColor: '#00E5A0',
-          transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          borderRadius: '0 2px 2px 0',
-        }} />
+        <div style={{ height: '100%', width: `${(step / TOTAL_STEPS) * 100}%`, backgroundColor: '#00E5A0', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', borderRadius: '0 2px 2px 0' }} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 40px' }}>
 
-        {/* Back arrow + step counter */}
+        {/* Back + counter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 44 }}>
-          {step > 1 ? (
-            <button
-              onClick={() => setStep(s => s - 1)}
-              style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
-              </svg>
-            </button>
-          ) : (
-            <div />
-          )}
+          <button onClick={retreatStep} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+            {backArrow}
+          </button>
           <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.7rem', color: '#555', letterSpacing: '0.12em' }}>
             {step} / {TOTAL_STEPS}
           </span>
@@ -2726,83 +2762,174 @@ function Onboarding({ onComplete, onBack }) {
         {/* Step content */}
         <div key={step} className="ob-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 32 }}>
 
-          {/* Step 1: Name */}
           {step === 1 && (
             <>
-              <h2 style={headingStyle}>What should Remi call you?</h2>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && canProceed()) setStep(2) }}
-                onFocus={e  => { e.target.style.borderColor = '#00E5A0' }}
-                onBlur={e   => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                placeholder="Your first name"
-                style={inputStyle}
-                autoFocus
-              />
+              <h2 style={HS}>What should Remi call you?</h2>
+              <input type="text" value={name} onChange={e => setName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && canProceed()) advanceStep() }}
+                onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                placeholder="Your first name" style={IS} autoFocus />
             </>
           )}
 
-          {/* Step 2: Sport */}
           {step === 2 && (
             <>
-              <h2 style={headingStyle}>What's your main sport or training?</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {ONBOARDING_SPORT_OPTIONS.map(s => (
-                  <button key={s} onClick={() => setSport(s)} style={chipStyle(sport === s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <h2 style={HS}>Current weight in kg.</h2>
+              <input type="number" value={weight} onChange={e => setWeight(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && canProceed()) advanceStep() }}
+                onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                placeholder="e.g. 82" inputMode="decimal" style={IS} autoFocus />
             </>
           )}
 
-          {/* Step 3: Goal */}
           {step === 3 && (
             <>
-              <h2 style={headingStyle}>What's your goal right now?</h2>
+              <h2 style={HS}>What are we working toward? Pick everything that applies.</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {ONBOARDING_GOAL_OPTIONS.map(g => (
-                  <button key={g} onClick={() => setGoal(g)} style={chipStyle(goal === g)}>
+                {OB_GOALS_OPTIONS.map(g => (
+                  <button key={g} onClick={() => setGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])} style={CS(goals.includes(g))}>
                     {g}
                   </button>
                 ))}
               </div>
             </>
           )}
+
+          {step === 4 && (
+            <>
+              <h2 style={HS}>Target weight in kg. We'll work backward from here.</h2>
+              <input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && canProceed()) advanceStep() }}
+                onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                placeholder="e.g. 78" inputMode="decimal" style={IS} autoFocus />
+            </>
+          )}
+
+          {step === 5 && (
+            <>
+              <h2 style={HS}>How often do you train. Honest answer.</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {OB_TRAINING_FREQ_OPTIONS.map(f => (
+                  <button key={f} onClick={() => setTrainingFreq(f)} style={CS(trainingFreq === f)}>{f}</button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {step === 6 && (
+            <>
+              <h2 style={HS}>What does your training look like?</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {REMI_TRAINING_TYPES_V5.map(t => (
+                  <button key={t} onClick={() => setTrainingTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} style={CS(trainingTypes.includes(t))}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {step === 7 && (
+            <>
+              <h2 style={HS}>What's your main training focus?</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {trainingTypes.map(t => (
+                  <button key={t} onClick={() => setPrimarySport(t)} style={CS(primarySport === t)}>{t}</button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {step === 8 && (
+            <>
+              <h2 style={HS}>Do you have a specific goal coming up?</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {SPORT_GOAL_OPTIONS.map(g => (
+                  <button key={g} onClick={() => setSportGoal(g)} style={{ ...CS(sportGoal === g), justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal', lineHeight: 1.4 }}>
+                    {g}
+                  </button>
+                ))}
+              </div>
+              {isCombat && isFightGoal && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0 }}>Fight date and target weight.</p>
+                  <input type="date" value={fightDate} onChange={e => setFightDate(e.target.value)}
+                    onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+                    onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                    style={{ ...IS, colorScheme: 'dark' }} />
+                  <input type="number" value={fightTargetWeight} onChange={e => setFightTargetWt(e.target.value)}
+                    onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+                    onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                    placeholder="Fight weight (kg)" inputMode="decimal" style={IS} />
+                </div>
+              )}
+            </>
+          )}
+
+          {step === 9 && (
+            <>
+              {philInfo ? (
+                <>
+                  <h2 style={HS}>{philInfo.q}</h2>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                    {philInfo.opts.map(o => (
+                      <button key={o} onClick={() => setPhilosophy(o)} style={CS(philosophy === o)}>{o}</button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 style={HS}>Is there an athlete or coach who shapes how you train?</h2>
+                  <input type="text" value={philosophy || ''} onChange={e => setPhilosophy(e.target.value || null)}
+                    onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+                    onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                    placeholder="Optional" style={IS} />
+                </>
+              )}
+            </>
+          )}
+
+          {step === 10 && (
+            <>
+              <h2 style={HS}>Anything off the table — allergies, dislikes, non-negotiables?</h2>
+              <input type="text" value={foodsToAvoid} onChange={e => setFoodsToAvoid(e.target.value)}
+                onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                placeholder="Optional — e.g. no nuts, no pork" style={IS} autoFocus />
+            </>
+          )}
+
+          {step === 11 && (
+            <>
+              <h2 style={HS}>Kitchen confidence. Be honest — I'm not judging.</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {OB_KITCHEN_OPTIONS.map(k => (
+                  <button key={k} onClick={() => setKitchenSkill(k)} style={{ ...CS(kitchenSkill === k), justifyContent: 'flex-start', textAlign: 'left' }}>{k}</button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* CTA */}
-        <div style={{ marginTop: 40 }}>
+        {/* CTAs */}
+        <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {(step === 9 || step === 10) && (
+            <button onClick={() => { if (step === 9) setPhilosophy(null); advanceStep() }}
+              style={{ width: '100%', height: 44, backgroundColor: 'transparent', color: '#555', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+              Skip
+            </button>
+          )}
           {step < TOTAL_STEPS ? (
-            <button
-              onClick={() => canProceed() && setStep(s => s + 1)}
-              disabled={!canProceed()}
-              style={{
-                width: '100%', height: 56,
-                backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A',
-                color: canProceed() ? '#0D0D0D' : '#444',
-                borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16,
-                border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
-              }}
-            >
+            <button onClick={() => canProceed() && advanceStep()} disabled={!canProceed()}
+              style={{ width: '100%', height: 56, backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#444', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)', cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s' }}>
               Continue
             </button>
           ) : (
-            <button
-              onClick={() => canProceed() && handleComplete()}
-              disabled={!canProceed()}
-              style={{
-                width: '100%', height: 56,
-                backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A',
-                color: canProceed() ? '#0D0D0D' : '#444',
-                borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16,
-                border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s',
-              }}
-            >
+            <button onClick={() => canProceed() && handleComplete()} disabled={!canProceed()}
+              style={{ width: '100%', height: 56, backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#444', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)', cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s' }}>
               Let's go
             </button>
           )}
@@ -4014,6 +4141,7 @@ export default function App() {
     LS_KEYS.forEach(k => localStorage.removeItem(k))
     localStorage.removeItem('lhc_greeting')
     localStorage.removeItem('remi_training_today')
+    localStorage.removeItem('remi_first_recipe_saved')
     Object.keys(localStorage)
       .filter(k => k.startsWith('lhc_corner_tips'))
       .forEach(k => localStorage.removeItem(k))
@@ -4047,6 +4175,7 @@ export default function App() {
       'lhc_profile',
       'remi_profile',
       'remi_user_email',
+      'remi_first_recipe_saved',
     ].forEach(k => localStorage.removeItem(k))
 
     // 2. Reset all React state — no reload, no stale screen
@@ -4124,6 +4253,7 @@ export default function App() {
   }
 
   function handleSaveRecipe(dish, imgUrl, imgCredit) {
+    const isFirst = !localStorage.getItem('remi_first_recipe_saved')
     const entry = { ...dish, _id: `${dish.name}_${Date.now()}`, _savedAt: Date.now(), _imgUrl: imgUrl ?? null, _imgCredit: imgCredit ?? null }
     setSavedRecipes(prev => {
       const next = [...prev.filter(r => r.name !== dish.name), entry]
@@ -4131,6 +4261,15 @@ export default function App() {
       return next
     })
     posthog.capture('recipe_saved', { dish_name: dish.name, cuisine: dish.chef?.cuisine })
+    if (isFirst) {
+      localStorage.setItem('remi_first_recipe_saved', 'true')
+      setMessages(prev => [...prev, {
+        id: `dash-prompt-${Date.now()}`,
+        role: 'assistant',
+        content: "That's the standard. Your dashboard is ready.",
+        dashboardPrompt: true,
+      }])
+    }
   }
 
   function handleRemoveRecipe(nameOrId) {
@@ -4221,7 +4360,7 @@ export default function App() {
                 body: JSON.stringify({ name: saved.name, email: session.user.email, sport: saved.primarySport, goal: saved.goal }),
               }).catch(() => {})
             }
-            setView('dashboard')
+            setView('chat')
           }}
         />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
@@ -4561,7 +4700,19 @@ export default function App() {
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-3 relative z-10 pb-20 lg:pb-5">
             {displayMessages.map(msg => (
-              <ChatBubble key={msg.id} role={msg.role} content={msg.content} userName={profile?.name} isOpening={!!(msg.seed && msg.role === 'assistant')} />
+              <div key={msg.id}>
+                <ChatBubble role={msg.role} content={msg.content} userName={profile?.name} isOpening={!!(msg.seed && msg.role === 'assistant')} />
+                {msg.dashboardPrompt && (
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      onClick={() => setView('dashboard')}
+                      style={{ backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 20, padding: '12px 24px', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}
+                    >
+                      See my dashboard
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
             {streaming && streamContent && (
               <ChatBubble role="assistant" content={streamContent} isStreaming userName={profile?.name} />
