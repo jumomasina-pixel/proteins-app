@@ -251,12 +251,9 @@ function parseMissingIngredients(rawText) {
       .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
       .filter(l => l.length > 0 && !/^nothing/i.test(l))
     if (items.length > 0) {
-      console.log('[shopping] parseMissingIngredients — found', items.length, 'item(s):', items)
       return items
     }
   }
-
-  console.log('[shopping] parseMissingIngredients — no match found, trying fallback. Last 500 chars:\n', text.slice(-500))
 
   // Fallback: scan for bullet/numbered lines appearing after known section markers
   const afterMarker = text.match(
@@ -269,7 +266,6 @@ function parseMissingIngredients(rawText) {
       .filter(l => l.length > 0 && /[a-z]/i.test(l) && l.length < 100)
       .slice(0, 20)
     if (fallbackItems.length > 0) {
-      console.log('[shopping] fallback found', fallbackItems.length, 'item(s):', fallbackItems)
       return fallbackItems
     }
   }
@@ -389,14 +385,6 @@ const REMI_GOAL_OPTIONS = [
   { value: 'maintain',    label: 'Maintain',    desc: '' },
   { value: 'recomp',      label: 'Recomp',      desc: '' },
   { value: 'performance', label: 'Performance', desc: '' },
-]
-
-const REMI_TRAINING_OPTIONS = [
-  { value: 'weights', label: 'Weights' },
-  { value: 'boxing',  label: 'Boxing' },
-  { value: 'cardio',  label: 'Cardio' },
-  { value: 'sport',   label: 'Sport' },
-  { value: 'none',    label: "None / I don't train" },
 ]
 
 const REMI_TRAINING_TYPES_V5 = [
@@ -534,12 +522,6 @@ const TRAINING_TYPES = [
   { value: 'Dance & Aerobics',   label: 'Dance & Aerobics',   emoji: '💃' },
   { value: 'None',               label: 'None',               emoji: '🛋️' },
 ]
-const KITCHEN_OPTIONS = [
-  { value: 'beginner',    label: 'I follow recipes'        },
-  { value: 'home cook',   label: 'I know my way around'    },
-  { value: 'confident',   label: 'I can improvise'         },
-]
-
 // ── Quick-reply card data ─────────────────────────────────────────────────────
 
 const PROTEIN_CARDS = [
@@ -761,28 +743,6 @@ function InsightsDesktopSidebar() {
   )
 }
 
-function InsightsMobileStrip() {
-  const visible = useInsights()
-  return (
-    <div
-      className="shrink-0 border-b px-4 py-2.5"
-      style={{ borderColor: '#2A2A2A', backgroundColor: '#0F0D0B' }}
-    >
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] mb-2" style={{ color: '#7A6B5A' }}>
-        Today's Insights
-      </p>
-      <div
-        className="flex gap-2.5 overflow-x-auto pb-1"
-        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-      >
-        {visible.map((ins, i) => (
-          <InsightCard key={i} insight={ins} compact />
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Mobile bottom nav ─────────────────────────────────────────────────────────
 
 function CrownBadge() {
@@ -876,39 +836,6 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
         )
       })}
     </nav>
-  )
-}
-
-// ── Avatars ───────────────────────────────────────────────────────────────────
-
-function ChefAvatar() {
-  return (
-    <img
-      src="https://images.unsplash.com/photo-1629407119384-d42320c3e576?w=100&q=80"
-      alt=""
-      aria-hidden
-      className="shrink-0 select-none"
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: '50%',
-        objectFit: 'cover',
-        border: '2px solid #00E5A0',
-      }}
-    />
-  )
-}
-
-function UserAvatar({ name }) {
-  const initial = name ? name[0].toUpperCase() : 'Y'
-  return (
-    <div
-      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white select-none"
-      style={{ backgroundColor: '#009966' }}
-      aria-hidden
-    >
-      {initial}
-    </div>
   )
 }
 
@@ -1219,10 +1146,10 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
 
 // ── Compact dish card ─────────────────────────────────────────────────────────
 
-function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
+function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl, initialCredit = null }) {
   const [imgUrl,      setImgUrl]      = useState(initialUrl ?? null)
   const [imgLoaded,   setImgLoaded]   = useState(!!initialUrl)
-  const [photographer, setPhotographer] = useState(null)
+  const [photographer, setPhotographer] = useState(initialCredit)
 
   useEffect(() => {
     if (initialUrl) return
@@ -1235,7 +1162,7 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl }) {
         if (!cancelled && d.url) {
           setImgUrl(d.url)
           setPhotographer(d.credit?.name ?? null)
-          onImageResolved?.(d.url)
+          onImageResolved?.(d.url, d.credit?.name ?? null)
         }
       })
       .catch(() => {})
@@ -1491,7 +1418,7 @@ function CookStepsList({ steps, accentColor }) {
   )
 }
 
-function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigateDashboard, missingIngredients = [] }) {
+function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave, onRemove, onNavigateDashboard, missingIngredients = [] }) {
   const [mode,            setMode]            = useState('diet')
   const [copied,          setCopied]          = useState(false)
   const [toast,           setToast]           = useState({ visible: false, message: '', action: null })
@@ -1499,7 +1426,6 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
   const [listCopied,      setListCopied]      = useState(false)
   const [showShareModal,  setShowShareModal]  = useState(false)
   const { chef, dietician } = dish
-  console.log('[debug] missingIngredients:', missingIngredients)
 
   function showToast(message, action = null) {
     setToast({ visible: true, message, action })
@@ -1567,32 +1493,39 @@ function DetailView({ dish, onBack, imgUrl, isSaved, onSave, onRemove, onNavigat
 
       {/* ── Hero image ── */}
       {imgUrl ? (
-        <div className="relative w-full overflow-hidden" style={{ height: '55vh' }}>
-          <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
-          <button
-            onClick={onBack}
-            style={{
-              position: 'absolute', top: 16, left: 16, zIndex: 10,
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'rgba(13,13,13,0.75)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 20,
-              padding: '8px 16px',
-              color: '#F0F0F0',
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 500,
-              fontSize: 13,
-              cursor: 'pointer',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Back to dishes
-          </button>
-        </div>
+        <>
+          <div className="relative w-full overflow-hidden" style={{ height: '55vh' }}>
+            <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
+            <button
+              onClick={onBack}
+              style={{
+                position: 'absolute', top: 16, left: 16, zIndex: 10,
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(13,13,13,0.75)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 20,
+                padding: '8px 16px',
+                color: '#F0F0F0',
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 500,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Back to dishes
+            </button>
+          </div>
+          {photographer && (
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', margin: '4px 0 0', padding: '0 16px', lineHeight: 1.4 }}>
+              Photo by {photographer} on Unsplash
+            </p>
+          )}
+        </>
       ) : (
         <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#00E5A0' }}>
           <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
@@ -2077,14 +2010,6 @@ function WelcomeScreen({ onStart, onDashboard, profile, didYouCookSession, onCoo
 
 // ── Loading screen ────────────────────────────────────────────────────────────
 
-const LOADER_STYLES = `
-  @keyframes logoPulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.3; }
-  }
-  .remi-loader-pulse { animation: logoPulse 2s ease-in-out infinite; }
-`
-
 function ChefLoader() {
   return (
     <div className="flex items-center gap-3.5">
@@ -2106,7 +2031,7 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
   return (
     <div className="rounded-2xl overflow-hidden relative" style={{ backgroundColor: '#1A1612', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', border: '1px solid #2A2A2A' }}>
       <button onClick={onOpen} className="w-full text-left block">
-        <CardImageHeader dishName={dish.name} cuisine={dish.chef?.cuisine} initialUrl={dish._imgUrl} />
+        <CardImageHeader dishName={dish.name} cuisine={dish.chef?.cuisine} initialUrl={dish._imgUrl} initialCredit={dish._imgCredit ?? null} />
         <div className="px-4 pb-4 pt-3 space-y-2">
           <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 16, color: '#F0EAE0', lineHeight: 1.2, margin: 0 }}>
             {dish.name}
@@ -2622,6 +2547,11 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     <span className="text-xs tabular-nums" style={{ color: '#7A9E7E', fontVariantNumeric: 'tabular-nums' }}>
                       {recipe.dietician?.macros?.calories ?? '—'} kcal
                     </span>
+                    {recipe._imgUrl && recipe._imgCredit && (
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#555555', margin: 0, lineHeight: 1.3 }}>
+                        Photo: {recipe._imgCredit} / Unsplash
+                      </p>
+                    )}
                   </div>
                 </button>
               ))}
@@ -3770,8 +3700,6 @@ export default function App() {
     let sawDone = false
 
     try {
-      console.log(`[meals] Sending ${nextMessages.length} messages, profile: ${profile?.name ?? 'null'}`)
-
       const res = await fetch('/api/meals', {
         method: 'POST',
         headers: {
@@ -3822,9 +3750,7 @@ export default function App() {
             if (parsed.length > 0) {
               setDishes(parsed)
               setDishImages([])
-              console.log('[debug] raw API response:', accumulated)
               const _ingredients = parseMissingIngredients(accumulated)
-              console.log('[shopping] [DONE] path — setting missingIngredients:', _ingredients.length, 'item(s)')
               setMissingIngredients(_ingredients)
               setShoppingListCopied(false)
               setCheckedIngredients(new Set())
@@ -3886,12 +3812,9 @@ export default function App() {
         // Try to salvage partial content before giving up
         const parsed = accumulated ? parseDishes(accumulated) : []
         if (parsed.length > 0) {
-          console.log('[meals] Partial parse succeeded —', parsed.length, 'dishes recovered')
           setDishes(parsed)
           setDishImages([])
-          console.log('[debug] raw API response:', accumulated)
           const _ingredients2 = parseMissingIngredients(accumulated)
-          console.log('[shopping] salvage path — setting missingIngredients:', _ingredients2.length, 'item(s)')
           setMissingIngredients(_ingredients2)
           setShoppingListCopied(false)
           setCheckedIngredients(new Set())
@@ -4037,8 +3960,8 @@ export default function App() {
     })
   }
 
-  function handleSaveRecipe(dish, imgUrl) {
-    const entry = { ...dish, _id: `${dish.name}_${Date.now()}`, _savedAt: Date.now(), _imgUrl: imgUrl ?? null }
+  function handleSaveRecipe(dish, imgUrl, imgCredit) {
+    const entry = { ...dish, _id: `${dish.name}_${Date.now()}`, _savedAt: Date.now(), _imgUrl: imgUrl ?? null, _imgCredit: imgCredit ?? null }
     setSavedRecipes(prev => {
       const next = [...prev.filter(r => r.name !== dish.name), entry]
       localStorage.setItem('lhc_saved_recipes', JSON.stringify(next))
@@ -4229,18 +4152,19 @@ export default function App() {
 
   // ── View: Detail ─────────────────────────────────────────────────────────────
   if (view === 'detail' && (selectedDish !== null || viewingDish !== null)) {
-    const dish   = viewingDish ?? dishes[selectedDish]
-    const imgUrl = viewingDish ? viewingDishImg : (dishImages[selectedDish] ?? null)
-    const backTo = viewingDish ? savedBackTo : 'cards'
+    const dish       = viewingDish ?? dishes[selectedDish]
+    const imgUrl     = viewingDish ? viewingDishImg : (dishImages[selectedDish]?.url ?? null)
+    const imgCredit  = viewingDish ? (viewingDish._imgCredit ?? null) : (dishImages[selectedDish]?.credit ?? null)
+    const backTo     = viewingDish ? savedBackTo : 'cards'
     const detailIngredients = viewingDish ? [] : missingIngredients
-    console.log('[shopping] DetailView — missingIngredients:', detailIngredients.length, 'item(s), viewingDish:', !!viewingDish)
     return (
       <DetailView
         dish={dish}
         onBack={() => { setViewingDish(null); setViewingDishImg(null); setView(backTo) }}
         imgUrl={imgUrl}
+        photographer={imgCredit}
         isSaved={isRecipeSaved(dish.name)}
-        onSave={() => handleSaveRecipe(dish, imgUrl)}
+        onSave={() => handleSaveRecipe(dish, imgUrl, imgCredit)}
         onRemove={() => handleRemoveRecipe(dish.name)}
         onNavigateDashboard={() => setView('dashboard')}
         missingIngredients={detailIngredients}
@@ -4322,8 +4246,8 @@ export default function App() {
                     key={i}
                     dish={dish}
                     onClick={() => { setSelectedDish(i); posthog.capture('recipe_detail_viewed', { dish_name: dish.name }); setView('detail') }}
-                    onImageResolved={url => setDishImages(prev => {
-                      const next = [...prev]; next[i] = url; return next
+                    onImageResolved={(url, credit) => setDishImages(prev => {
+                      const next = [...prev]; next[i] = { url, credit }; return next
                     })}
                   />
                 ))}
