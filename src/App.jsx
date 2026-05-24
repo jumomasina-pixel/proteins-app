@@ -756,7 +756,7 @@ function CrownBadge() {
   )
 }
 
-function BottomNav({ activeView, onNavigate, isPro = false, isAdmin = false }) {
+function BottomNav({ activeView, onNavigate, isPro = false }) {
   const NAV_ITEMS = [
     {
       id: 'chat',
@@ -827,7 +827,7 @@ function BottomNav({ activeView, onNavigate, isPro = false, isAdmin = false }) {
           >
             <div style={{ position: 'relative', display: 'inline-flex' }}>
               {item.icon(active)}
-              {item.id === 'intel' && !isPro && !isAdmin && (
+              {item.id === 'intel' && !isPro && (
                 <span style={{ position: 'absolute', top: -5, right: -7, lineHeight: 1 }}>
                   <CrownBadge />
                 </span>
@@ -2256,7 +2256,7 @@ function RemiCorner({ profile }) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel }) {
   const cuisineFreq = useMemo(() => {
     const counts = {}
     savedRecipes.forEach(r => {
@@ -2341,6 +2341,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             </h1>
             {isAdmin && (
               <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', marginTop: 4 }}>Admin view</p>
+            )}
+            {!isAdmin && isCoach && (
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', marginTop: 4 }}>Coach access</p>
             )}
           </div>
           <button
@@ -2678,8 +2681,20 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           Start cooking →
         </button>
 
-        {/* ── Sign out ── */}
-        <div style={{ textAlign: 'center', paddingBottom: 8 }}>
+        {/* ── Sign out / Admin ── */}
+        <div style={{ textAlign: 'center', paddingBottom: 8, display: 'flex', justifyContent: 'center', gap: 20 }}>
+          {isAdmin && (
+            <button
+              onClick={onAdminPanel}
+              style={{
+                background: 'none', border: 'none',
+                fontFamily: 'Inter, sans-serif', fontSize: 12,
+                color: '#888888', cursor: 'pointer', padding: '4px 0',
+              }}
+            >
+              Admin
+            </button>
+          )}
           <button
             onClick={() => {
               localStorage.removeItem('supabase.auth.token')
@@ -3545,6 +3560,180 @@ function AuthModal({ profile, isReturning = false, onSessionEstablished }) {
   )
 }
 
+// ── Admin panel ──────────────────────────────────────────────────────────────
+
+function AdminPanel({ onBack }) {
+  const [searchEmail,  setSearchEmail]  = useState('')
+  const [user,         setUser]         = useState(null)
+  const [selectedRole, setSelectedRole] = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [lookupError,  setLookupError]  = useState('')
+  const [status,       setStatus]       = useState(null)   // null | 'success' | 'error'
+  const [statusMsg,    setStatusMsg]    = useState('')
+
+  async function handleLookup() {
+    const q = searchEmail.trim()
+    if (!q) return
+    setLoading(true); setUser(null); setLookupError(''); setStatus(null)
+    try {
+      const res  = await fetch(`/api/get-user?email=${encodeURIComponent(q)}`)
+      const data = await res.json()
+      if (res.ok && data.user) {
+        setUser(data.user)
+        setSelectedRole(data.user.role || 'free')
+      } else {
+        setLookupError(data.error || 'User not found.')
+      }
+    } catch {
+      setLookupError('Something went wrong.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleUpdateRole() {
+    if (!user || !selectedRole) return
+    setLoading(true); setStatus(null)
+    try {
+      const res = await fetch('/api/update-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, role: selectedRole }),
+      })
+      if (!res.ok) throw new Error('non-ok')
+      setStatus('success'); setStatusMsg('Role updated.')
+      setUser(prev => ({ ...prev, role: selectedRole }))
+    } catch {
+      setStatus('error'); setStatusMsg('Update failed. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const MUTED = { fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }
+
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', padding: '48px 24px 96px' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        <button
+          onClick={onBack}
+          style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', cursor: 'pointer', padding: 0, marginBottom: 32 }}
+        >
+          ← Dashboard
+        </button>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 700, color: '#F0F0F0', margin: '0 0 40px' }}>
+          Admin
+        </h1>
+
+        <p style={MUTED}>Manage user roles</p>
+
+        {/* Search row */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          <input
+            type="email"
+            value={searchEmail}
+            onChange={e => { setSearchEmail(e.target.value); setLookupError('') }}
+            onKeyDown={e => { if (e.key === 'Enter') handleLookup() }}
+            onFocus={e  => { e.target.style.borderColor = '#00E5A0' }}
+            onBlur={e   => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+            placeholder="user@email.com"
+            autoComplete="off"
+            style={{
+              flex: 1, backgroundColor: '#0D0D0D',
+              border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
+              padding: '14px 16px', color: '#F0F0F0',
+              fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none',
+              transition: 'border-color 150ms ease',
+            }}
+          />
+          <button
+            onClick={handleLookup}
+            disabled={loading || !searchEmail.trim()}
+            style={{
+              backgroundColor: '#00E5A0', color: '#0D0D0D', border: 'none',
+              borderRadius: 8, padding: '0 20px', height: 52,
+              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
+              cursor: loading || !searchEmail.trim() ? 'not-allowed' : 'pointer',
+              opacity: loading || !searchEmail.trim() ? 0.5 : 1,
+              whiteSpace: 'nowrap', transition: 'opacity 150ms ease',
+            }}
+          >
+            {loading && !user ? 'Looking…' : 'Look up user'}
+          </button>
+        </div>
+
+        {lookupError && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', marginBottom: 16 }}>
+            {lookupError}
+          </p>
+        )}
+
+        {/* User result card */}
+        {user && (
+          <div style={{ backgroundColor: '#1A1A1A', borderRadius: 10, padding: 24 }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 600, color: '#F0F0F0', margin: '0 0 4px' }}>
+              {user.name || '(no name)'}
+            </p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '0 0 24px' }}>
+              {user.email}
+            </p>
+
+            <p style={MUTED}>Role</p>
+
+            {/* Role chips */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {['free', 'coach', 'admin'].map(r => (
+                <button
+                  key={r}
+                  onClick={() => { setSelectedRole(r); setStatus(null) }}
+                  style={{
+                    flex: 1, height: 44, borderRadius: 8, border: 'none',
+                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: selectedRole === r ? 600 : 500,
+                    fontSize: 14, cursor: 'pointer', transition: 'all 150ms ease',
+                    backgroundColor: selectedRole === r ? '#00E5A0' : '#242424',
+                    color: selectedRole === r ? '#0D0D0D' : '#F0F0F0',
+                    boxShadow: selectedRole === r ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+                  }}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleUpdateRole}
+              disabled={loading || selectedRole === user.role}
+              style={{
+                width: '100%', height: 44, borderRadius: 8,
+                backgroundColor: !loading && selectedRole !== user.role ? '#00E5A0' : '#242424',
+                color: !loading && selectedRole !== user.role ? '#0D0D0D' : '#555555',
+                border: !loading && selectedRole !== user.role ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
+                cursor: loading || selectedRole === user.role ? 'not-allowed' : 'pointer',
+                transition: 'all 150ms ease',
+              }}
+            >
+              {loading ? 'Updating…' : selectedRole === user.role ? 'No change' : 'Update role'}
+            </button>
+
+            {status === 'success' && (
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#00E5A0', marginTop: 12, textAlign: 'center' }}>
+                {statusMsg}
+              </p>
+            )}
+            {status === 'error' && (
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', marginTop: 12, textAlign: 'center' }}>
+                {statusMsg}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Intel view ────────────────────────────────────────────────────────────────
 
 const INTEL_CARDS = [
@@ -3744,6 +3933,7 @@ export default function App() {
   const [checkedIngredients,  setCheckedIngredients]  = useState(new Set())
   const [error,               setError]               = useState(null)
   const [isAdmin,             setIsAdmin]             = useState(() => localStorage.getItem('remi_role') === 'admin')
+  const [isCoach,             setIsCoach]             = useState(() => localStorage.getItem('remi_role') === 'coach')
   const [showCookModal,       setShowCookModal]       = useState(false)
   const [showAuthModal,       setShowAuthModal]       = useState(false)
   const [pendingFridgeMsg,    setPendingFridgeMsg]    = useState('')
@@ -3759,6 +3949,9 @@ export default function App() {
   const [inputFocused,      setInputFocused]      = useState(false)
   const [cookedConfirmation, setCookedConfirmation] = useState(null)
   const [suggestions,        setSuggestions]        = useState([])
+
+  // Derived role flags — isPro unlocks all Pro-gated features
+  const isPro = isAdmin || isCoach
 
   // Did You Cook — find the most recent session that is 12–48h old
   const didYouCookSession = useMemo(() => {
@@ -3791,11 +3984,13 @@ export default function App() {
 
   // ── Supabase auth helpers ──────────────────────────────────────────────────
 
-  function applySession(session) {
+  function applySession(session, dbRole) {
     const email = session?.user?.email?.toLowerCase() ?? ''
-    const isAdminUser = ADMIN_EMAILS.includes(email)
-    localStorage.setItem('remi_role', isAdminUser ? 'admin' : 'free')
-    setIsAdmin(isAdminUser)
+    // Hardcoded admin list always wins over DB value
+    const role = ADMIN_EMAILS.includes(email) ? 'admin' : (dbRole || 'free')
+    localStorage.setItem('remi_role', role)
+    setIsAdmin(role === 'admin')
+    setIsCoach(role === 'coach')
   }
 
   async function saveUserIfNew(email, currentProfile) {
@@ -3838,7 +4033,7 @@ export default function App() {
             if (data.user) {
               const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
               localStorage.setItem('supabase.auth.token', JSON.stringify(session))
-              applySession(session)
+              applySession(session, data.role)
               // Part 4: insert user row if first sign-in (idempotent)
               const currentProfile = loadProfileOrEvict()
               saveUserIfNew(data.user.email, currentProfile)
@@ -3865,12 +4060,13 @@ export default function App() {
       .then(r => r.json())
       .then(data => {
         if (data.user) {
-          applySession({ ...stored, user: data.user })
+          applySession({ ...stored, user: data.user }, data.role)
         } else {
           // Token expired / invalid — clear session, stay on current view
           localStorage.removeItem('supabase.auth.token')
           localStorage.removeItem('remi_role')
           setIsAdmin(false)
+          setIsCoach(false)
         }
       })
       .catch(() => { /* Network error — do nothing, keep current view */ })
@@ -4260,7 +4456,7 @@ export default function App() {
       <>
         <Onboarding
           initialProfile={profile}
-          isLocked={!isAdmin && genCount >= 3}
+          isLocked={!isPro && genCount >= 3}
           onBack={() => setView(profile ? 'chat' : 'welcome')}
           onProClick={() => setShowProModal(true)}
           onPTClick={() => setShowPTPage(true)}
@@ -4338,25 +4534,32 @@ export default function App() {
           onEditProfile={() => setView('onboarding')}
           onViewSaved={() => { setSavedBackTo('dashboard'); setView('saved') }}
           isAdmin={isAdmin}
+          isCoach={isCoach}
+          onAdminPanel={() => setView('admin-panel')}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
           else setView(v)
-        }} isAdmin={isAdmin} />
+        }} isPro={isPro} />
       </>
     )
+  }
+
+  // ── View: Admin panel ────────────────────────────────────────────────────────
+  if (view === 'admin-panel' && isAdmin) {
+    return <AdminPanel onBack={() => setView('dashboard')} />
   }
 
   // ── View: Intel ──────────────────────────────────────────────────────────────
   if (view === 'intel') {
     return (
       <>
-        <IntelView isPro={isAdmin} onProClick={() => setShowProModal(true)} />
+        <IntelView isPro={isPro} onProClick={() => setShowProModal(true)} />
         <BottomNav activeView="intel" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('intel'); setView('saved') }
           else if (v === 'chat') handleReset()
           else setView(v)
-        }} isAdmin={isAdmin} />
+        }} isPro={isPro} />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
@@ -4380,7 +4583,7 @@ export default function App() {
           if (v === 'saved') return
           setSavedBackTo('saved')
           setView(v)
-        }} isAdmin={isAdmin} />
+        }} isPro={isPro} />
       </>
     )
   }
@@ -4416,7 +4619,7 @@ export default function App() {
           <div className="flex-1 min-w-0 overflow-y-auto px-4 py-10 sm:py-14 pb-20 lg:pb-14" style={{ backgroundColor: '#0F0D0B' }}>
             <div className="max-w-3xl mx-auto space-y-8 relative">
               {/* Gen counter + locked banner */}
-              {!isAdmin && genCount >= 3 ? (
+              {!isPro && genCount >= 3 ? (
                 <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: '#1A1A0A', border: '1px solid #C9A84C' }}>
                   <div className="flex items-center gap-3">
                     <span style={{ fontSize: '1.25rem' }}>🔒</span>
@@ -4584,7 +4787,7 @@ export default function App() {
           if (v === 'saved') { setSavedBackTo('cards'); setView('saved') }
           else if (v === 'chat') handleReset()
           else setView(v)
-        }} isAdmin={isAdmin} />
+        }} isPro={isPro} />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
@@ -4783,7 +4986,7 @@ export default function App() {
       <BottomNav activeView="chat" onNavigate={v => {
         if (v === 'saved') { setSavedBackTo('chat'); setView('saved') }
         else setView(v)
-      }} isAdmin={isAdmin} />
+      }} isPro={isPro} />
       {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
     </>
   )

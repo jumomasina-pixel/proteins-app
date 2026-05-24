@@ -18,6 +18,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 1. Validate the token and get the Supabase auth user
     const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: {
         'apikey': supabaseKey,
@@ -30,7 +31,30 @@ export default async function handler(req, res) {
     }
 
     const user = await userRes.json()
-    return res.status(200).json({ user })
+
+    // 2. Read role from the users table (anon key + user's own token is fine for SELECT)
+    let dbRole = 'free'
+    try {
+      const roleRes = await fetch(
+        `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}&select=role`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      )
+      if (roleRes.ok) {
+        const rows = await roleRes.json()
+        if (Array.isArray(rows) && rows.length > 0 && rows[0].role) {
+          dbRole = rows[0].role
+        }
+      }
+    } catch {
+      // Role lookup failure is non-fatal — default to 'free'
+    }
+
+    return res.status(200).json({ user, role: dbRole })
   } catch (err) {
     console.error('[auth-user]', err)
     return res.status(500).json({ error: err.message })
