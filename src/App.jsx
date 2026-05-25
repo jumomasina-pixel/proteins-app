@@ -3186,12 +3186,14 @@ function PreCookModal({ onConfirm, onCancel }) {
 
 function AuthScreen({ onBack, onAuthSuccess }) {
   // mode: 'signin' | 'signup' | 'forgot'
-  const [mode,       setMode]       = useState('signin')
-  const [email,      setEmail]      = useState('')
-  const [password,   setPassword]   = useState('')
-  const [error,      setError]      = useState('')
-  const [loading,    setLoading]    = useState(false)
-  const [forgotSent, setForgotSent] = useState(false)
+  const [mode,         setMode]         = useState('signin')
+  const [name,         setName]         = useState('')
+  const [email,        setEmail]        = useState('')
+  const [password,     setPassword]     = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error,        setError]        = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [forgotSent,   setForgotSent]   = useState(false)
 
   const isValidEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
@@ -3201,6 +3203,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
     setMode(next)
     setError('')
     setForgotSent(false)
+    setShowPassword(false)
   }
 
   async function handleSignIn() {
@@ -3231,7 +3234,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
       const res  = await fetch('/api/auth-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'signup', email: email.trim(), password }),
+        body: JSON.stringify({ action: 'signup', email: email.trim(), password, name: name.trim() }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Sign up failed.'); return }
@@ -3268,35 +3271,51 @@ function AuthScreen({ onBack, onAuthSuccess }) {
     else handleForgot()
   }
 
+  // Base input style — no inline error-driven border so focus handler works cleanly
   const IS = {
     display: 'block', width: '100%', boxSizing: 'border-box',
-    backgroundColor: '#0D0D0D',
-    border: `1px solid ${error ? '#FF4D4D' : 'rgba(255,255,255,0.12)'}`,
-    borderRadius: 8, padding: '14px 16px', color: '#F0F0F0',
+    backgroundColor: '#111111',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 10, padding: '16px 16px', color: '#F0F0F0',
     fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none',
     marginBottom: 12, transition: 'border-color 150ms ease',
+    WebkitAppearance: 'none',
   }
 
-  const headings = { signin: 'Welcome back.', signup: 'Create your account.', forgot: 'Reset your password.' }
   const btnLabels = { signin: 'Sign in', signup: 'Create account', forgot: 'Send reset link' }
 
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 48px' }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '72px 24px 56px', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Back arrow */}
-        <button
-          onClick={mode === 'forgot' ? () => switchMode('signin') : onBack}
-          style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 56 }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
-          </svg>
-        </button>
+        {/* Remi wordmark + subline */}
+        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.75rem, 12vw, 3.5rem)', color: '#00E5A0', margin: 0, lineHeight: 1 }}>
+            Remi
+          </p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.14em', margin: '10px 0 0', textTransform: 'uppercase' }}>
+            Personal Chef · Coach · Guide
+          </p>
+        </div>
 
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2rem, 7vw, 2.75rem)', color: '#F0F0F0', lineHeight: 1.1, margin: '0 0 28px' }}>
-          {headings[mode]}
-        </h1>
+        {/* Mode heading */}
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.375rem', color: '#F0F0F0', margin: '0 0 24px', lineHeight: 1.2 }}>
+          {mode === 'signin' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Reset your password.'}
+        </h2>
+
+        {/* Name — signup only */}
+        {mode === 'signup' && (
+          <input
+            type="text"
+            value={name}
+            onChange={e => { setName(e.target.value); clearError() }}
+            onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+            onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+            placeholder="Your name"
+            autoComplete="name"
+            style={IS}
+          />
+        )}
 
         {/* Email */}
         <input
@@ -3305,26 +3324,47 @@ function AuthScreen({ onBack, onAuthSuccess }) {
           onChange={e => { setEmail(e.target.value); clearError() }}
           onKeyDown={e => { if (e.key === 'Enter' && mode === 'forgot') handleForgot() }}
           onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-          onBlur={e  => { e.target.style.borderColor = error ? '#FF4D4D' : 'rgba(255,255,255,0.12)' }}
+          onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
           placeholder="you@example.com"
           autoComplete="email"
           inputMode="email"
           style={IS}
         />
 
-        {/* Password — signin and signup only */}
+        {/* Password with show/hide toggle — signin and signup only */}
         {mode !== 'forgot' && (
-          <input
-            type="password"
-            value={password}
-            onChange={e => { setPassword(e.target.value); clearError() }}
-            onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
-            onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-            onBlur={e  => { e.target.style.borderColor = error ? '#FF4D4D' : 'rgba(255,255,255,0.12)' }}
-            placeholder={mode === 'signup' ? 'Choose a password (min 6 chars)' : 'Password'}
-            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-            style={{ ...IS, marginBottom: 20 }}
-          />
+          <div style={{ position: 'relative', marginBottom: 20 }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => { setPassword(e.target.value); clearError() }}
+              onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
+              onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+              onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+              placeholder={mode === 'signup' ? 'Choose a password (min 6 chars)' : 'Password'}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              style={{ ...IS, marginBottom: 0, paddingRight: 52 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#666666', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
+            >
+              {showPassword ? (
+                /* Eye-off icon */
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              ) : (
+                /* Eye icon */
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              )}
+            </button>
+          </div>
         )}
 
         {/* Forgot password success */}
@@ -3346,27 +3386,32 @@ function AuthScreen({ onBack, onAuthSuccess }) {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            style={{ width: '100%', height: 56, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 150ms ease', marginBottom: 24 }}
+            style={{ width: '100%', height: 54, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 10, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 150ms ease', marginBottom: 28 }}
           >
             {loading ? '…' : btnLabels[mode]}
           </button>
         )}
 
-        {/* Secondary links */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+        {/* Secondary nav links */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
           {mode === 'signin' && (
             <>
               <button onClick={() => switchMode('forgot')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
-                Forgot your password?
+                Forgot password?
               </button>
               <button onClick={() => switchMode('signup')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
-                Don't have an account? <span style={{ color: '#F0F0F0' }}>Sign up</span>
+                New here?{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Create an account</span>
               </button>
             </>
           )}
           {mode === 'signup' && (
             <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
-              Already have an account? <span style={{ color: '#F0F0F0' }}>Sign in</span>
+              Already have an account?{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Sign in</span>
+            </button>
+          )}
+          {mode === 'forgot' && (
+            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+              ← Back to sign in
             </button>
           )}
         </div>
