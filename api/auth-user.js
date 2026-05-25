@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     let rows
     try {
       roleRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
+        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal`,
         {
           headers: {
             'apikey':        serviceRoleKey || supabaseKey,
