@@ -3184,7 +3184,7 @@ function PreCookModal({ onConfirm, onCancel }) {
 
 // ── Auth screen (email + password) ───────────────────────────────────────────
 
-function AuthScreen({ onBack, onAuthSuccess }) {
+function AuthScreen({ onBack, onAuthSuccess, postReset = false }) {
   // mode: 'signin' | 'signup' | 'forgot'
   const [mode,         setMode]         = useState('signin')
   const [name,         setName]         = useState('')
@@ -3302,6 +3302,13 @@ function AuthScreen({ onBack, onAuthSuccess }) {
         <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.375rem', color: '#F0F0F0', margin: '0 0 24px', lineHeight: 1.2 }}>
           {mode === 'signin' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Reset your password.'}
         </h2>
+
+        {/* Post-reset confirmation */}
+        {postReset && mode === 'signin' && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: '0 0 20px', textAlign: 'center', lineHeight: 1.5 }}>
+            Password updated. Sign in to continue.
+          </p>
+        )}
 
         {/* Name — signup only */}
         {mode === 'signup' && (
@@ -4020,6 +4027,7 @@ export default function App() {
   const [suggestions,        setSuggestions]        = useState([])
   const [welcomeBackData,    setWelcomeBackData]    = useState(null)
   const [recoveryToken,      setRecoveryToken]      = useState(recoveryAccessToken)
+  const [postReset,          setPostReset]          = useState(false)
 
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
@@ -4626,7 +4634,7 @@ export default function App() {
 
   // ── View: Auth (email + password) ────────────────────────────────────────────
   if (view === 'auth') {
-    return <AuthScreen onBack={() => setView('splash')} onAuthSuccess={processAuthResult} />
+    return <AuthScreen onBack={() => { setPostReset(false); setView('splash') }} onAuthSuccess={processAuthResult} postReset={postReset} />
   }
 
   // ── View: Onboarding (new users — 3 steps) ───────────────────────────────────
@@ -4725,8 +4733,8 @@ export default function App() {
         accessToken={recoveryToken}
         onSuccess={() => {
           setRecoveryToken(null)
-          setWelcomeBackData({ name: 'there', lastSignInAt: null })
-          setView('welcome-back')
+          setPostReset(true)
+          setView('auth')
         }}
       />
     )
