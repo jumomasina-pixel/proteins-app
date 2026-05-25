@@ -3184,7 +3184,7 @@ function PreCookModal({ onConfirm, onCancel }) {
 
 // ── Auth screen (email + password) ───────────────────────────────────────────
 
-function AuthScreen({ onBack, onAuthSuccess, postReset = false }) {
+function AuthScreen({ onBack, onAuthSuccess }) {
   // mode: 'signin' | 'signup' | 'forgot'
   const [mode,         setMode]         = useState('signin')
   const [name,         setName]         = useState('')
@@ -3302,13 +3302,6 @@ function AuthScreen({ onBack, onAuthSuccess, postReset = false }) {
         <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.375rem', color: '#F0F0F0', margin: '0 0 24px', lineHeight: 1.2 }}>
           {mode === 'signin' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Reset your password.'}
         </h2>
-
-        {/* Post-reset confirmation */}
-        {postReset && mode === 'signin' && (
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: '0 0 20px', textAlign: 'center', lineHeight: 1.5 }}>
-            Password updated. Sign in to continue.
-          </p>
-        )}
 
         {/* Name — signup only */}
         {mode === 'signup' && (
@@ -4027,7 +4020,6 @@ export default function App() {
   const [suggestions,        setSuggestions]        = useState([])
   const [welcomeBackData,    setWelcomeBackData]    = useState(null)
   const [recoveryToken,      setRecoveryToken]      = useState(recoveryAccessToken)
-  const [postReset,          setPostReset]          = useState(false)
 
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
@@ -4115,8 +4107,6 @@ export default function App() {
         // Source 2: Supabase DB row (cross-device returning user)
         const dbName = (data.dbProfile?.name || '').trim()
 
-        const resolvedName = localName || dbName
-
         if (!localName && dbName) {
           const dp = data.dbProfile
           currentProfile = {
@@ -4133,19 +4123,14 @@ export default function App() {
           localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
         }
 
-        if (resolvedName) {
+        if (data.dbRowExists) {
           setProfile(currentProfile)
           saveUserIfNew(data.user.email, currentProfile)
-          const isReturningUser = !!(data.dbProfile?.name && data.dbProfile?.sport)
-          if (isReturningUser) {
-            const prevSignIn = localStorage.getItem('remi_prev_sign_in')
-            const firstName = (dbName || localName).split(' ')[0]
-            setWelcomeBackData({ name: firstName, lastSignInAt: prevSignIn })
-            localStorage.setItem('remi_prev_sign_in', new Date().toISOString())
-            setView('welcome-back')
-          } else {
-            setView('dashboard')
-          }
+          const prevSignIn = localStorage.getItem('remi_prev_sign_in')
+          const firstName = (dbName || localName || 'there').split(' ')[0]
+          setWelcomeBackData({ name: firstName, lastSignInAt: prevSignIn })
+          localStorage.setItem('remi_prev_sign_in', new Date().toISOString())
+          setView('welcome-back')
         } else {
           setProfile(null)
           setView('onboarding')
@@ -4634,7 +4619,7 @@ export default function App() {
 
   // ── View: Auth (email + password) ────────────────────────────────────────────
   if (view === 'auth') {
-    return <AuthScreen onBack={() => { setPostReset(false); setView('splash') }} onAuthSuccess={processAuthResult} postReset={postReset} />
+    return <AuthScreen onBack={() => setView('splash')} onAuthSuccess={processAuthResult} />
   }
 
   // ── View: Onboarding (new users — 3 steps) ───────────────────────────────────
@@ -4733,7 +4718,6 @@ export default function App() {
         accessToken={recoveryToken}
         onSuccess={() => {
           setRecoveryToken(null)
-          setPostReset(true)
           setView('auth')
         }}
       />

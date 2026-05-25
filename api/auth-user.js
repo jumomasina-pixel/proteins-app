@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     // 2. Read role + profile fields from the users table
     let dbRole = 'free'
     let dbProfile = null
+    let dbRowExists = false
     try {
       const roleRes = await fetch(
         `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
@@ -49,6 +50,7 @@ export default async function handler(req, res) {
         const rows = await roleRes.json()
         if (Array.isArray(rows) && rows.length > 0) {
           const row = rows[0]
+          dbRowExists = true
           if (row.role) dbRole = row.role
           if (row.name) dbProfile = { name: row.name, sport: row.sport || null, goal: row.goal || null, weight: row.weight || null }
         }
@@ -57,7 +59,7 @@ export default async function handler(req, res) {
       // Non-fatal — default to free / no profile
     }
 
-    return res.status(200).json({ user, role: dbRole, dbProfile })
+    return res.status(200).json({ user, role: dbRole, dbProfile, dbRowExists })
   } catch (err) {
     console.error('[auth-user]', err)
     return res.status(500).json({ error: err.message })
