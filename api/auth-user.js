@@ -1,14 +1,5 @@
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  const authHeader = req.headers['authorization'] || ''
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
-
-  if (!token) {
-    return res.status(401).json({ error: 'No access token provided' })
-  }
+  console.log('[auth-user] called, method:', req.method)
 
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_ANON_KEY
@@ -17,22 +8,63 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Supabase env vars not set' })
   }
 
-  try {
-    // 1. Validate the token and get the Supabase auth user
-    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${token}`,
-      },
-    })
+  const authHeader = req.headers['authorization'] || ''
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+  if (!token) {
+    return res.status(401).json({ error: 'No access token provided' })
+  }
 
-    if (!userRes.ok) {
-      return res.status(401).json({ error: 'Invalid or expired token' })
+  // ── Validate token and get Supabase auth user (shared by GET + POST) ─────────
+  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${token}` },
+  })
+  if (!userRes.ok) {
+    return res.status(401).json({ error: 'Invalid or expired token' })
+  }
+  const user = await userRes.json()
+
+  // ── POST — upsert profile on onboarding completion ────────────────────────────
+  if (req.method === 'POST') {
+    const { name, sport, goal } = req.body || {}
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    const upsertPayload = {
+      id:    user.id,
+      email: user.email,
+      name:  name  || '',
+      sport: sport || '',
+      goal:  goal  || '',
     }
+    console.log('[auth-user] Upsert payload:', upsertPayload)
 
-    const user = await userRes.json()
+    try {
+      const upsertRes = await fetch(`${supabaseUrl}/rest/v1/users`, {
+        method: 'POST',
+        headers: {
+          'apikey':        serviceRoleKey || supabaseKey,
+          'Authorization': `Bearer ${serviceRoleKey || supabaseKey}`,
+          'Content-Type':  'application/json',
+          'Prefer':        'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(upsertPayload),
+      })
 
-    // 2. Read role + profile fields from the users table
+      const upsertText = await upsertRes.text()
+      console.log('[auth-user] Upsert result:', upsertRes.status, upsertText)
+
+      if (!upsertRes.ok) {
+        return res.status(500).json({ error: upsertText || `Supabase upsert failed (${upsertRes.status})` })
+      }
+
+      return res.status(200).json({ success: true, dbRowExists: true })
+    } catch (err) {
+      console.error('[auth-user] POST error:', err)
+      return res.status(500).json({ error: err.message })
+    }
+  }
+
+  // ── GET — read role + profile fields ─────────────────────────────────────────
+  if (req.method === 'GET') {
     let dbRole = 'free'
     let dbProfile = null
     let dbRowExists = false
@@ -41,7 +73,7 @@ export default async function handler(req, res) {
         `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
         {
           headers: {
-            'apikey': supabaseKey,
+            'apikey':        supabaseKey,
             'Authorization': `Bearer ${token}`,
           },
         }
@@ -60,8 +92,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ user, role: dbRole, dbProfile, dbRowExists })
-  } catch (err) {
-    console.error('[auth-user]', err)
-    return res.status(500).json({ error: err.message })
   }
+
+  return res.status(405).json({ error: 'Method not allowed' })
 }

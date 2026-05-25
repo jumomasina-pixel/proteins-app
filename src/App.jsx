@@ -4769,13 +4769,21 @@ export default function App() {
             setProfile(saved)
             posthog.identify(posthog.get_distinct_id(), { name: remiProfile.name, goal: remiProfile.goal })
             posthog.capture('onboarding_completed', { goal: remiProfile.goal, sport: remiProfile.primarySport })
-            // POST to save-user (best-effort, non-blocking)
+            // Upsert profile to DB via auth-user POST (uses service role key, bypasses RLS)
             const session = (() => { try { return JSON.parse(localStorage.getItem('supabase.auth.token') || 'null') } catch { return null } })()
-            if (session?.user?.email) {
-              fetch('/api/save-user', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: saved.name, email: session.user.email, sport: saved.primarySport, goal: saved.goal }),
-              }).catch(() => {})
+            const profileData = { name: saved.name, sport: saved.primarySport || '', goal: saved.goal || '' }
+            console.log('Onboarding complete, writing profile:', profileData)
+            if (session?.access_token) {
+              fetch('/api/auth-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                body: JSON.stringify(profileData),
+              })
+                .then(r => r.json())
+                .then(result => { console.log('auth-user POST result:', result) })
+                .catch(err => { console.error('auth-user POST error:', err) })
+            } else {
+              console.warn('Onboarding complete but no session token — profile not written to DB')
             }
             setView('chat')
           }}
