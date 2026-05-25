@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // 1. Delete all rows from the users table
     const tableRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=neq.null`,
+      `${SUPABASE_URL}/rest/v1/profiles?id=neq.null`,
       {
         method: 'DELETE',
         headers: {
@@ -42,8 +42,8 @@ export default async function handler(req, res) {
     )
     if (!tableRes.ok) {
       const body = await tableRes.json().catch(() => ({}))
-      console.error('[admin-reset-users] users table delete error:', body)
-      return res.status(500).json({ error: body.message || body.error || 'Failed to delete users table rows' })
+      console.error('[admin-reset-users] profiles table delete error:', body)
+      return res.status(500).json({ error: body.message || body.error || 'Failed to delete profiles table rows' })
     }
 
     // 2. List all auth users

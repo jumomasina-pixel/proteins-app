@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=name,email,role`,
+      `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=name,email,role`,
       {
         headers: {
           'apikey': serviceKey,

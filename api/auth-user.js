@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     console.log('[auth-user] Upsert payload:', upsertPayload)
 
     try {
-      const upsertRes = await fetch(`${supabaseUrl}/rest/v1/users`, {
+      const upsertRes = await fetch(`${supabaseUrl}/rest/v1/profiles`, {
         method: 'POST',
         headers: {
           'apikey':        serviceRoleKey || supabaseKey,
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     let dbRowExists = false
     try {
       const roleRes = await fetch(
-        `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
+        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
         {
           headers: {
             'apikey':        supabaseKey,

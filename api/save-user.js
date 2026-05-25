@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const supabaseKey = process.env.SUPABASE_ANON_KEY
 
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/users`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/profiles`, {
       method: 'POST',
       headers: {
         'apikey': supabaseKey,
