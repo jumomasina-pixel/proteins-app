@@ -3182,40 +3182,40 @@ function PreCookModal({ onConfirm, onCancel }) {
   )
 }
 
-// ── Auth screen (magic link) ──────────────────────────────────────────────────
+// ── Auth screen (email + password) ───────────────────────────────────────────
 
-function AuthScreen({ onBack }) {
+function AuthScreen({ onBack, onAuthSuccess }) {
+  // mode: 'signin' | 'signup' | 'forgot'
+  const [mode,       setMode]       = useState('signin')
   const [email,      setEmail]      = useState('')
+  const [password,   setPassword]   = useState('')
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
-  const [sent,       setSent]       = useState(false)
-  const [canResend,  setCanResend]  = useState(false)
-  const [resending,  setResending]  = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
 
   const isValidEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
-  useEffect(() => {
-    if (!sent) return
-    const t = setTimeout(() => setCanResend(true), 30000)
-    return () => clearTimeout(t)
-  }, [sent])
+  function clearError() { if (error) setError('') }
 
-  async function sendLink(addr) {
-    const res = await fetch('/api/send-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: addr, redirectTo: 'https://myremi.io' }),
-    })
-    if (!res.ok) throw new Error('non-ok')
+  function switchMode(next) {
+    setMode(next)
+    setError('')
+    setForgotSent(false)
   }
 
-  async function handleSubmit() {
+  async function handleSignIn() {
     if (!isValidEmail(email)) { setError('Enter a valid email address.'); return }
-    setError('')
-    setLoading(true)
+    if (!password)            { setError('Enter your password.'); return }
+    setLoading(true); setError('')
     try {
-      await sendLink(email.trim())
-      setSent(true)
+      const res  = await fetch('/api/auth-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'signin', email: email.trim(), password }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Sign in failed.'); return }
+      onAuthSuccess(data.access_token, data.refresh_token)
     } catch {
       setError('Something went wrong. Try again.')
     } finally {
@@ -3223,54 +3223,70 @@ function AuthScreen({ onBack }) {
     }
   }
 
-  async function handleResend() {
-    if (!canResend || resending) return
-    setResending(true)
+  async function handleSignUp() {
+    if (!isValidEmail(email)) { setError('Enter a valid email address.'); return }
+    if (password.length < 6)  { setError('Password must be at least 6 characters.'); return }
+    setLoading(true); setError('')
     try {
-      await sendLink(email.trim())
-      setCanResend(false)
-      setTimeout(() => setCanResend(true), 30000)
-    } catch {}
-    finally { setResending(false) }
+      const res  = await fetch('/api/auth-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'signup', email: email.trim(), password }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Sign up failed.'); return }
+      onAuthSuccess(data.access_token, data.refresh_token)
+    } catch {
+      setError('Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const SCREEN = {
-    minHeight: '100dvh', backgroundColor: '#0D0D0D',
-    display: 'flex', flexDirection: 'column',
-    maxWidth: 480, width: '100%', margin: '0 auto',
-    padding: '60px 24px 48px',
+  async function handleForgot() {
+    if (!isValidEmail(email)) { setError('Enter a valid email address.'); return }
+    setLoading(true); setError('')
+    try {
+      const res  = await fetch('/api/auth-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'forgot', email: email.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Failed to send reset email.'); return }
+      setForgotSent(true)
+    } catch {
+      setError('Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  if (sent) {
-    return (
-      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
-        <div style={{ maxWidth: 380, width: '100%' }}>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2rem, 7vw, 2.75rem)', color: '#F0F0F0', lineHeight: 1.1, margin: '0 0 16px' }}>
-            Check your email.
-          </h1>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#888888', lineHeight: 1.6, margin: '0 0 32px' }}>
-            Remi sent a link to <span style={{ color: '#F0F0F0' }}>{email}</span>. Tap it to continue.
-          </p>
-          {canResend && (
-            <button
-              onClick={handleResend}
-              disabled={resending}
-              style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: resending ? 'wait' : 'pointer', padding: 0, textDecoration: 'underline', opacity: resending ? 0.5 : 1 }}
-            >
-              {resending ? 'Sending…' : 'Resend link'}
-            </button>
-          )}
-        </div>
-      </div>
-    )
+  function handleSubmit() {
+    if (mode === 'signin') handleSignIn()
+    else if (mode === 'signup') handleSignUp()
+    else handleForgot()
   }
+
+  const IS = {
+    display: 'block', width: '100%', boxSizing: 'border-box',
+    backgroundColor: '#0D0D0D',
+    border: `1px solid ${error ? '#FF4D4D' : 'rgba(255,255,255,0.12)'}`,
+    borderRadius: 8, padding: '14px 16px', color: '#F0F0F0',
+    fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none',
+    marginBottom: 12, transition: 'border-color 150ms ease',
+  }
+
+  const headings = { signin: 'Welcome back.', signup: 'Create your account.', forgot: 'Reset your password.' }
+  const btnLabels = { signin: 'Sign in', signup: 'Create account', forgot: 'Send reset link' }
 
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
-      <div style={SCREEN}>
+      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 48px' }}>
+
         {/* Back arrow */}
         <button
-          onClick={onBack}
+          onClick={mode === 'forgot' ? () => switchMode('signin') : onBack}
           style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 56 }}
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
@@ -3278,52 +3294,82 @@ function AuthScreen({ onBack }) {
           </svg>
         </button>
 
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2rem, 7vw, 2.75rem)', color: '#F0F0F0', lineHeight: 1.1, margin: '0 0 12px' }}>
-          Enter your email.
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2rem, 7vw, 2.75rem)', color: '#F0F0F0', lineHeight: 1.1, margin: '0 0 28px' }}>
+          {headings[mode]}
         </h1>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#888888', lineHeight: 1.55, margin: '0 0 32px' }}>
-          We'll send you a sign-in link. No password needed. Ever.
-        </p>
 
+        {/* Email */}
         <input
           type="email"
           value={email}
-          onChange={e => { setEmail(e.target.value); if (error) setError('') }}
-          onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
-          onFocus={e  => { e.target.style.borderColor = '#00E5A0' }}
-          onBlur={e   => { e.target.style.borderColor = error ? '#FF4D4D' : 'rgba(255,255,255,0.12)' }}
+          onChange={e => { setEmail(e.target.value); clearError() }}
+          onKeyDown={e => { if (e.key === 'Enter' && mode === 'forgot') handleForgot() }}
+          onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+          onBlur={e  => { e.target.style.borderColor = error ? '#FF4D4D' : 'rgba(255,255,255,0.12)' }}
           placeholder="you@example.com"
           autoComplete="email"
           inputMode="email"
-          style={{
-            display: 'block', width: '100%', boxSizing: 'border-box',
-            backgroundColor: '#0D0D0D',
-            border: `1px solid ${error ? '#FF4D4D' : 'rgba(255,255,255,0.12)'}`,
-            borderRadius: 8, padding: '14px 16px', color: '#F0F0F0',
-            fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none',
-            marginBottom: error ? 8 : 20, transition: 'border-color 150ms ease',
-          }}
+          style={IS}
         />
 
+        {/* Password — signin and signup only */}
+        {mode !== 'forgot' && (
+          <input
+            type="password"
+            value={password}
+            onChange={e => { setPassword(e.target.value); clearError() }}
+            onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
+            onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+            onBlur={e  => { e.target.style.borderColor = error ? '#FF4D4D' : 'rgba(255,255,255,0.12)' }}
+            placeholder={mode === 'signup' ? 'Choose a password (min 6 chars)' : 'Password'}
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            style={{ ...IS, marginBottom: 20 }}
+          />
+        )}
+
+        {/* Forgot password success */}
+        {forgotSent && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#00E5A0', margin: '0 0 16px', lineHeight: 1.5 }}>
+            Reset link sent. Check your inbox.
+          </p>
+        )}
+
+        {/* Error */}
         {error && (
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', margin: '0 0 20px', lineHeight: 1.4 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', margin: '0 0 16px', lineHeight: 1.4 }}>
             {error}
           </p>
         )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{
-            width: '100%', height: 56,
-            backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8,
-            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16,
-            border: 'none', cursor: loading ? 'wait' : 'pointer',
-            opacity: loading ? 0.7 : 1, transition: 'opacity 150ms ease',
-          }}
-        >
-          {loading ? 'Sending…' : 'Send me a link'}
-        </button>
+        {/* Primary button */}
+        {!forgotSent && (
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{ width: '100%', height: 56, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 150ms ease', marginBottom: 24 }}
+          >
+            {loading ? '…' : btnLabels[mode]}
+          </button>
+        )}
+
+        {/* Secondary links */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+          {mode === 'signin' && (
+            <>
+              <button onClick={() => switchMode('forgot')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+                Forgot your password?
+              </button>
+              <button onClick={() => switchMode('signup')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+                Don't have an account? <span style={{ color: '#F0F0F0' }}>Sign up</span>
+              </button>
+            </>
+          )}
+          {mode === 'signup' && (
+            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+              Already have an account? <span style={{ color: '#F0F0F0' }}>Sign in</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -3797,69 +3843,68 @@ export default function App() {
 
   // ── Session detection on mount ─────────────────────────────────────────────
 
+  // ── Shared: process a valid access_token + refresh_token into a session ──────
+  // Called from:
+  //   • AuthScreen.onAuthSuccess — direct password sign-in / sign-up
+  //   • useEffect hash callback  — password-reset link that lands with a token in the URL
+
+  function processAuthResult(accessToken, refreshToken = '') {
+    if (!accessToken) { setView('splash'); return }
+    fetch('/api/auth-user', { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.user) { setView('splash'); return }
+
+        const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
+        localStorage.setItem('supabase.auth.token', JSON.stringify(session))
+        applySession(session, data.role)
+
+        // Source 1: localStorage profile
+        let currentProfile = loadProfileOrEvict()
+        const localName = (currentProfile?.name || '').trim()
+
+        // Source 2: Supabase DB row (cross-device returning user)
+        const dbName = (data.dbProfile?.name || '').trim()
+
+        const resolvedName = localName || dbName
+
+        if (!localName && dbName) {
+          const dp = data.dbProfile
+          currentProfile = {
+            version: PROFILE_VERSION,
+            name: dbName,
+            primarySport: dp.sport || '',
+            trainingTypes: dp.sport ? [dp.sport] : [],
+            training: dp.sport ? [dp.sport] : [],
+            goal: dp.goal || 'maintain',
+            goals: [dp.goal || 'maintain'],
+            currentWeight: dp.weight || null,
+            completedAt: Date.now(),
+          }
+          localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
+        }
+
+        if (resolvedName) {
+          setProfile(currentProfile)
+          saveUserIfNew(data.user.email, currentProfile)
+          setView('dashboard')
+        } else {
+          setProfile(null)
+          setView('onboarding')
+        }
+      })
+      .catch(() => setView('splash'))
+  }
+
   useEffect(() => {
-    // ── Magic link callback — access_token in URL hash ──────────────────────
+    // ── Password-reset link callback — access_token in URL hash ──────────────
     const hash = window.location.hash
     if (hash.includes('access_token')) {
       const params       = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
       const accessToken  = params.get('access_token')
       const refreshToken = params.get('refresh_token') ?? ''
-
-      // Clear hash immediately
       window.history.replaceState(null, '', '/')
-
-      if (!accessToken) { setView('splash'); return }
-
-      fetch('/api/auth-user', { headers: { Authorization: `Bearer ${accessToken}` } })
-        .then(r => r.json())
-        .then(data => {
-          if (!data.user) { setView('splash'); return }
-
-          const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
-          localStorage.setItem('supabase.auth.token', JSON.stringify(session))
-          applySession(session, data.role)
-
-          // Source 1: localStorage profile
-          let currentProfile = loadProfileOrEvict()
-          const localName = (currentProfile?.name || '').trim()
-
-          // Source 2: Supabase DB row (cross-device returning user)
-          const dbName = (data.dbProfile?.name || '').trim()
-
-          // A name MUST exist in at least one source to be considered a returning user.
-          // An empty, whitespace-only, or missing name always means new user → onboarding.
-          const resolvedName = localName || dbName
-
-          if (!localName && dbName) {
-            // Reconstruct profile from DB for cross-device sign-in
-            const dp = data.dbProfile
-            currentProfile = {
-              version: PROFILE_VERSION,
-              name: dbName,
-              primarySport: dp.sport || '',
-              trainingTypes: dp.sport ? [dp.sport] : [],
-              training: dp.sport ? [dp.sport] : [],
-              goal: dp.goal || 'maintain',
-              goals: [dp.goal || 'maintain'],
-              currentWeight: dp.weight || null,
-              completedAt: Date.now(),
-            }
-            localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
-          }
-
-          if (resolvedName) {
-            // Returning user — has a confirmed name in localStorage or DB
-            setProfile(currentProfile)
-            saveUserIfNew(data.user.email, currentProfile)
-            setView('dashboard')
-          } else {
-            // New user — no name anywhere → 3-step onboarding
-            // Do NOT call saveUserIfNew here — it would create an empty placeholder row
-            setProfile(null)
-            setView('onboarding')
-          }
-        })
-        .catch(() => setView('splash'))
+      processAuthResult(accessToken, refreshToken)
       return
     }
 
@@ -4320,9 +4365,9 @@ export default function App() {
     return <SplashScreen onGetStarted={() => setView('auth')} />
   }
 
-  // ── View: Auth (email input / magic link) ────────────────────────────────────
+  // ── View: Auth (email + password) ────────────────────────────────────────────
   if (view === 'auth') {
-    return <AuthScreen onBack={() => setView('splash')} />
+    return <AuthScreen onBack={() => setView('splash')} onAuthSuccess={processAuthResult} />
   }
 
   // ── View: Onboarding (new users — 3 steps) ───────────────────────────────────
