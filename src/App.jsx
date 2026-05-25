@@ -3616,13 +3616,17 @@ function SetPasswordScreen({ accessToken, onSuccess }) {
 // ── Admin panel ──────────────────────────────────────────────────────────────
 
 function AdminPanel({ onBack }) {
-  const [searchEmail,  setSearchEmail]  = useState('')
-  const [user,         setUser]         = useState(null)
-  const [selectedRole, setSelectedRole] = useState('')
-  const [loading,      setLoading]      = useState(false)
-  const [lookupError,  setLookupError]  = useState('')
-  const [status,       setStatus]       = useState(null)   // null | 'success' | 'error'
-  const [statusMsg,    setStatusMsg]    = useState('')
+  const [searchEmail,      setSearchEmail]      = useState('')
+  const [user,             setUser]             = useState(null)
+  const [selectedRole,     setSelectedRole]     = useState('')
+  const [loading,          setLoading]          = useState(false)
+  const [lookupError,      setLookupError]      = useState('')
+  const [status,           setStatus]           = useState(null)
+  const [statusMsg,        setStatusMsg]        = useState('')
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const [resetLoading,     setResetLoading]     = useState(false)
+  const [resetStatus,      setResetStatus]      = useState(null)  // null | 'success' | 'error'
+  const [resetMsg,         setResetMsg]         = useState('')
 
   async function handleLookup() {
     const q = searchEmail.trim()
@@ -3660,6 +3664,27 @@ function AdminPanel({ onBack }) {
       setStatus('error'); setStatusMsg('Update failed. Try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleResetAllUsers() {
+    if (resetConfirmText !== 'DELETE') return
+    setResetLoading(true); setResetStatus(null); setResetMsg('')
+    try {
+      const res = await fetch('/api/admin-reset-users', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_ADMIN_RESET_SECRET}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Reset failed')
+      setResetStatus('success')
+      setResetMsg(`All users deleted. (${data.deleted} auth accounts removed)`)
+      setResetConfirmText('')
+    } catch (err) {
+      setResetStatus('error')
+      setResetMsg(err.message)
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -3782,6 +3807,65 @@ function AdminPanel({ onBack }) {
             )}
           </div>
         )}
+
+        {/* Danger Zone */}
+        <div style={{ marginTop: 56, borderTop: '1px solid rgba(255,77,77,0.25)', paddingTop: 40 }}>
+          <p style={{ ...MUTED, color: '#FF4D4D' }}>Danger zone</p>
+
+          <div style={{ backgroundColor: '#1A1A1A', borderRadius: 10, padding: 24 }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 600, color: '#F0F0F0', margin: '0 0 6px' }}>
+              Reset all users
+            </p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '0 0 24px', lineHeight: 1.5 }}>
+              This will delete all users and profiles. Type DELETE to confirm.
+            </p>
+
+            <input
+              type="text"
+              value={resetConfirmText}
+              onChange={e => { setResetConfirmText(e.target.value); setResetStatus(null) }}
+              onFocus={e  => { e.target.style.borderColor = '#FF4D4D' }}
+              onBlur={e   => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+              placeholder="Type DELETE to confirm"
+              autoComplete="off"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                backgroundColor: '#0D0D0D',
+                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
+                padding: '14px 16px', color: '#F0F0F0',
+                fontFamily: 'Inter, sans-serif', fontSize: 15, outline: 'none',
+                marginBottom: 12, transition: 'border-color 150ms ease',
+              }}
+            />
+
+            <button
+              onClick={handleResetAllUsers}
+              disabled={resetLoading || resetConfirmText !== 'DELETE'}
+              style={{
+                width: '100%', height: 48, borderRadius: 8, border: 'none',
+                backgroundColor: resetLoading || resetConfirmText !== 'DELETE' ? '#2A1A1A' : '#FF4D4D',
+                color: resetLoading || resetConfirmText !== 'DELETE' ? '#555555' : '#FFFFFF',
+                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
+                cursor: resetLoading || resetConfirmText !== 'DELETE' ? 'not-allowed' : 'pointer',
+                transition: 'all 150ms ease',
+              }}
+            >
+              {resetLoading ? 'Deleting…' : 'Delete all users'}
+            </button>
+
+            {resetStatus === 'success' && (
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', marginTop: 12, textAlign: 'center' }}>
+                {resetMsg}
+              </p>
+            )}
+            {resetStatus === 'error' && (
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', marginTop: 12, textAlign: 'center' }}>
+                {resetMsg}
+              </p>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   )
