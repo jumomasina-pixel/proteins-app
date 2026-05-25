@@ -5,28 +5,27 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const secret = process.env.ADMIN_RESET_SECRET
-  if (!secret) {
-    return res.status(500).json({ error: 'ADMIN_RESET_SECRET env var not set' })
-  }
-
-  const authHeader = req.headers['authorization'] || ''
-  const provided = authHeader.replace(/^Bearer\s+/i, '').trim()
-  if (provided !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  const supabaseUrl = process.env.SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceRoleKey) {
-    return res.status(500).json({ error: 'Supabase env vars not set' })
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
   try {
+    const secret = process.env.ADMIN_RESET_SECRET
+    if (!secret) {
+      return res.status(500).json({ error: 'ADMIN_RESET_SECRET env var not set' })
+    }
+
+    const authHeader = req.headers['authorization'] || ''
+    const provided = authHeader.replace(/^Bearer\s+/i, '').trim()
+    if (provided !== secret) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ error: 'Supabase env vars not set' })
+    }
+
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+
     // 1. Delete all rows from the users table
     const { error: tableError } = await supabase.from('users').delete().neq('email', '')
     if (tableError) {
