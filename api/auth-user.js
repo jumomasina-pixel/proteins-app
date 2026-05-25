@@ -65,6 +65,7 @@ export default async function handler(req, res) {
 
   // ── GET — read role + profile fields ─────────────────────────────────────────
   if (req.method === 'GET') {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     let dbRole = 'free'
     let dbProfile = null
     let dbRowExists = false
@@ -73,8 +74,8 @@ export default async function handler(req, res) {
         `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
         {
           headers: {
-            'apikey':        supabaseKey,
-            'Authorization': `Bearer ${token}`,
+            'apikey':        serviceRoleKey || supabaseKey,
+            'Authorization': `Bearer ${serviceRoleKey || supabaseKey}`,
           },
         }
       )
