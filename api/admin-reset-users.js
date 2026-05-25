@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -17,36 +15,50 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const SUPABASE_URL = process.env.SUPABASE_URL
+    const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
       return res.status(500).json({ error: 'Supabase env vars not set' })
     }
 
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
+    const serviceHeaders = {
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+    }
 
     // 1. Delete all rows from the users table
-    const { error: tableError } = await supabase.from('users').delete().neq('email', '')
-    if (tableError) {
-      console.error('[admin-reset-users] users table delete error:', tableError)
-      return res.status(500).json({ error: tableError.message })
+    const tableRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=neq.00000000-0000-0000-0000-000000000000`,
+      { method: 'DELETE', headers: serviceHeaders }
+    )
+    if (!tableRes.ok) {
+      const body = await tableRes.json().catch(() => ({}))
+      console.error('[admin-reset-users] users table delete error:', body)
+      return res.status(500).json({ error: body.message || body.error || 'Failed to delete users table rows' })
     }
 
     // 2. List all auth users
-    const { data: listData, error: listError } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-    if (listError) {
-      console.error('[admin-reset-users] listUsers error:', listError)
-      return res.status(500).json({ error: listError.message })
+    const listRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      headers: serviceHeaders,
+    })
+    if (!listRes.ok) {
+      const body = await listRes.json().catch(() => ({}))
+      console.error('[admin-reset-users] listUsers error:', body)
+      return res.status(500).json({ error: body.message || body.error || 'Failed to list auth users' })
     }
-
+    const listData = await listRes.json()
     const users = listData?.users ?? []
 
     // 3. Delete every auth user
     for (const user of users) {
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id)
-      if (deleteError) {
-        console.error(`[admin-reset-users] deleteUser(${user.id}) error:`, deleteError)
+      const delRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${user.id}`, {
+        method: 'DELETE',
+        headers: serviceHeaders,
+      })
+      if (!delRes.ok) {
+        const body = await delRes.json().catch(() => ({}))
+        console.error(`[admin-reset-users] deleteUser(${user.id}) error:`, body)
       }
     }
 
