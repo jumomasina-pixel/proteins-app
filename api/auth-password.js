@@ -3,9 +3,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { action, email, password } = req.body || {}
+  const { action, email, password, access_token } = req.body || {}
 
-  if (!email) return res.status(400).json({ error: 'email required' })
+  if (action !== 'update-password' && !email) return res.status(400).json({ error: 'email required' })
 
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_ANON_KEY
@@ -68,11 +68,31 @@ export default async function handler(req, res) {
       const r = await fetch(`${supabaseUrl}/auth/v1/recover`, {
         method: 'POST',
         headers: { 'apikey': supabaseKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), redirect_to: 'https://myremi.io' }),
       })
       if (!r.ok) {
         const data = await r.json().catch(() => ({}))
         return res.status(400).json({ error: data.error_description || data.msg || 'Failed to send reset email.' })
+      }
+      return res.status(200).json({ success: true })
+    }
+
+    // ── Update password (recovery flow) ───────────────────────────────────────
+    if (action === 'update-password') {
+      if (!access_token) return res.status(400).json({ error: 'access_token required' })
+      if (!password) return res.status(400).json({ error: 'password required' })
+      const r = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        method: 'PUT',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      })
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}))
+        return res.status(400).json({ error: data.error_description || data.msg || data.error || 'Failed to update password.' })
       }
       return res.status(200).json({ success: true })
     }

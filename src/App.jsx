@@ -3317,19 +3317,21 @@ function AuthScreen({ onBack, onAuthSuccess }) {
           />
         )}
 
-        {/* Email */}
-        <input
-          type="email"
-          value={email}
-          onChange={e => { setEmail(e.target.value); clearError() }}
-          onKeyDown={e => { if (e.key === 'Enter' && mode === 'forgot') handleForgot() }}
-          onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-          onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
-          placeholder="you@example.com"
-          autoComplete="email"
-          inputMode="email"
-          style={IS}
-        />
+        {/* Email — hidden after reset link is sent */}
+        {!(mode === 'forgot' && forgotSent) && (
+          <input
+            type="email"
+            value={email}
+            onChange={e => { setEmail(e.target.value); clearError() }}
+            onKeyDown={e => { if (e.key === 'Enter' && mode === 'forgot') handleForgot() }}
+            onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+            onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+            placeholder="you@example.com"
+            autoComplete="email"
+            inputMode="email"
+            style={IS}
+          />
+        )}
 
         {/* Password with show/hide toggle — signin and signup only */}
         {mode !== 'forgot' && (
@@ -3369,7 +3371,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
 
         {/* Forgot password success */}
         {forgotSent && (
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#00E5A0', margin: '0 0 16px', lineHeight: 1.5 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: '0 0 16px', lineHeight: 1.5, textAlign: 'center' }}>
             Reset link sent. Check your inbox.
           </p>
         )}
@@ -3415,6 +3417,197 @@ function AuthScreen({ onBack, onAuthSuccess }) {
             </button>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Welcome Back screen ────────────────────────────────────────────────────────
+
+const WELCOME_BACK_STYLES = `
+  .remi-pill {
+    background: transparent;
+    border: 1px solid #00E5A0;
+    color: #00E5A0;
+    font-family: Inter, sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 100px;
+    padding: 12px 24px;
+    min-height: 44px;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+  }
+  .remi-pill:hover, .remi-pill:active {
+    background: #00E5A0;
+    color: #0D0D0D;
+  }
+`
+
+function WelcomeBackScreen({ name, lastSignInAt, onKitchen, onDashboard }) {
+  function getGreeting() {
+    if (name === 'there') return "Back in the kitchen. Where do you want to start?"
+    if (!lastSignInAt) return `Been a while, ${name}. No judgment. Let's get back on it.`
+    const diffHours = (Date.now() - new Date(lastSignInAt).getTime()) / (1000 * 60 * 60)
+    if (diffHours <= 48) return `${name}. Back again. The fridge is still cold.`
+    if (diffHours <= 7 * 24) return `${name}. Good timing. Let's make tonight count.`
+    return `Been a while, ${name}. No judgment. Let's get back on it.`
+  }
+
+  return (
+    <div style={{
+      minHeight: '100dvh',
+      backgroundColor: '#0D0D0D',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+    }}>
+      <style>{WELCOME_BACK_STYLES}</style>
+      <p style={{
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 22,
+        fontWeight: 400,
+        color: '#F0F0F0',
+        textAlign: 'center',
+        maxWidth: 360,
+        lineHeight: 1.4,
+        margin: 0,
+      }}>
+        {getGreeting()}
+      </p>
+      <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
+        <button className="remi-pill" onClick={onKitchen}>Head to the Kitchen</button>
+        <button className="remi-pill" onClick={onDashboard}>Check my Dashboard</button>
+      </div>
+    </div>
+  )
+}
+
+// ── Set new password screen (recovery link flow) ───────────────────────────────
+
+function SetPasswordScreen({ accessToken, onSuccess }) {
+  const [newPassword,     setNewPassword]     = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showNew,         setShowNew]         = useState(false)
+  const [showConfirm,     setShowConfirm]     = useState(false)
+  const [error,           setError]           = useState('')
+  const [loading,         setLoading]         = useState(false)
+
+  async function handleUpdate() {
+    if (newPassword.length < 6)          { setError('Password must be at least 6 characters.'); return }
+    if (newPassword !== confirmPassword)  { setError("Passwords don't match."); return }
+    setLoading(true); setError('')
+    try {
+      const res  = await fetch('/api/auth-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update-password', access_token: accessToken, password: newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Failed to update password.'); return }
+      onSuccess()
+    } catch {
+      setError('Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const IS = {
+    display: 'block', width: '100%', boxSizing: 'border-box',
+    backgroundColor: '#111111',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 10, padding: '16px 52px 16px 16px', color: '#F0F0F0',
+    fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none',
+    transition: 'border-color 150ms ease',
+    WebkitAppearance: 'none',
+  }
+
+  function EyeIcon({ show }) {
+    return show ? (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+        <line x1="1" y1="1" x2="23" y2="23"/>
+      </svg>
+    ) : (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    )
+  }
+
+  function eyeBtn(show, toggle) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#666666', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
+      >
+        <EyeIcon show={show} />
+      </button>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '72px 24px 56px', display: 'flex', flexDirection: 'column' }}>
+
+        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.75rem, 12vw, 3.5rem)', color: '#00E5A0', margin: 0, lineHeight: 1 }}>Remi</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.14em', margin: '10px 0 0', textTransform: 'uppercase' }}>
+            Personal Chef · Coach · Guide
+          </p>
+        </div>
+
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.375rem', color: '#F0F0F0', margin: '0 0 24px', lineHeight: 1.2 }}>
+          Set new password.
+        </h2>
+
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <input
+            type={showNew ? 'text' : 'password'}
+            value={newPassword}
+            onChange={e => { setNewPassword(e.target.value); setError('') }}
+            onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+            onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+            placeholder="New password"
+            autoComplete="new-password"
+            style={IS}
+          />
+          {eyeBtn(showNew, () => setShowNew(v => !v))}
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 20 }}>
+          <input
+            type={showConfirm ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={e => { setConfirmPassword(e.target.value); setError('') }}
+            onKeyDown={e => { if (e.key === 'Enter') handleUpdate() }}
+            onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
+            onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+            placeholder="Confirm password"
+            autoComplete="new-password"
+            style={IS}
+          />
+          {eyeBtn(showConfirm, () => setShowConfirm(v => !v))}
+        </div>
+
+        {error && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF4D4D', margin: '0 0 16px', lineHeight: 1.4 }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          onClick={handleUpdate}
+          disabled={loading || !newPassword || !confirmPassword}
+          style={{ width: '100%', height: 54, backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 10, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, border: 'none', cursor: loading || !newPassword || !confirmPassword ? 'not-allowed' : 'pointer', opacity: loading || !newPassword || !confirmPassword ? 0.7 : 1, transition: 'opacity 150ms ease' }}
+        >
+          {loading ? '…' : 'Update password'}
+        </button>
       </div>
     </div>
   )
@@ -3763,6 +3956,13 @@ export default function App() {
     window.location.reload()
   }
 
+  // ── Recovery detection — must run before any useState ────────────────────────
+  const hash = window.location.hash
+  const hashParams = new URLSearchParams(hash.replace('#', ''))
+  const isRecovery = hashParams.get('type') === 'recovery'
+  const recoveryAccessToken = isRecovery ? hashParams.get('access_token') : null
+  if (isRecovery) window.history.replaceState(null, '', '/')
+
   const [messages,       setMessages]       = useState(() => {
     const p = loadProfileOrEvict()
     const s = (() => { try { const r = localStorage.getItem('lhc_sessions'); return r ? JSON.parse(r) : [] } catch { return [] } })()
@@ -3795,13 +3995,7 @@ export default function App() {
   const [stats,          setStats]          = useState(() => {
     try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
-  const [view,           setView]           = useState(() => {
-    if (window.location.hash.includes('access_token')) return 'loading'
-    const hasSession = !!localStorage.getItem('supabase.auth.token')
-    if (!hasSession) return 'splash'
-    const hasProfile = !!loadProfileOrEvict()?.name
-    return hasProfile ? 'dashboard' : 'onboarding'
-  })
+  const [view,           setView]           = useState(isRecovery ? 'set-password' : 'loading')
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
   const [viewingDishImg, setViewingDishImg] = useState(null)
@@ -3824,6 +4018,8 @@ export default function App() {
   const [inputFocused,      setInputFocused]      = useState(false)
   const [cookedConfirmation, setCookedConfirmation] = useState(null)
   const [suggestions,        setSuggestions]        = useState([])
+  const [welcomeBackData,    setWelcomeBackData]    = useState(null)
+  const [recoveryToken,      setRecoveryToken]      = useState(recoveryAccessToken)
 
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
@@ -3932,7 +4128,16 @@ export default function App() {
         if (resolvedName) {
           setProfile(currentProfile)
           saveUserIfNew(data.user.email, currentProfile)
-          setView('dashboard')
+          const isReturningUser = !!(data.dbProfile?.name && data.dbProfile?.sport)
+          if (isReturningUser) {
+            const prevSignIn = localStorage.getItem('remi_prev_sign_in')
+            const firstName = (dbName || localName).split(' ')[0]
+            setWelcomeBackData({ name: firstName, lastSignInAt: prevSignIn })
+            localStorage.setItem('remi_prev_sign_in', new Date().toISOString())
+            setView('welcome-back')
+          } else {
+            setView('dashboard')
+          }
         } else {
           setProfile(null)
           setView('onboarding')
@@ -3942,10 +4147,13 @@ export default function App() {
   }
 
   useEffect(() => {
-    // ── Password-reset link callback — access_token in URL hash ──────────────
-    const hash = window.location.hash
-    if (hash.includes('access_token')) {
-      const params       = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
+    // Recovery links are fully handled synchronously before this effect runs.
+    if (isRecovery) return
+
+    // ── URL hash callback — non-recovery access_token ─────────────────────────
+    const currentHash = window.location.hash
+    if (currentHash.includes('access_token')) {
+      const params       = new URLSearchParams(currentHash.startsWith('#') ? currentHash.slice(1) : currentHash)
       const accessToken  = params.get('access_token')
       const refreshToken = params.get('refresh_token') ?? ''
       window.history.replaceState(null, '', '/')
@@ -3955,7 +4163,7 @@ export default function App() {
 
     // ── Session restore — stored token ──────────────────────────────────────
     const raw = localStorage.getItem('supabase.auth.token')
-    if (!raw) return  // no token — view already set to 'splash' by initialiser
+    if (!raw) { setView('splash'); return }
     let stored
     try { stored = JSON.parse(raw) } catch { localStorage.removeItem('supabase.auth.token'); setView('splash'); return }
 
@@ -3968,7 +4176,11 @@ export default function App() {
         if (data.user) {
           applySession({ ...stored, user: data.user }, data.role)
           if (!profile) setProfile(loadProfileOrEvict())
-          // view was already set to 'dashboard' or 'onboarding' by initialiser — no change needed
+          if (data.user.last_sign_in_at) {
+            localStorage.setItem('remi_prev_sign_in', data.user.last_sign_in_at)
+          }
+          const p = loadProfileOrEvict()
+          setView(p?.name ? 'dashboard' : 'onboarding')
         } else {
           // Expired / invalid — clear and show splash
           localStorage.removeItem('supabase.auth.token')
@@ -3978,7 +4190,7 @@ export default function App() {
           setView('splash')
         }
       })
-      .catch(() => { /* Network error — keep current view (dashboard) */ })
+      .catch(() => { setView('splash') })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -4217,6 +4429,7 @@ export default function App() {
     localStorage.removeItem('lhc_greeting')
     localStorage.removeItem('remi_training_today')
     localStorage.removeItem('remi_first_recipe_saved')
+    localStorage.removeItem('remi_prev_sign_in')
     Object.keys(localStorage)
       .filter(k => k.startsWith('lhc_corner_tips'))
       .forEach(k => localStorage.removeItem(k))
@@ -4251,6 +4464,7 @@ export default function App() {
       'remi_profile',
       'remi_user_email',
       'remi_first_recipe_saved',
+      'remi_prev_sign_in',
     ].forEach(k => localStorage.removeItem(k))
 
     // 2. Reset all React state — no reload, no stale screen
@@ -4490,6 +4704,32 @@ export default function App() {
   // ── View: Admin panel ────────────────────────────────────────────────────────
   if (view === 'admin-panel' && isAdmin) {
     return <AdminPanel onBack={() => setView('dashboard')} />
+  }
+
+  // ── View: Welcome Back ───────────────────────────────────────────────────────
+  if (view === 'welcome-back' && welcomeBackData) {
+    return (
+      <WelcomeBackScreen
+        name={welcomeBackData.name}
+        lastSignInAt={welcomeBackData.lastSignInAt}
+        onKitchen={handleReset}
+        onDashboard={() => setView('dashboard')}
+      />
+    )
+  }
+
+  // ── View: Set Password (recovery link) ────────────────────────────────────────
+  if (view === 'set-password') {
+    return (
+      <SetPasswordScreen
+        accessToken={recoveryToken}
+        onSuccess={() => {
+          setRecoveryToken(null)
+          setWelcomeBackData({ name: 'there', lastSignInAt: null })
+          setView('welcome-back')
+        }}
+      />
+    )
   }
 
   // ── View: Intel ──────────────────────────────────────────────────────────────
