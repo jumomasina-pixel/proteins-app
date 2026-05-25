@@ -2611,7 +2611,7 @@ function mapGoalForApi(goals) {
   return 'maintain'
 }
 
-function Onboarding({ onComplete, onBack }) {
+function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
   const [step,              setStep]             = useState(1)
   const [name,              setName]             = useState('')
   const [weight,            setWeight]           = useState('')
@@ -2631,6 +2631,22 @@ function Onboarding({ onComplete, onBack }) {
   const isMaintain  = goals.includes('Maintain')
   const isCombat    = trainingTypes.some(t => COMBAT_SPORTS.includes(t))
   const isFightGoal = sportGoal === 'I have a fight / competition coming up'
+
+  // Safety check — if this user already has a DB row, skip onboarding entirely
+  useEffect(() => {
+    if (!onAlreadyOnboarded) return
+    let cancelled = false
+    const raw = localStorage.getItem('supabase.auth.token')
+    if (!raw) return
+    let token
+    try { token = JSON.parse(raw)?.access_token } catch { return }
+    if (!token) return
+    fetch('/api/auth-user', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => { if (!cancelled && data.dbRowExists) onAlreadyOnboarded() })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function advanceStep() {
     if (step === 3 && isMaintain) return setStep(5)
@@ -3479,7 +3495,7 @@ function WelcomeBackScreen({ name, lastSignInAt, onKitchen, onDashboard }) {
       </p>
       <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
         <button className="remi-pill" onClick={onKitchen}>Head to the Kitchen</button>
-        <button className="remi-pill" onClick={onDashboard}>Check my Dashboard</button>
+        <button className="remi-pill" onClick={onDashboard}>Refine my Approach</button>
       </div>
     </div>
   )
@@ -4252,12 +4268,40 @@ export default function App() {
       .then(data => {
         if (data.user) {
           applySession({ ...stored, user: data.user }, data.role)
-          if (!profile) setProfile(loadProfileOrEvict())
-          if (data.user.last_sign_in_at) {
-            localStorage.setItem('remi_prev_sign_in', data.user.last_sign_in_at)
+
+          let currentProfile = loadProfileOrEvict()
+          const localName = (currentProfile?.name || '').trim()
+          const dbName = (data.dbProfile?.name || '').trim()
+
+          if (!localName && dbName) {
+            const dp = data.dbProfile
+            currentProfile = {
+              version: PROFILE_VERSION,
+              name: dbName,
+              primarySport: dp.sport || '',
+              trainingTypes: dp.sport ? [dp.sport] : [],
+              training: dp.sport ? [dp.sport] : [],
+              goal: dp.goal || 'maintain',
+              goals: [dp.goal || 'maintain'],
+              currentWeight: dp.weight || null,
+              completedAt: Date.now(),
+            }
+            localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
           }
-          const p = loadProfileOrEvict()
-          setView(p?.name ? 'dashboard' : 'onboarding')
+
+          setProfile(currentProfile)
+
+          if (data.dbRowExists) {
+            const prevSignIn = localStorage.getItem('remi_prev_sign_in')
+            const firstName = (dbName || localName || 'there').split(' ')[0]
+            setWelcomeBackData({ name: firstName, lastSignInAt: prevSignIn })
+            if (data.user.last_sign_in_at) {
+              localStorage.setItem('remi_prev_sign_in', data.user.last_sign_in_at)
+            }
+            setView('welcome-back')
+          } else {
+            setView('onboarding')
+          }
         } else {
           // Expired / invalid — clear and show splash
           localStorage.removeItem('supabase.auth.token')
@@ -4712,6 +4756,13 @@ export default function App() {
       <>
         <Onboarding
           onBack={() => setView(profile ? 'dashboard' : 'splash')}
+          onAlreadyOnboarded={() => {
+            const currentProfile = loadProfileOrEvict()
+            const firstName = (currentProfile?.name || 'there').split(' ')[0]
+            const prevSignIn = localStorage.getItem('remi_prev_sign_in')
+            setWelcomeBackData({ name: firstName, lastSignInAt: prevSignIn })
+            setView('welcome-back')
+          }}
           onComplete={remiProfile => {
             const saved = { ...remiProfile, completedAt: Date.now(), version: PROFILE_VERSION }
             localStorage.setItem('lhc_profile', JSON.stringify(saved))
