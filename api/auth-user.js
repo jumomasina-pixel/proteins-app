@@ -66,11 +66,14 @@ export default async function handler(req, res) {
   // ── GET — read role + profile fields ─────────────────────────────────────────
   if (req.method === 'GET') {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    console.log('AUTH-USER GET — looking up email:', user.email)
     let dbRole = 'free'
     let dbProfile = null
     let dbRowExists = false
+    let roleRes
+    let rows
     try {
-      const roleRes = await fetch(
+      roleRes = await fetch(
         `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,weight`,
         {
           headers: {
@@ -79,8 +82,12 @@ export default async function handler(req, res) {
           },
         }
       )
+      if (!roleRes.ok) {
+        const errText = await roleRes.text()
+        console.log('AUTH-USER GET — query FAILED:', errText)
+      }
       if (roleRes.ok) {
-        const rows = await roleRes.json()
+        rows = await roleRes.json()
         if (Array.isArray(rows) && rows.length > 0) {
           const row = rows[0]
           dbRowExists = true
@@ -92,6 +99,7 @@ export default async function handler(req, res) {
       // Non-fatal — default to free / no profile
     }
 
+    console.log('AUTH-USER GET — profiles query status:', roleRes?.status, 'rows returned:', rows?.length, 'dbRowExists:', dbRowExists)
     return res.status(200).json({ user, role: dbRole, dbProfile, dbRowExists })
   }
 
