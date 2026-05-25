@@ -29,8 +29,16 @@ export default async function handler(req, res) {
 
     // 1. Delete all rows from the users table
     const tableRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?email=neq.`,
-      { method: 'DELETE', headers: serviceHeaders }
+      `${SUPABASE_URL}/rest/v1/users?id=neq.null`,
+      {
+        method: 'DELETE',
+        headers: {
+          apikey: SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+      }
     )
     if (!tableRes.ok) {
       const body = await tableRes.json().catch(() => ({}))
