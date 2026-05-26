@@ -2077,8 +2077,7 @@ function RemiCorner({ profile }) {
 
   return (
     <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#888888' }}>Remi's Corner</p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button
           onClick={() => { setTip(null); fetchTip(tab) }}
           disabled={loading}
