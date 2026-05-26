@@ -7,8 +7,10 @@
 //
 // Seat cap: 20 clients per coach (hardcoded for Phase 1).
 //
-// PHASE 2 HOOK: when Stripe Connect lands, on a successful 'record' fire a webhook to
-// register the client as billable at $5/mo and credit the coach $1/mo per active seat.
+// PHASE 2 - STRIPE NOT YET CONFIGURED
+// When Stripe Connect is wired up, a successful 'record' should fire a webhook to register
+// the client as billable at $5/mo and credit the coach $1/mo per active seat. No Stripe SDK,
+// env vars, or API calls are present anywhere in the app — phase 1 ships without billing.
 
 const SEAT_CAP = 20
 
@@ -94,7 +96,7 @@ export default async function handler(req, res) {
         console.error('[referral] PATCH client_count failed:', body)
         return res.status(500).json({ success: false, error: 'patch_failed' })
       }
-      // PHASE 2: enqueue Stripe billable-seat creation here.
+      // PHASE 2 - STRIPE NOT YET CONFIGURED — enqueue Stripe billable-seat creation here.
       return res.status(200).json({ success: true, clientCount: next })
     }
 
