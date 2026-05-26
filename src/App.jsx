@@ -3032,15 +3032,30 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
                     style={{ ...IS }}
                   />
 
-                  {/* Pace row */}
+                  {/* Pace row (+ advisory flag when weekly pace exceeds 1% of current bodyweight) */}
                   {fightDateISO() && fightTargetWeight && Number(fightTargetWeight) > 0 && (() => {
                     const cutKg = Number(weight) - Number(fightTargetWeight)
                     const weeks = weeksOutValue
                     if (!weeks || weeks <= 0 || cutKg <= 0) return null
+                    const perWeek    = cutKg / weeks
+                    const currentKg  = Number(weight)
+                    const pacePct    = currentKg > 0 ? (perWeek / currentKg) * 100 : 0
+                    const sharpCut   = pacePct > 1.0
+                    const firstName  = name.trim()
+                    const sharpLine  = firstName
+                      ? `That's a sharp cut, ${firstName}. We can do it — but the kitchen has to be exact, or give yourself more weeks.`
+                      : `That's a sharp cut. We can do it — but the kitchen has to be exact, or give yourself more weeks.`
                     return (
-                      <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#888888' }}>
-                        To cut {cutKg.toFixed(1)} kg&nbsp;&nbsp;/&nbsp;&nbsp;Per week {(cutKg / weeks).toFixed(2)} kg
-                      </div>
+                      <>
+                        <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#888888' }}>
+                          To cut {cutKg.toFixed(1)} kg&nbsp;&nbsp;/&nbsp;&nbsp;Per week {perWeek.toFixed(2)} kg
+                        </div>
+                        {sharpCut && (
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontStyle: 'normal', lineHeight: 1.5, color: '#FF4D4D' }}>
+                            {sharpLine}
+                          </div>
+                        )}
+                      </>
                     )
                   })()}
                 </div>
