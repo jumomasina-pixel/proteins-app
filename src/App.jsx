@@ -906,26 +906,38 @@ function SkeletonCard() {
 
 // ── Chat bubbles ──────────────────────────────────────────────────────────────
 
-function ChatBubble({ role, content, isStreaming, userName, isOpening }) {
+// Strip markdown italics/bold runs that occasionally leak through from the model.
+function stripChatMarkdown(s) {
+  if (typeof s !== 'string') return s
+  return s
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+}
+
+function ChatBubble({ role, content, isStreaming, isOpening }) {
   const isUser = role === 'user'
+  const text = stripChatMarkdown(content)
 
   if (isUser) {
     return (
-      <div className="flex justify-end">
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <div
-          className="max-w-[75%] sm:max-w-[65%] whitespace-pre-wrap"
           style={{
-            backgroundColor: '#1C1C1C',
-            color: '#E8E8E8',
-            borderLeft: '3px solid rgba(193,104,58,0.6)',
-            borderRadius: '2px 16px 16px 2px',
-            fontSize: '0.875rem',
-            fontFamily: "'IBM Plex Sans', sans-serif",
-            padding: '12px 16px',
+            maxWidth: '85%',
+            whiteSpace: 'pre-wrap',
+            backgroundColor: '#1A1A1A',
+            color: '#F0F0F0',
+            borderRadius: '10px 4px 10px 10px',
+            fontFamily: 'Inter, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 400,
+            fontSize: 15,
             lineHeight: 1.6,
+            padding: '12px 16px',
           }}
         >
-          {content}
+          {text}
         </div>
       </div>
     )
@@ -934,56 +946,128 @@ function ChatBubble({ role, content, isStreaming, userName, isOpening }) {
   return (
     <div style={{ position: 'relative' }}>
       {isOpening && (
-        <div style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 320, height: 200,
-          borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(193,104,58,0.06) 0%, transparent 70%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }} />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: '50%', left: '12%',
+            transform: 'translate(-50%, -50%)',
+            width: 320, height: 200,
+            borderRadius: '50%',
+            background: 'radial-gradient(ellipse, rgba(0,229,160,0.06) 0%, transparent 70%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
       )}
-      <div
-        className="max-w-[85%] whitespace-pre-wrap"
-        style={{
-          backgroundColor: '#1A1612',
-          borderRadius: '20px 4px 20px 20px',
-          padding: '20px',
-          fontFamily: "'IBM Plex Sans', sans-serif",
-          fontStyle: 'normal',
-          fontWeight: 400,
-          fontSize: 15,
-          color: '#F0EAE0',
-          lineHeight: 1.65,
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
-        {content}
-        {isStreaming && (
-          <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse align-text-bottom rounded-sm" style={{ backgroundColor: '#7A6B5A', opacity: 0.5 }} />
-        )}
+      <div style={{ display: 'inline-block', maxWidth: '85%', position: 'relative', zIndex: 1 }}>
+        <div
+          style={{
+            whiteSpace: 'pre-wrap',
+            backgroundColor: '#1A1A1A',
+            borderRadius: '10px 4px 10px 10px',
+            padding: '16px 18px',
+            fontFamily: 'Inter, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 400,
+            fontSize: 15,
+            color: '#F0F0F0',
+            lineHeight: 1.65,
+          }}
+        >
+          {text}
+          {isStreaming && (
+            <span
+              className="animate-pulse"
+              style={{ display: 'inline-block', width: 6, height: 14, marginLeft: 2, backgroundColor: '#888888', opacity: 0.5, verticalAlign: 'text-bottom', borderRadius: 2 }}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-function TypingIndicator() {
+// Cooking state — three mint dots + in-character line + plating sub-line. No spinner.
+function CookingState() {
   return (
-    <div>
+    <div style={{ display: 'inline-block', maxWidth: '85%' }}>
       <div
-        className="flex items-center gap-2.5 px-5 py-4"
-        style={{ backgroundColor: '#1A1612', borderRadius: '20px 4px 20px 20px', display: 'inline-flex' }}
+        style={{
+          backgroundColor: '#1A1A1A',
+          borderRadius: '10px 4px 10px 10px',
+          padding: '16px 18px',
+          fontFamily: 'Inter, sans-serif',
+          color: '#F0F0F0',
+        }}
       >
-        {[0, 1, 2].map(i => (
-          <span
-            key={i}
-            className="mint-dot"
-            style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#C1683A', display: 'inline-block', opacity: 0.7 }}
-          />
-        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          {[0, 1, 2].map(i => (
+            <span
+              key={i}
+              className="mint-dot"
+              style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }}
+            />
+          ))}
+          <span style={{ marginLeft: 4, fontFamily: 'Inter, sans-serif', fontSize: 15, fontStyle: 'normal', color: '#F0F0F0' }}>
+            Tasting it through.
+          </span>
+        </div>
+        <p style={{ margin: 0, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          Remi is plating · about 6 seconds
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// In-chat recipe handoff card — teaser only. Routes to the existing detail view.
+function HandoffCard({ dish, onOpen }) {
+  const m = dish?.dietician?.macros || {}
+  const cuisine = dish?.chef?.cuisine
+  const hook    = dish?.dietician?.note || dish?.chef?.flavour || ''
+  return (
+    <div
+      style={{
+        backgroundColor: '#1A1A1A',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 10,
+        overflow: 'hidden',
+        width: '100%',
+        maxWidth: 420,
+      }}
+    >
+      <div style={{ width: '100%', height: 90, overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
+        <CardImageHeader dishName={dish.name} cuisine={cuisine} initialUrl={dish._imgUrl ?? null} />
+      </div>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#F0F0F0', margin: 0, lineHeight: 1.2 }}>
+          {dish.name}
+        </h3>
+        {hook && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, lineHeight: 1.5 }}>
+            {hook}
+          </p>
+        )}
+        <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0' }}>
+          {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
+        </div>
+        <button
+          onClick={() => onOpen(dish)}
+          style={{
+            marginTop: 6,
+            width: '100%', height: 48,
+            backgroundColor: '#00E5A0',
+            color: '#0D0D0D',
+            border: 'none', borderRadius: 8,
+            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15,
+            cursor: 'pointer',
+            transition: 'opacity 200ms ease',
+            touchAction: 'manipulation',
+          }}
+        >
+          Open the recipe →
+        </button>
       </div>
     </div>
   )
@@ -995,21 +1079,24 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   const [selected, setSelected] = useState([])
 
   const chipStyle = (sel) => ({
-    backgroundColor: sel ? '#C1683A' : '#1A1612',
-    border:          `1px solid ${sel ? '#C1683A' : 'rgba(240,234,224,0.15)'}`,
-    color:           '#F0EAE0',
+    backgroundColor: sel ? '#00E5A0' : '#1A1A1A',
+    border:          `1px solid ${sel ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
+    color:           sel ? '#0D0D0D' : '#F0F0F0',
     borderRadius:    8,
     fontSize:        14,
-    fontFamily:      "'IBM Plex Sans', sans-serif",
+    fontFamily:      'Inter, sans-serif',
     fontWeight:      sel ? 600 : 500,
     padding:         '10px 18px',
     minHeight:       44,
     display:         'flex',
     alignItems:      'center',
     whiteSpace:      'nowrap',
-    transition:      'background 150ms ease, border-color 150ms ease',
+    transition:      'background 200ms ease, border-color 200ms ease',
     cursor:          'pointer',
+    touchAction:     'manipulation',
   })
+
+  const labelStyle = { fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }
 
   function handleSomethingElse() {
     onDismiss()
@@ -1020,7 +1107,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
     <button
       onClick={handleSomethingElse}
       className="shrink-0 transition-colors duration-200"
-      style={{ color: '#7A6B5A', backgroundColor: 'transparent', border: 'none', fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 14, cursor: 'pointer', padding: '10px 4px' }}
+      style={{ color: '#888888', backgroundColor: 'transparent', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, cursor: 'pointer', padding: '10px 4px' }}
     >
       Something else →
     </button>
@@ -1028,6 +1115,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
 
   if (type === 'proteins') {
     const [pantrySelected, setPantrySelected] = useState([])
+    const [expanded,       setExpanded]       = useState(true)
 
     function toggleProtein(val) {
       setSelected(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
@@ -1054,50 +1142,68 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
     const totalSelected = selected.length + pantrySelected.length
 
     return (
-      <div className="space-y-2.5">
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Proteins</p>
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-          {PROTEIN_CARDS.map(card => (
-            <button
-              key={card.value}
-              onClick={() => toggleProtein(card.value)}
-              className="shrink-0"
-              style={chipStyle(selected.includes(card.value))}
-            >
-              {card.label}
-            </button>
-          ))}
+      <div data-tray="fridge" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* FRIDGE header + collapse/expand toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ ...labelStyle }}>
+            FRIDGE · {totalSelected} SELECTED
+          </span>
+          <button
+            onClick={() => setExpanded(e => !e)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#888888', fontFamily: 'Inter, sans-serif', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 500 }}
+            aria-expanded={expanded}
+          >
+            {expanded ? 'Collapse' : 'Expand'}
+          </button>
         </div>
 
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Also have:</p>
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-          {PANTRY_CARDS.map(card => (
-            <button
-              key={card.value}
-              onClick={() => togglePantry(card.value)}
-              className="shrink-0"
-              style={chipStyle(pantrySelected.includes(card.value))}
-            >
-              {card.label}
-            </button>
-          ))}
-        </div>
+        {expanded && (
+          <>
+            <p style={labelStyle}>Proteins</p>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+              {PROTEIN_CARDS.map(card => (
+                <button
+                  key={card.value}
+                  onClick={() => toggleProtein(card.value)}
+                  className="shrink-0"
+                  style={chipStyle(selected.includes(card.value))}
+                >
+                  {card.label}
+                </button>
+              ))}
+            </div>
 
-        <div className="flex gap-2 items-center">
-          {selected.length > 0 && (
-            <button
-              onClick={handleSubmit}
-              className="flex-1 rounded-xl font-semibold text-sm transition-opacity active:opacity-80"
-              style={{ backgroundColor: '#C1683A', color: '#F0EAE0', border: 'none', height: 44, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-            >
-              {totalSelected > selected.length
-                ? `Use ${selected.length} protein${selected.length > 1 ? 's' : ''} + ${pantrySelected.length} extra →`
-                : `Use ${selected.length > 1 ? `these ${selected.length} proteins` : 'this protein'} →`
-              }
-            </button>
-          )}
-          {somethingElseBtn}
-        </div>
+            <p style={labelStyle}>Also have</p>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+              {PANTRY_CARDS.map(card => (
+                <button
+                  key={card.value}
+                  onClick={() => togglePantry(card.value)}
+                  className="shrink-0"
+                  style={chipStyle(pantrySelected.includes(card.value))}
+                >
+                  {card.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 items-center">
+              {selected.length > 0 && (
+                <button
+                  onClick={handleSubmit}
+                  className="flex-1 transition-opacity active:opacity-80"
+                  style={{ backgroundColor: '#00E5A0', color: '#0D0D0D', border: 'none', borderRadius: 8, height: 44, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation' }}
+                >
+                  {totalSelected > selected.length
+                    ? `Use ${selected.length} protein${selected.length > 1 ? 's' : ''} + ${pantrySelected.length} extra →`
+                    : `Use ${selected.length > 1 ? `these ${selected.length} proteins` : 'this protein'} →`
+                  }
+                </button>
+              )}
+              {somethingElseBtn}
+            </div>
+          </>
+        )}
       </div>
     )
   }
@@ -1105,7 +1211,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   if (type === 'cuisine') {
     return (
       <div className="space-y-2.5">
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pick a style</p>
+        <p style={labelStyle}>Pick a style</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {CUISINE_CARDS.map(card => (
             <button
@@ -1126,7 +1232,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
   if (type === 'time') {
     return (
       <div className="space-y-2.5">
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 500, color: '#7A6B5A', letterSpacing: '0.12em', textTransform: 'uppercase' }}>How long have you got?</p>
+        <p style={labelStyle}>How long have you got?</p>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {TIME_CARDS.map(card => (
             <button
@@ -4669,7 +4775,16 @@ export default function App() {
               const _newCount = parseInt(localStorage.getItem(_gKey) || '0', 10) + 1
               localStorage.setItem(_gKey, String(_newCount))
               setGenCount(_newCount)
-              setView('cards')
+              // Surface dishes as handoff cards INSIDE the chat — no view switch.
+              setMessages(prev => [...prev, {
+                id: Date.now(),
+                role: 'assistant',
+                content: parsed.length === 1
+                  ? 'Plated. Here\'s tonight\'s dish.'
+                  : `Plated. ${parsed.length} ways to go — pick one.`,
+                handoffDishes: parsed,
+              }])
+              setQuickReplyType(null)
             } else {
               setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: accumulated }])
               const nextType = detectQuickReplyType(accumulated)
@@ -4732,7 +4847,15 @@ export default function App() {
           const _newCount2 = parseInt(localStorage.getItem(_gKey2) || '0', 10) + 1
           localStorage.setItem(_gKey2, String(_newCount2))
           setGenCount(_newCount2)
-          setView('cards')
+          setMessages(prev => [...prev, {
+            id: Date.now(),
+            role: 'assistant',
+            content: parsed.length === 1
+              ? 'Plated. Here\'s tonight\'s dish.'
+              : `Plated. ${parsed.length} ways to go — pick one.`,
+            handoffDishes: parsed,
+          }])
+          setQuickReplyType(null)
         } else {
           throw new Error('The connection dropped before your recipes arrived. Try again.')
         }
@@ -5375,21 +5498,35 @@ export default function App() {
         {/* ── Main chat column ── */}
         <div className="flex flex-col flex-1 min-w-0">
 
-          {/* Desktop-only minimal nav — mobile uses BottomNav */}
-          <div className="hidden sm:flex shrink-0 px-4 pt-3 pb-0 justify-end gap-2">
+          {/* Cook header — Remi + presence + overflow */}
+          <div
+            className="shrink-0"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 20px 12px',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: '#0D0D0D',
+            }}
+          >
+            <div>
+              <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#F0F0F0', lineHeight: 1, margin: 0 }}>
+                Remi
+              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>In the kitchen</span>
+              </div>
+            </div>
             <button
               onClick={() => setView('dashboard')}
-              className="text-xs transition-colors duration-200 px-2.5 py-1.5 rounded-lg"
-              style={{ color: '#7A6B5A', border: '1px solid rgba(240,234,224,0.1)', backgroundColor: 'transparent' }}
+              aria-label="More"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: '#888888', display: 'flex' }}
             >
-              Stats
-            </button>
-            <button
-              onClick={() => setView('onboarding')}
-              className="text-xs transition-colors duration-200 px-2.5 py-1.5 rounded-lg"
-              style={{ color: '#7A6B5A', border: '1px solid rgba(240,234,224,0.1)', backgroundColor: 'transparent' }}
-            >
-              {profile?.name ?? 'Profile'}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="5"  cy="12" r="2"/>
+                <circle cx="12" cy="12" r="2"/>
+                <circle cx="19" cy="12" r="2"/>
+              </svg>
             </button>
           </div>
 
@@ -5397,7 +5534,7 @@ export default function App() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-3 relative z-10 pb-20 lg:pb-5">
             {displayMessages.map(msg => (
               <div key={msg.id}>
-                <ChatBubble role={msg.role} content={msg.content} userName={profile?.name} isOpening={!!(msg.seed && msg.role === 'assistant')} />
+                <ChatBubble role={msg.role} content={msg.content} isOpening={!!(msg.seed && msg.role === 'assistant')} />
                 {msg.dashboardPrompt && (
                   <div style={{ marginTop: 12 }}>
                     <button
@@ -5408,12 +5545,29 @@ export default function App() {
                     </button>
                   </div>
                 )}
+                {msg.handoffDishes && msg.handoffDishes.length > 0 && (
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {msg.handoffDishes.map((dish, i) => (
+                      <HandoffCard
+                        key={i}
+                        dish={dish}
+                        onOpen={d => {
+                          setViewingDish(d)
+                          setViewingDishImg(d._imgUrl ?? null)
+                          setSavedBackTo('chat')
+                          posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'chat_handoff' })
+                          setView('detail')
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {streaming && streamContent && (
-              <ChatBubble role="assistant" content={streamContent} isStreaming userName={profile?.name} />
+              <ChatBubble role="assistant" content={streamContent} isStreaming />
             )}
-            {streaming && !streamContent && <TypingIndicator />}
+            {streaming && !streamContent && <CookingState />}
             <div className="h-2" />
           </div>
 
@@ -5424,9 +5578,9 @@ export default function App() {
             </div>
           )}
 
-          {/* Quick reply area */}
+          {/* Docked tray — always above the input bar, never inline in the message flow */}
           {quickReplyType && !streaming && (
-            <div className="shrink-0 px-4 pt-3 pb-2 relative z-10" style={{ borderTop: '1px solid #2A2A2A', backgroundColor: '#0F0D0B' }}>
+            <div className="shrink-0 px-4 pt-3 pb-2 relative z-10" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0D0D0D' }}>
               <QuickReplyRow
                 type={quickReplyType}
                 onSubmit={(text, data) => handleQuickReply(text, data, quickReplyType)}
@@ -5467,8 +5621,8 @@ export default function App() {
           <div
             className="shrink-0 px-4 pt-2.5 relative z-10"
             style={{
-              borderTop: suggestions.length > 0 ? 'none' : '1px solid rgba(240,234,224,0.08)',
-              backgroundColor: '#0F0D0B',
+              borderTop: suggestions.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: '#0D0D0D',
               touchAction: 'manipulation',
               paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
             }}
@@ -5501,20 +5655,20 @@ export default function App() {
                   maxHeight: 120,
                   resize: 'none',
                   overflowY: 'auto',
-                  backgroundColor: '#1A1612',
-                  border: inputFocused ? '1.5px solid rgba(193,104,58,0.6)' : '1px solid rgba(240,234,224,0.12)',
-                  borderRadius: 10,
+                  backgroundColor: '#1A1A1A',
+                  border: inputFocused ? '1px solid #00E5A0' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8,
                   padding: '12px 14px',
-                  color: '#F0EAE0',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
-                  transition: 'border-color 0.15s',
+                  color: '#F0F0F0',
+                  fontFamily: 'Inter, sans-serif',
+                  transition: 'border-color 200ms ease',
                 }}
               />
               {streaming ? (
                 <button
                   type="button"
                   onClick={handleStop}
-                  style={{ backgroundColor: '#C1683A', width: 44, height: 44, flexShrink: 0, color: '#F0EAE0', borderRadius: 10, border: 'none', cursor: 'pointer' }}
+                  style={{ backgroundColor: '#1A1A1A', width: 44, height: 44, flexShrink: 0, color: '#F0F0F0', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}
                   className="flex items-center justify-center text-xs font-semibold active:opacity-80 transition-opacity"
                   aria-label="Stop"
                 >
@@ -5523,17 +5677,17 @@ export default function App() {
               ) : (
                 <button
                   type="submit"
+                  disabled={!input.trim()}
                   style={{
-                    backgroundColor: input.trim() ? '#C1683A' : 'rgba(240,234,224,0.06)',
-                    color: '#F0EAE0',
+                    backgroundColor: input.trim() ? '#00E5A0' : '#1A1A1A',
+                    color: input.trim() ? '#0D0D0D' : '#444444',
                     width: 44,
                     height: 44,
                     flexShrink: 0,
-                    borderRadius: 10,
-                    border: 'none',
-                    cursor: input.trim() ? 'pointer' : 'default',
-                    transition: 'background-color 0.15s',
-                    opacity: input.trim() ? 1 : 0.4,
+                    borderRadius: 8,
+                    border: input.trim() ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                    cursor: input.trim() ? 'pointer' : 'not-allowed',
+                    transition: 'background-color 200ms ease',
                   }}
                   className="flex items-center justify-center active:opacity-80"
                   aria-label="Send"
@@ -5552,9 +5706,6 @@ export default function App() {
             style={{ height: 56 }}
           />
         </div>
-
-        {/* Desktop insights sidebar */}
-        <InsightsDesktopSidebar />
       </div>
 
       {/* Mobile bottom nav */}
