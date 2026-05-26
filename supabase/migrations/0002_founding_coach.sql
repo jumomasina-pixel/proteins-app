@@ -5,7 +5,7 @@
 -- role already exists on this table; keep IF NOT EXISTS so the migration is safe everywhere.
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS role          text    DEFAULT 'user',
-  ADD COLUMN IF NOT EXISTS referral_slug text,                     -- coach's link slug (e.g. 'ezra')
+  ADD COLUMN IF NOT EXISTS referral_slug text,                     -- coach's unique link slug
   ADD COLUMN IF NOT EXISTS referred_by   text,                     -- slug of the coach who referred this user
   ADD COLUMN IF NOT EXISTS client_count  integer DEFAULT 0;        -- maintained on coach rows only
 

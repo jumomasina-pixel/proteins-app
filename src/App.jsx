@@ -2353,7 +2353,7 @@ function RemiCorner({ profile }) {
 // restore). PHASE 2: replace the seat cap copy with billing status + monthly credit total.
 function CoachCard({ slug, clientCount, seatCap }) {
   const [copied, setCopied] = useState(false)
-  const url = `https://chefremi.io/join/${slug}`
+  const url = `https://myremi.io/join/${slug}`
 
   function handleCopy() {
     try {

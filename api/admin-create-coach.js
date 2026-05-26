@@ -10,7 +10,7 @@
 //   • The user must already have a profile row (i.e. they signed up / completed onboarding).
 //   • The slug must not already be in use by another coach.
 
-const REFERRAL_BASE = 'https://chefremi.io'
+const REFERRAL_BASE = 'https://myremi.io'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
