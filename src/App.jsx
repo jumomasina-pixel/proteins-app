@@ -2185,7 +2185,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
     return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   }
 
-  const sectionCard = { backgroundColor: '#1A1612', border: '1px solid #2A2A2A', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }
+  const sectionCard = { backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }
 
   // Time-of-day greeting
   const hour = new Date().getHours()
@@ -2197,14 +2197,13 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
     Number(profile.goalAmount) > 0
 
   return (
-    <div className="animate-fade-in min-h-screen px-4 pt-10 pb-24 lg:pb-14 sm:pt-14 relative" style={{ backgroundColor: '#0F0D0B' }}>
-      <PaperTexture />
-      <div className="max-w-2xl mx-auto space-y-5 relative">
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', padding: '48px 20px 96px' }}>
+      <div style={{ maxWidth: 560, margin: '0 auto' }}>
 
-        {/* Header — back button only on desktop; mobile uses BottomNav */}
-        <div className="flex items-start justify-between gap-4">
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 32 }}>
           <div>
-            <h1 className="text-4xl font-extrabold leading-none" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0EAE0' }}>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.75rem, 6vw, 2.25rem)', color: '#F0F0F0', margin: 0, lineHeight: 1.1 }}>
               Back, {profile?.name}.
             </h1>
             {isAdmin && (
@@ -2216,50 +2215,51 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           </div>
           <button
             onClick={onClose}
-            className="hidden sm:block shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200 mt-1.5"
-            style={{ color: '#7A6B5A', border: '1px solid #2A2A2A' }}
+            className="hidden sm:block"
+            style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 12px', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, marginTop: 6 }}
           >
-            ← Back
+            Back
           </button>
         </div>
 
-        {/* ── Hero calorie stat ── */}
-        <div
-          className="rounded-2xl p-6 text-center space-y-1"
-          style={{ backgroundColor: '#1A1612', border: '1px solid #2A2A2A', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-        >
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>Daily calorie target</p>
-          <p className="font-serif leading-none" style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', color: '#00E5A0', fontWeight: 700 }}>
+        {/* ── Hero calorie card ── */}
+        <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '24px 20px', textAlign: 'center', marginBottom: 10 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>Daily Calorie Target</p>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(2rem, 7vw, 3rem)', fontWeight: 700, color: '#00E5A0', margin: 0, lineHeight: 1 }}>
             {calTarget}
           </p>
-          <p className="text-sm font-medium" style={{ color: '#7A6B5A' }}>kcal · {protTarget}g+ protein</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '8px 0 0' }}>{protTarget}g+ protein</p>
         </div>
 
-        {/* ── 3-up stats ── */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* ── THREE-UP STAT HERO ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 10 }}>
           {[
-            { label: 'Day streak', value: streak?.count ?? 0, unit: streak?.count === 1 ? 'day' : 'days', icon: '🔥' },
-            { label: 'Recipes saved', value: stats?.totalRecipes ?? 0, unit: 'total', icon: '📖' },
-            { label: 'Kcal saved', value: stats?.totalCalSaved ? (stats.totalCalSaved >= 1000 ? `${(stats.totalCalSaved / 1000).toFixed(1)}k` : stats.totalCalSaved) : 0, unit: 'vs full version', icon: '💪' },
-          ].map(({ label, value, unit, icon }) => (
+            { label: 'Day streak',    value: streak?.count ?? 0, mint: true },
+            { label: 'Recipes saved', value: stats?.totalRecipes ?? 0, mint: true },
+            { label: 'Kcal saved',    value: stats?.totalCalSaved ? (stats.totalCalSaved >= 1000 ? `${(stats.totalCalSaved / 1000).toFixed(1)}k` : stats.totalCalSaved) : 0, mint: false },
+          ].map(({ label, value, mint }) => (
             <div
               key={label}
-              className="rounded-2xl px-3 py-4 text-center space-y-1"
-              style={sectionCard}
+              style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '16px 10px', textAlign: 'center' }}
             >
-              <span className="text-xl leading-none">{icon}</span>
-              <p className="font-serif text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#C9A84C' }}>
-                {value}
-              </p>
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>
                 {label}
+              </p>
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(1.25rem, 4vw, 1.75rem)', fontWeight: 700, color: mint ? '#00E5A0' : '#F0F0F0', margin: 0, lineHeight: 1 }}>
+                {value}
               </p>
             </div>
           ))}
         </div>
 
-        {/* ── Remi's Corner ── */}
-        <RemiCorner profile={profile} />
+        {/* ── Remi's Note ── */}
+        <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(0,229,160,0.15)', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 0' }}>
+            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: '#00E5A0', lineHeight: 1, userSelect: 'none' }}>R</span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Remi's Note</span>
+          </div>
+          <RemiCorner profile={profile} />
+        </div>
 
         {/* ── Money saved + Weekly progress ring ── */}
         {(() => {
@@ -2273,40 +2273,32 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           const circ = 2 * Math.PI * radius
           const offset = circ * (1 - ringProgress / WEEKLY_GOAL)
           return (
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               {/* Money saved */}
-              <div className="rounded-2xl px-4 py-5 flex flex-col items-center justify-center space-y-1 text-center" style={sectionCard}>
-                <span className="text-xl leading-none">💰</span>
-                <p className="font-serif text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#C9A84C' }}>
+              <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center' }}>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>Money Saved</p>
+                <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 700, color: '#C9A84C', margin: 0, lineHeight: 1 }}>
                   ${moneySaved}
                 </p>
-                <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>Money saved</p>
               </div>
               {/* Weekly progress ring */}
-              <div className="rounded-2xl px-4 py-5 flex flex-col items-center justify-center space-y-2 text-center" style={sectionCard}>
-                <svg width="80" height="80" viewBox="0 0 100 100" className="-rotate-90">
-                  <circle cx="50" cy="50" r={radius} fill="none" stroke="#2A2A2A" strokeWidth="8" />
+              <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center' }}>
+                <svg width="80" height="80" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
                   <circle
                     cx="50" cy="50" r={radius}
-                    fill="none"
-                    stroke="#00E5A0"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={circ}
-                    strokeDashoffset={offset}
+                    fill="none" stroke="#00E5A0" strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray={circ} strokeDashoffset={offset}
                     style={{ transition: 'stroke-dashoffset 0.6s ease' }}
                   />
                   <text
-                    x="50" y="54"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    className="rotate-90"
-                    style={{ fill: '#F0EAE0', fontSize: 18, fontWeight: 700, fontFamily: 'Syne, sans-serif', transform: 'rotate(90deg)', transformOrigin: '50px 50px' }}
+                    x="50" y="54" textAnchor="middle" dominantBaseline="middle"
+                    style={{ fill: '#F0F0F0', fontSize: 16, fontWeight: 700, fontFamily: 'Syne, sans-serif', transform: 'rotate(90deg)', transformOrigin: '50px 50px' }}
                   >
                     {ringProgress}/{WEEKLY_GOAL}
                   </text>
                 </svg>
-                <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>This week</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>This week</p>
               </div>
             </div>
           )
@@ -2317,44 +2309,35 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           const start  = Number(profile.weight)
           const target = start - Number(profile.goalAmount)
           return (
-            <div className="rounded-2xl p-5 space-y-3" style={sectionCard}>
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>Fat loss target</p>
-              <div className="flex items-center justify-between text-xs font-semibold" style={{ color: '#F0EAE0' }}>
-                <span>{start} kg</span>
-                <span style={{ color: '#00E5A0' }}>→ {target} kg</span>
+            <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>Fat Loss Target</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#F0F0F0' }}>{start} kg</span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#00E5A0' }}>→ {target} kg</span>
               </div>
-              <div className="relative h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: '#2A2A2A' }}>
-                {/* Progress = sessions count as proxy (capped at 100%) */}
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${Math.min(100, (sessions.length / 30) * 100)}%`,
-                    background: 'linear-gradient(90deg, #00E5A0, #00C080)',
-                  }}
-                />
+              <div style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 3, width: `${Math.min(100, (sessions.length / 30) * 100)}%`, background: 'linear-gradient(90deg, #00E5A0, #00C080)', transition: 'width 0.7s ease' }} />
               </div>
-              <p className="text-xs" style={{ color: '#7A6B5A' }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: '8px 0 0' }}>
                 Goal: lose {profile.goalAmount} kg · {sessions.length} session{sessions.length !== 1 ? 's' : ''} completed
               </p>
             </div>
           )
         })()}
 
-        {/* ── Goal card ── */}
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em] pt-2" style={{ color: '#7A6B5A' }}>Your Goals</p>
-        <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl leading-none">{goalInfo.emoji}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#7A6B5A' }}>
+        {/* ── Goals card ── */}
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>Your Goals</p>
+        <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 4px' }}>
                 {activeGoals.length > 1 ? 'Goals' : 'Goal'}
               </p>
-              <p className="text-xl font-bold" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0EAE0' }}>{goalInfo.label}</p>
+              <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.125rem, 4vw, 1.375rem)', color: '#F0F0F0', margin: 0 }}>{goalInfo.label}</p>
               {extraGoals.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {extraGoals.map(g => (
-                    <span key={g} className="text-[11px] px-2.5 py-0.5 rounded-full font-medium"
-                      style={{ backgroundColor: '#1A1612', color: '#7A6B5A', border: '1px solid #2A2A2A' }}>
+                    <span key={g} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#888888', border: '1px solid rgba(255,255,255,0.08)' }}>
                       {g}
                     </span>
                   ))}
@@ -2363,61 +2346,57 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             </div>
             <button
               onClick={onEditProfile}
-              className="text-xs font-medium transition-colors duration-200 shrink-0"
-              style={{ color: '#00E5A0' }}
+              style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#00E5A0', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', flexShrink: 0 }}
             >
               Edit →
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#1A1612', border: '1px solid #2A2A2A' }}>
-              <p className="text-base font-bold tabular-nums" style={{ color: '#00E5A0' }}>{calTarget}</p>
-              <p className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: '#7A6B5A' }}>kcal / day</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: '#00E5A0', margin: '0 0 4px' }}>{calTarget}</p>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', margin: 0 }}>kcal / day</p>
             </div>
-            <div className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#1A1612', border: '1px solid #2A2A2A' }}>
-              <p className="text-base font-bold tabular-nums" style={{ color: '#00B87A' }}>{protTarget}g+</p>
-              <p className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: '#7A6B5A' }}>protein / day</p>
+            <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: '#00E5A0', margin: '0 0 4px' }}>{protTarget}g+</p>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', margin: 0 }}>protein / day</p>
             </div>
           </div>
           {profile?.weight && (
-            <p className="text-xs" style={{ color: '#7A6B5A' }}>
-              Based on {profile.weight}kg
-              {profile.trainingFreq ? ` · trains ${profile.trainingFreq}/week` : ''}
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: '12px 0 0' }}>
+              Based on {profile.weight}kg{profile.trainingFreq ? ` · trains ${profile.trainingFreq}/week` : ''}
             </p>
           )}
         </div>
 
         {/* ── Saved recipes mini-grid ── */}
         {last4Recipes.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>Saved Recipes</p>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>Saved Recipes</p>
               <button
                 onClick={onViewSaved}
-                className="text-xs font-medium transition-colors duration-200"
-                style={{ color: '#00E5A0' }}
+                style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#00E5A0', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
                 See all ({savedRecipes.length}) →
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {last4Recipes.map(recipe => (
                 <button
                   key={recipe._id}
                   onClick={() => onOpenRecipe(recipe)}
-                  className="rounded-xl overflow-hidden text-left active:opacity-80 transition-opacity"
-                  style={{ backgroundColor: '#1A1612', border: '1px solid rgba(240,234,224,0.08)' }}
+                  style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden', textAlign: 'left', cursor: 'pointer', display: 'block', padding: 0 }}
                 >
-                  <div className="w-full overflow-hidden" style={{ aspectRatio: '16/9', backgroundColor: '#2A2A2A', borderRadius: '10px 10px 0 0' }}>
+                  <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: '#111111', overflow: 'hidden' }}>
                     {recipe._imgUrl && (
-                      <img src={recipe._imgUrl} alt={recipe.name} className="w-full h-full object-cover" style={{ display: 'block' }} />
+                      <img src={recipe._imgUrl} alt={recipe.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     )}
                   </div>
-                  <div className="px-2.5 py-2.5 space-y-0.5">
-                    <p className="text-xs font-semibold leading-tight line-clamp-2" style={{ color: '#F0EAE0', fontFamily: "'Playfair Display', serif" }}>
+                  <div style={{ padding: '10px 12px' }}>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600, color: '#F0F0F0', margin: '0 0 4px', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {recipe.name}
                     </p>
-                    <span className="text-xs tabular-nums" style={{ color: '#7A9E7E', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#888888' }}>
                       {recipe.dietician?.macros?.calories ?? '—'} kcal
                     </span>
                   </div>
@@ -2429,21 +2408,20 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
         {/* ── Favourite cuisines ── */}
         {cuisineFreq.length > 0 && (
-          <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>Favourite Cuisines</p>
-            <div className="space-y-3">
+          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px' }}>Favourite Cuisines</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {cuisineFreq.map(([cuisine, count], i) => {
                 const pct = Math.round((count / cuisineFreq[0][1]) * 100)
-                const barColor = i === 0 ? '#00E5A0' : i === 1 ? '#C9A84C' : '#00B87A'
+                const barColor = i === 0 ? '#00E5A0' : i === 1 ? '#C9A84C' : '#888888'
                 return (
-                  <div key={cuisine} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium" style={{ color: '#E0E0E0' }}>{cuisine}</span>
-                      <span className="text-xs" style={{ color: '#7A6B5A' }}>{count} {count === 1 ? 'time' : 'times'}</span>
+                  <div key={cuisine}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#F0F0F0' }}>{cuisine}</span>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#888888' }}>{count}×</span>
                     </div>
-                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#2A2A2A' }}>
-                      <div className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, backgroundColor: barColor }} />
+                    <div style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                      <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, backgroundColor: barColor, transition: 'width 0.5s ease' }} />
                     </div>
                   </div>
                 )
@@ -2454,16 +2432,17 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
         {/* ── Go-to protein ── */}
         {topProtein && (
-          <div className="rounded-2xl p-5" style={sectionCard}>
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] mb-3" style={{ color: '#7A6B5A' }}>Go-to Protein</p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0"
-                style={{ backgroundColor: '#252525', border: '2px solid #00E5A0' }}>
-                {PROTEIN_CARDS.find(p => p.value === topProtein[0])?.emoji ?? '🍽️'}
+          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>Go-to Protein</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: '#0D0D0D', border: '1px solid rgba(0,229,160,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#00E5A0', textTransform: 'uppercase' }}>
+                  {topProtein[0].charAt(0)}
+                </span>
               </div>
               <div>
-                <p className="font-semibold capitalize" style={{ color: '#E0E0E0' }}>{topProtein[0]}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#7A6B5A' }}>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600, color: '#F0F0F0', margin: '0 0 3px', textTransform: 'capitalize' }}>{topProtein[0]}</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>
                   Used in {topProtein[1]} session{topProtein[1] !== 1 ? 's' : ''} — your most-cooked protein
                 </p>
               </div>
@@ -2473,46 +2452,42 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
         {/* ── Recent sessions ── */}
         {last3Sessions.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>Recent Sessions</p>
-            <div className="space-y-2">
+          <div style={{ marginBottom: 10 }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>Recent Sessions</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {last3Sessions.map(session => (
-                <div key={session.id} className="rounded-xl px-4 py-3.5 space-y-2" style={sectionCard}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#7A6B5A' }}>
+                <div key={session.id} style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: session.proteins?.length > 0 || session.dishes?.length > 0 ? 10 : 0 }}>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       {fmtDate(session.date)}
                     </span>
                     {session.cuisine && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: '#252525', color: '#7A6B5A', border: '1px solid #2A2A2A' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#888888', border: '1px solid rgba(255,255,255,0.08)' }}>
                         {session.cuisine}
                       </span>
                     )}
                   </div>
                   {session.proteins?.length > 0 && (
-                    <p className="text-sm" style={{ color: '#E0E0E0' }}>
-                      <span className="font-medium">Proteins:</span>{' '}
-                      <span style={{ color: '#7A6B5A' }}>{session.proteins.join(', ')}</span>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '0 0 8px' }}>
+                      <span style={{ color: '#F0F0F0', fontWeight: 500 }}>Proteins:</span>{' '}
+                      {session.proteins.join(', ')}
                     </p>
                   )}
                   {session.dishes?.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {session.dishes.map((d, i) => {
-                        // d may be a full dish object (new) or a string (old)
                         const dishName = typeof d === 'object' ? d.name : d
                         const isClickable = typeof d === 'object'
                         return isClickable ? (
                           <button
                             key={i}
                             onClick={() => onOpenSessionDish?.(d)}
-                            className="text-[11px] px-2.5 py-1 rounded-full transition-all hover:shadow-sm active:opacity-80"
-                            style={{ backgroundColor: '#252525', color: '#00E5A0', border: '1px solid #00C080', fontWeight: 600 }}
+                            style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '4px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#00E5A0', border: '1px solid rgba(0,229,160,0.25)', fontWeight: 600, cursor: 'pointer' }}
                           >
                             {dishName} →
                           </button>
                         ) : (
-                          <span key={i} className="text-[11px] px-2.5 py-1 rounded-full"
-                            style={{ backgroundColor: '#252525', color: '#7A6B5A', border: '1px solid #2A2A2A' }}>
+                          <span key={i} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '4px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#888888', border: '1px solid rgba(255,255,255,0.08)' }}>
                             {dishName}
                           </span>
                         )
@@ -2527,9 +2502,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
         {/* Empty state */}
         {last3Sessions.length === 0 && last4Recipes.length === 0 && (
-          <div className="text-center py-16 space-y-4">
-            <div className="text-5xl leading-none">🍽️</div>
-            <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: '#7A6B5A' }}>
+          <div style={{ textAlign: 'center', padding: '64px 0 32px' }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', lineHeight: 1.6, maxWidth: 280, margin: '0 auto' }}>
               Nothing here yet. Open the Cook tab and get your first dishes.
             </p>
           </div>
@@ -2538,37 +2512,29 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         {/* ── Quick Start CTA ── */}
         <button
           onClick={onQuickStart}
-          className="w-full py-4 rounded-xl font-semibold text-base active:opacity-80 transition-opacity"
-          style={{ backgroundColor: '#00E5A0', color: '#0F0D0B', boxShadow: '0 2px 8px rgba(0,229,160,0.35)' }}
+          style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, cursor: 'pointer', marginBottom: 24 }}
         >
           Start cooking →
         </button>
 
         {/* ── Sign out / Admin ── */}
-        <div style={{ textAlign: 'center', paddingBottom: 8, display: 'flex', justifyContent: 'center', gap: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, paddingBottom: 8 }}>
           {isAdmin && (
             <button
               onClick={onAdminPanel}
-              style={{
-                background: 'none', border: 'none',
-                fontFamily: 'Inter, sans-serif', fontSize: 12,
-                color: '#888888', cursor: 'pointer', padding: '4px 0',
-              }}
+              style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
             >
               Admin
             </button>
           )}
           <button
             onClick={onSignOut}
-            style={{
-              background: 'none', border: 'none',
-              fontFamily: 'Inter, sans-serif', fontSize: 12,
-              color: '#555555', cursor: 'pointer', padding: '4px 0',
-            }}
+            style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555', cursor: 'pointer', padding: '4px 0' }}
           >
             Sign out
           </button>
         </div>
+
       </div>
     </div>
   )
