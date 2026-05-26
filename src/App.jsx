@@ -2569,51 +2569,147 @@ const ONBOARDING_STYLES = `
   .remi-word-up { animation: remi-word-up 0.38s ease 0.28s both; }
 `
 
-// ── Full 11-step onboarding ────────────────────────────────────────────────────
+// ── Onboarding v5 — 9 steps ────────────────────────────────────────────────────
 
-const OB_GOALS_OPTIONS = [
-  'Lose weight', 'Build muscle', 'Improve performance',
-  'Fight camp / cut', 'Eat better', 'Maintain',
+const OB_GOALS_V5 = [
+  'Lose fat',
+  'Build lean muscle',
+  'Improve performance',
+  'Eat with more care',
+  'Maintain',
 ]
 
-const OB_TRAINING_FREQ_OPTIONS = [
-  'Every day', '5–6x per week', '3–4x per week', '1–2x per week', 'Rarely right now',
+const OB_FREQ_V5 = [
+  'Rarely',
+  '1–2× a week',
+  '3–4× a week',
+  '5–6× a week',
+  'Every day',
 ]
 
-const OB_KITCHEN_OPTIONS = [
+const OB_KITCHEN_V5 = [
   'I follow recipes',
   'I know my way around',
   'I can improvise',
 ]
 
+const OB_SPORT_GOALS_V5 = [
+  'A fight or competition',
+  'An event — race, tournament, game',
+  'A performance milestone',
+  'Building the habit',
+  'Nothing specific right now',
+]
+
+const TRAINING_GROUPS_V5 = [
+  { label: 'COMBAT',        sports: ['Boxing', 'Muay Thai', 'BJJ / Grappling', 'MMA', 'Wrestling'] },
+  { label: 'STRENGTH',      sports: ['Weightlifting', 'Powerlifting', 'CrossFit', 'HIIT'] },
+  { label: 'ENDURANCE',     sports: ['Running', 'Cycling', 'Swimming', 'Rowing'] },
+  { label: 'MOVEMENT',      sports: ['Pilates', 'Yoga'] },
+  { label: 'FIELD & COURT', sports: ['Football / AFL', 'Basketball', 'Tennis', 'Golf', 'Other'] },
+]
+
 function mapGoalForApi(goals) {
-  if (goals.includes('Fight camp / cut') || goals.includes('Lose weight')) return 'cut'
-  if (goals.includes('Build muscle')) return 'bulk'
+  if (goals.includes('Lose fat')) return 'cut'
+  if (goals.includes('Build lean muscle')) return 'bulk'
   if (goals.includes('Improve performance')) return 'performance'
-  if (goals.includes('Eat better')) return 'eat_clean'
+  if (goals.includes('Eat with more care')) return 'eat_clean'
   return 'maintain'
 }
 
-function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
-  const [step,              setStep]             = useState(1)
-  const [name,              setName]             = useState('')
-  const [weight,            setWeight]           = useState('')
-  const [goals,             setGoals]            = useState([])
-  const [targetWeight,      setTargetWeight]     = useState('')
-  const [trainingFreq,      setTrainingFreq]     = useState('')
-  const [trainingTypes,     setTrainingTypes]    = useState([])
-  const [primarySport,      setPrimarySport]     = useState('')
-  const [sportGoal,         setSportGoal]        = useState('')
-  const [fightDate,         setFightDate]        = useState('')
-  const [fightTargetWeight, setFightTargetWt]    = useState('')
-  const [philosophy,        setPhilosophy]       = useState(null)
-  const [foodsToAvoid,      setFoodsToAvoid]     = useState('')
-  const [kitchenSkill,      setKitchenSkill]     = useState('')
+function inferPrimaryFromTypes(types) {
+  if (types.length === 0) return ''
+  if (types.length === 1) return types[0]
+  const groups = [
+    ['Boxing', 'Muay Thai', 'BJJ / Grappling', 'MMA', 'Wrestling'],
+    ['Weightlifting', 'Powerlifting', 'CrossFit', 'HIIT'],
+    ['Running', 'Cycling', 'Swimming', 'Rowing'],
+    ['Pilates', 'Yoga'],
+    ['Football / AFL', 'Basketball', 'Tennis', 'Golf', 'Other'],
+  ]
+  let bestSport = types[0]
+  let bestCount = 0
+  for (const g of groups) {
+    const matches = types.filter(t => g.includes(t))
+    if (matches.length > bestCount) { bestCount = matches.length; bestSport = matches[0] }
+  }
+  return bestSport
+}
 
-  const TOTAL_STEPS = 11
-  const isMaintain  = goals.includes('Maintain')
-  const isCombat    = trainingTypes.some(t => COMBAT_SPORTS.includes(t))
-  const isFightGoal = sportGoal === 'I have a fight / competition coming up'
+function NumericKeypad({ value, onChange }) {
+  function press(k) {
+    if (k === 'DEL') { onChange(v => v.slice(0, -1)); return }
+    if (k === '.' && value.includes('.')) return
+    if (value.length >= 6) return
+    if (k === '.' && value === '') { onChange(() => '0.'); return }
+    if (value === '0' && k !== '.') { onChange(() => k); return }
+    onChange(v => v + k)
+  }
+  const keys = ['1','2','3','4','5','6','7','8','9','.','0','DEL']
+  const kStyle = {
+    height: 56, borderRadius: 8,
+    backgroundColor: '#1A1A1A',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: '#F0F0F0',
+    fontWeight: 500,
+    cursor: 'pointer', touchAction: 'manipulation',
+    transition: 'background 150ms ease', outline: 'none',
+  }
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      {keys.map(k => (
+        <button
+          key={k}
+          onClick={() => press(k)}
+          style={{
+            ...kStyle,
+            fontFamily: k === 'DEL' ? 'Inter, sans-serif' : 'JetBrains Mono, monospace',
+            fontSize: k === 'DEL' ? 18 : 22,
+          }}
+        >
+          {k}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
+  const TOTAL_STEPS = 9
+
+  const [step,              setStep]          = useState(1)
+  const [name,              setName]          = useState('')
+  const [weight,            setWeight]        = useState('')
+  const [goals,             setGoals]         = useState([])
+  const [targetWeight,      setTargetWeight]  = useState('')
+  const [trainingFreq,      setTrainingFreq]  = useState('')
+  const [trainingTypes,     setTrainingTypes] = useState([])
+  const [sportGoal,         setSportGoal]     = useState('')
+  const [fightDay,          setFightDay]      = useState('')
+  const [fightMonth,        setFightMonth]    = useState('')
+  const [fightYear,         setFightYear]     = useState('')
+  const [fightTargetWeight, setFightTargetWt] = useState('')
+  const [foodsToAvoid,      setFoodsToAvoid]  = useState('')
+  const [kitchenSkill,      setKitchenSkill]  = useState('')
+
+  const isMaintainOnly = goals.length === 1 && goals.includes('Maintain')
+  const isCombat       = trainingTypes.some(t => COMBAT_SPORTS.includes(t))
+  const isFightGoal    = sportGoal === 'A fight or competition'
+
+  function fightDateISO() {
+    if (!fightDay || !fightMonth || !fightYear || fightYear.length < 4) return ''
+    const d = parseInt(fightDay), m = parseInt(fightMonth), y = parseInt(fightYear)
+    if (isNaN(d) || isNaN(m) || isNaN(y) || d < 1 || d > 31 || m < 1 || m > 12) return ''
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  }
+
+  function getWeeksOut() {
+    const iso = fightDateISO()
+    if (!iso) return null
+    const ms = new Date(iso) - new Date()
+    if (ms <= 0) return 0
+    return Math.ceil(ms / (7 * 24 * 60 * 60 * 1000))
+  }
 
   // Safety check — if this user already has a DB row, skip onboarding entirely
   useEffect(() => {
@@ -2632,141 +2728,168 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function advanceStep() {
-    if (step === 3 && isMaintain) return setStep(5)
-    if (step === 6) {
-      if (trainingTypes.length === 1) { setPrimarySport(trainingTypes[0]); return setStep(8) }
-    }
+    if (step === 3 && isMaintainOnly) return setStep(5)
     setStep(s => s + 1)
   }
 
   function retreatStep() {
     if (step === 1) { onBack(); return }
-    if (step === 5 && isMaintain) return setStep(3)
-    if (step === 8 && trainingTypes.length === 1) return setStep(6)
+    if (step === 5 && isMaintainOnly) return setStep(3)
     setStep(s => s - 1)
   }
 
   function canProceed() {
+    const validNum = v => v !== '' && !isNaN(Number(v)) && Number(v) > 0
     switch (step) {
-      case 1:  return name.trim().length > 0
-      case 2:  return weight !== '' && !isNaN(Number(weight)) && Number(weight) > 0
-      case 3:  return goals.length > 0
-      case 4:  return targetWeight !== '' && !isNaN(Number(targetWeight)) && Number(targetWeight) > 0
-      case 5:  return trainingFreq.length > 0
-      case 6:  return trainingTypes.length > 0
-      case 7:  return primarySport.length > 0
-      case 8: {
+      case 1: return name.trim().length > 0
+      case 2: return validNum(weight)
+      case 3: return goals.length > 0
+      case 4: return validNum(targetWeight)
+      case 5: return trainingFreq.length > 0
+      case 6: return trainingTypes.length > 0
+      case 7: {
         if (!sportGoal) return false
-        if (isCombat && isFightGoal) return fightDate.length > 0 && fightTargetWeight !== '' && Number(fightTargetWeight) > 0
+        if (isCombat && isFightGoal) {
+          return !!fightDateISO() && fightTargetWeight !== '' && Number(fightTargetWeight) > 0
+        }
         return true
       }
-      case 9:  return true
-      case 10: return true
-      case 11: return kitchenSkill.length > 0
+      case 8: return true
+      case 9: return kitchenSkill.length > 0
       default: return false
     }
   }
 
   function handleComplete() {
-    const resolvedPrimary = trainingTypes.length === 1 ? trainingTypes[0] : primarySport
-    const weightCut = isCombat && isFightGoal && !!fightDate && !!fightTargetWeight
-    const goal = mapGoalForApi(goals)
+    const resolvedPrimary = inferPrimaryFromTypes(trainingTypes)
+    const isoDate   = fightDateISO()
+    const weightCut = isCombat && isFightGoal && !!isoDate && !!fightTargetWeight
+    const goal      = mapGoalForApi(goals)
     onComplete({
-      version:          PROFILE_VERSION,
-      name:             name.trim(),
-      weight:           Number(weight) || null,
-      currentWeight:    Number(weight) || null,
+      version:            PROFILE_VERSION,
+      name:               name.trim(),
+      weight:             Number(weight) || null,
+      currentWeight:      Number(weight) || null,
       goals,
       goal,
-      targetWeight:     isMaintain ? null : (Number(targetWeight) || null),
-      trainingFrequency: trainingFreq,
+      targetWeight:       isMaintainOnly ? null : (Number(targetWeight) || null),
+      trainingFrequency:  trainingFreq,
       trainingTypes,
-      training:         trainingTypes,
-      primarySport:     resolvedPrimary,
+      training:           trainingTypes,
+      primarySport:       resolvedPrimary,
       sportGoal,
-      fightDate:        weightCut ? fightDate : '',
-      fightTargetWeight: weightCut ? (Number(fightTargetWeight) || null) : null,
-      weightCutMode:    weightCut,
-      trainingPhilosophy: philosophy,
-      foodsToAvoid:     foodsToAvoid.trim(),
-      avoidFoods:       foodsToAvoid.trim(),
+      fightDate:          weightCut ? isoDate : '',
+      fightTargetWeight:  weightCut ? (Number(fightTargetWeight) || null) : null,
+      weightCutMode:      weightCut,
+      trainingPhilosophy: null,
+      foodsToAvoid:       foodsToAvoid.trim(),
+      avoidFoods:         foodsToAvoid.trim(),
       kitchenSkill,
     })
   }
 
   const HS = { fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.75rem, 6vw, 2.25rem)', color: '#F0F0F0', lineHeight: 1.1, margin: 0 }
-  const IS = { width: '100%', borderRadius: 8, backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', color: '#F0F0F0', padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms ease' }
-  const CS = sel => ({
+  const IS = { width: '100%', borderRadius: 8, backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', color: '#F0F0F0', padding: '14px 18px', fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms ease', touchAction: 'manipulation' }
+
+  // Full-width stacked row (single/multi-select — steps 3 5 7 9)
+  const RS = sel => ({
+    display: 'flex', alignItems: 'center',
+    width: '100%', minHeight: 56, borderRadius: 8,
+    border: `1px solid ${sel ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
+    backgroundColor: sel ? '#00E5A0' : '#1A1A1A',
+    color: sel ? '#0D0D0D' : '#F0F0F0',
+    fontFamily: 'Inter, sans-serif', fontSize: 16, fontWeight: sel ? 600 : 500,
+    padding: '0 20px', cursor: 'pointer',
+    transition: 'background 200ms ease, border-color 200ms ease',
+    textAlign: 'left', outline: 'none', touchAction: 'manipulation',
+  })
+
+  // Grouped chip (step 6 only)
+  const CP = sel => ({
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    padding: '10px 18px', minHeight: 44, borderRadius: 8,
+    padding: '0 16px', minHeight: 44, borderRadius: 8,
     border: `1px solid ${sel ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
     backgroundColor: sel ? '#00E5A0' : '#1A1A1A',
     color: sel ? '#0D0D0D' : '#F0F0F0',
     fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: sel ? 600 : 500,
-    cursor: 'pointer', transition: 'background 150ms ease, border-color 150ms ease', whiteSpace: 'nowrap',
+    cursor: 'pointer', transition: 'background 150ms ease, border-color 150ms ease',
+    whiteSpace: 'nowrap', outline: 'none', touchAction: 'manipulation',
   })
 
-  const resolvedPrimary = trainingTypes.length === 1 ? trainingTypes[0] : primarySport
-  const philInfo = TRAINING_PHILOSOPHY_MAP[resolvedPrimary] || null
+  const weeksOutValue = getWeeksOut()
 
-  const backArrow = (
+  const backChevron = (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
       <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
     </svg>
   )
 
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       <style>{ONBOARDING_STYLES}</style>
 
-      {/* Mint progress line */}
+      {/* Mint progress line — fixed top */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1A1A', zIndex: 100 }}>
         <div style={{ height: '100%', width: `${(step / TOTAL_STEPS) * 100}%`, backgroundColor: '#00E5A0', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', borderRadius: '0 2px 2px 0' }} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 40px' }}>
 
-        {/* Back + counter */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 44 }}>
-          <button onClick={retreatStep} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
-            {backArrow}
+        {/* Header: back chevron left + step counter centred */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', marginBottom: 44 }}>
+          <button onClick={retreatStep} style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', zIndex: 1 }}>
+            {backChevron}
           </button>
-          <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.7rem', color: '#555', letterSpacing: '0.12em' }}>
-            {step} / {TOTAL_STEPS}
+          <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#555555', letterSpacing: '0.12em' }}>
+            {step.toString().padStart(2, '0')} / 09
           </span>
+          <div style={{ width: 20 }} />
         </div>
 
         {/* Step content */}
-        <div key={step} className="ob-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <div key={step} className="ob-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
+          {/* 1 — Name */}
           {step === 1 && (
             <>
-              <h2 style={HS}>What should Remi call you?</h2>
-              <input type="text" value={name} onChange={e => setName(e.target.value)}
+              <div style={{ marginBottom: 4 }}>
+                <RemiLogo size={40} />
+              </div>
+              <h2 style={HS}>Let's start. What do I call you?</h2>
+              <input
+                type="text" value={name}
+                onChange={e => setName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && canProceed()) advanceStep() }}
                 onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                placeholder="Your first name" style={IS} autoFocus />
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                placeholder="Your first name" style={IS} autoFocus
+              />
             </>
           )}
 
+          {/* 2 — Current weight */}
           {step === 2 && (
             <>
               <h2 style={HS}>Current weight in kg.</h2>
-              <input type="number" value={weight} onChange={e => setWeight(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && canProceed()) advanceStep() }}
-                onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                placeholder="e.g. 82" inputMode="decimal" style={IS} autoFocus />
+              <div style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 'clamp(3.5rem, 14vw, 5.5rem)', fontWeight: 700, color: weight ? '#F0F0F0' : '#333333', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                {weight || '—'}
+              </div>
+              <div style={{ textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', marginTop: -8 }}>kg</div>
+              <NumericKeypad value={weight} onChange={setWeight} />
             </>
           )}
 
+          {/* 3 — Goals */}
           {step === 3 && (
             <>
               <h2 style={HS}>What are we working toward? Pick everything that applies.</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {OB_GOALS_OPTIONS.map(g => (
-                  <button key={g} onClick={() => setGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])} style={CS(goals.includes(g))}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {OB_GOALS_V5.map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])}
+                    style={RS(goals.includes(g))}
+                  >
                     {g}
                   </button>
                 ))}
@@ -2774,117 +2897,173 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
             </>
           )}
 
+          {/* 4 — Target weight (skipped when Maintain-only) */}
           {step === 4 && (
             <>
               <h2 style={HS}>Target weight in kg. We'll work backward from here.</h2>
-              <input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && canProceed()) advanceStep() }}
-                onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                placeholder="e.g. 78" inputMode="decimal" style={IS} autoFocus />
+              <div style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 'clamp(3.5rem, 14vw, 5.5rem)', fontWeight: 700, color: targetWeight ? '#F0F0F0' : '#333333', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                {targetWeight || '—'}
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888' }}>kg</span>
+                {weight && targetWeight && Number(targetWeight) > 0 && (() => {
+                  const delta = Number(weight) - Number(targetWeight)
+                  if (delta === 0) return null
+                  const sign = delta > 0 ? '−' : '+'
+                  return (
+                    <span style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', marginTop: 6 }}>
+                      {sign}{Math.abs(delta).toFixed(1)} kg from today
+                    </span>
+                  )
+                })()}
+              </div>
+              <NumericKeypad value={targetWeight} onChange={setTargetWeight} />
             </>
           )}
 
+          {/* 5 — Frequency */}
           {step === 5 && (
             <>
               <h2 style={HS}>How often do you train. Honest answer.</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {OB_TRAINING_FREQ_OPTIONS.map(f => (
-                  <button key={f} onClick={() => setTrainingFreq(f)} style={CS(trainingFreq === f)}>{f}</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {OB_FREQ_V5.map(f => (
+                  <button key={f} onClick={() => setTrainingFreq(f)} style={RS(trainingFreq === f)}>{f}</button>
                 ))}
               </div>
             </>
           )}
 
+          {/* 6 — Training types — grouped chips */}
           {step === 6 && (
             <>
               <h2 style={HS}>What does your training look like?</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {REMI_TRAINING_TYPES_V5.map(t => (
-                  <button key={t} onClick={() => setTrainingTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} style={CS(trainingTypes.includes(t))}>
-                    {t}
-                  </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {TRAINING_GROUPS_V5.map(group => (
+                  <div key={group.label}>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>
+                      {group.label}
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {group.sports.map(sport => (
+                        <button
+                          key={sport}
+                          onClick={() => setTrainingTypes(prev => prev.includes(sport) ? prev.filter(x => x !== sport) : [...prev, sport])}
+                          style={CP(trainingTypes.includes(sport))}
+                        >
+                          {sport}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </>
           )}
 
+          {/* 7 — Sport goal + conditional weight-cut sub-step */}
           {step === 7 && (
-            <>
-              <h2 style={HS}>What's your main training focus?</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {trainingTypes.map(t => (
-                  <button key={t} onClick={() => setPrimarySport(t)} style={CS(primarySport === t)}>{t}</button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {step === 8 && (
             <>
               <h2 style={HS}>Do you have a specific goal coming up?</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {SPORT_GOAL_OPTIONS.map(g => (
-                  <button key={g} onClick={() => setSportGoal(g)} style={{ ...CS(sportGoal === g), justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal', lineHeight: 1.4 }}>
+                {OB_SPORT_GOALS_V5.map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setSportGoal(g)}
+                    style={{ ...RS(sportGoal === g), whiteSpace: 'normal', lineHeight: 1.4, paddingTop: 14, paddingBottom: 14 }}
+                  >
                     {g}
                   </button>
                 ))}
               </div>
+
               {isCombat && isFightGoal && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0 }}>Fight date and target weight.</p>
-                  <input type="date" value={fightDate} onChange={e => setFightDate(e.target.value)}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#00E5A0', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+                    WEIGHT-CUT MODE
+                  </p>
+
+                  {/* Fight date DD · MM · YYYY */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input
+                      type="text" inputMode="numeric" maxLength={2}
+                      value={fightDay}
+                      onChange={e => setFightDay(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                      placeholder="DD"
+                      style={{ width: 50, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 16, backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: '#F0F0F0', padding: '10px 4px', outline: 'none', touchAction: 'manipulation' }}
+                    />
+                    <span style={{ color: '#888888', fontFamily: 'JetBrains Mono, monospace', fontSize: 16 }}>·</span>
+                    <input
+                      type="text" inputMode="numeric" maxLength={2}
+                      value={fightMonth}
+                      onChange={e => setFightMonth(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                      placeholder="MM"
+                      style={{ width: 50, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 16, backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: '#F0F0F0', padding: '10px 4px', outline: 'none', touchAction: 'manipulation' }}
+                    />
+                    <span style={{ color: '#888888', fontFamily: 'JetBrains Mono, monospace', fontSize: 16 }}>·</span>
+                    <input
+                      type="text" inputMode="numeric" maxLength={4}
+                      value={fightYear}
+                      onChange={e => setFightYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="YYYY"
+                      style={{ width: 72, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 16, backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: '#F0F0F0', padding: '10px 6px', outline: 'none', touchAction: 'manipulation' }}
+                    />
+                    {weeksOutValue !== null && weeksOutValue > 0 && (
+                      <span style={{ marginLeft: 8, fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#888888' }}>
+                        {weeksOutValue}w out
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Fight-week weight */}
+                  <input
+                    type="number"
+                    value={fightTargetWeight}
+                    onChange={e => setFightTargetWt(e.target.value)}
+                    placeholder="Fight week weight (kg)"
+                    inputMode="decimal"
                     onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-                    onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                    style={{ ...IS, colorScheme: 'dark' }} />
-                  <input type="number" value={fightTargetWeight} onChange={e => setFightTargetWt(e.target.value)}
-                    onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-                    onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                    placeholder="Fight weight (kg)" inputMode="decimal" style={IS} />
+                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                    style={{ ...IS }}
+                  />
+
+                  {/* Pace row */}
+                  {fightDateISO() && fightTargetWeight && Number(fightTargetWeight) > 0 && (() => {
+                    const cutKg = Number(weight) - Number(fightTargetWeight)
+                    const weeks = weeksOutValue
+                    if (!weeks || weeks <= 0 || cutKg <= 0) return null
+                    return (
+                      <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#888888' }}>
+                        To cut {cutKg.toFixed(1)} kg&nbsp;&nbsp;/&nbsp;&nbsp;Per week {(cutKg / weeks).toFixed(2)} kg
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
             </>
           )}
 
-          {step === 9 && (
-            <>
-              {philInfo ? (
-                <>
-                  <h2 style={HS}>{philInfo.q}</h2>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                    {philInfo.opts.map(o => (
-                      <button key={o} onClick={() => setPhilosophy(o)} style={CS(philosophy === o)}>{o}</button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h2 style={HS}>Is there an athlete or coach who shapes how you train?</h2>
-                  <input type="text" value={philosophy || ''} onChange={e => setPhilosophy(e.target.value || null)}
-                    onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-                    onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                    placeholder="Optional" style={IS} />
-                </>
-              )}
-            </>
-          )}
-
-          {step === 10 && (
+          {/* 8 — Foods to avoid (optional) */}
+          {step === 8 && (
             <>
               <h2 style={HS}>Anything off the table — allergies, dislikes, non-negotiables?</h2>
-              <input type="text" value={foodsToAvoid} onChange={e => setFoodsToAvoid(e.target.value)}
+              <input
+                type="text" value={foodsToAvoid}
+                onChange={e => setFoodsToAvoid(e.target.value)}
                 onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
-                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
-                placeholder="Optional — e.g. no nuts, no pork" style={IS} autoFocus />
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }}
+                placeholder="Optional — e.g. no nuts, no pork"
+                style={IS} autoFocus
+              />
             </>
           )}
 
-          {step === 11 && (
+          {/* 9 — Kitchen skill */}
+          {step === 9 && (
             <>
               <h2 style={HS}>Kitchen confidence. Be honest — I'm not judging.</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {OB_KITCHEN_OPTIONS.map(k => (
-                  <button key={k} onClick={() => setKitchenSkill(k)} style={{ ...CS(kitchenSkill === k), justifyContent: 'flex-start', textAlign: 'left' }}>{k}</button>
+                {OB_KITCHEN_V5.map(k => (
+                  <button key={k} onClick={() => setKitchenSkill(k)} style={RS(kitchenSkill === k)}>{k}</button>
                 ))}
               </div>
             </>
@@ -2893,21 +3072,29 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
 
         {/* CTAs */}
         <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {(step === 9 || step === 10) && (
-            <button onClick={() => { if (step === 9) setPhilosophy(null); advanceStep() }}
-              style={{ width: '100%', height: 44, backgroundColor: 'transparent', color: '#555', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+          {step === 8 && (
+            <button
+              onClick={advanceStep}
+              style={{ width: '100%', height: 44, backgroundColor: 'transparent', color: '#555555', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}
+            >
               Skip
             </button>
           )}
           {step < TOTAL_STEPS ? (
-            <button onClick={() => canProceed() && advanceStep()} disabled={!canProceed()}
-              style={{ width: '100%', height: 56, backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#444', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)', cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s' }}>
+            <button
+              onClick={() => canProceed() && advanceStep()}
+              disabled={!canProceed()}
+              style={{ width: '100%', height: 56, backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#444444', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)', cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 200ms ease' }}
+            >
               Continue
             </button>
           ) : (
-            <button onClick={() => canProceed() && handleComplete()} disabled={!canProceed()}
-              style={{ width: '100%', height: 56, backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#444', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)', cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 0.15s' }}>
-              Let's go
+            <button
+              onClick={() => canProceed() && handleComplete()}
+              disabled={!canProceed()}
+              style={{ width: '100%', height: 56, backgroundColor: canProceed() ? '#00E5A0' : '#1A1A1A', color: canProceed() ? '#0D0D0D' : '#444444', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: canProceed() ? 'none' : '1px solid rgba(255,255,255,0.08)', cursor: canProceed() ? 'pointer' : 'not-allowed', transition: 'all 200ms ease' }}
+            >
+              Let's Cook
             </button>
           )}
         </div>
