@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // 1. Delete all rows from the profiles table
     const tableRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=neq.null`,
+      `${SUPABASE_URL}/rest/v1/profiles?id=not.is.null`,
       {
         method: 'DELETE',
         headers: {
