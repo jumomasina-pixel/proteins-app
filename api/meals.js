@@ -44,25 +44,28 @@ function buildProfileSection(p) {
                      isActive                   ? '1,800–2,100' : '1,500–1,800'
   const protTarget = p.weight ? Math.round(Number(p.weight) * 1.8) : 160
 
+  // Training philosophy is captured once in the first Cook chat session and stored on the
+  // profile (raw user text — could be anything from "building muscle" to a longer paragraph).
+  // It sits in the main user context block alongside sport/goal/allergies so Remi can lean on
+  // it naturally when generating meals.
+  const philosophy = (typeof p.trainingPhilosophy === 'string' ? p.trainingPhilosophy.trim() : '') || ''
+
   let section = `CURRENT USER PROFILE — tailor everything to this person:
 Name: ${p.name || 'there'}
 Weight: ${p.weight || '?'}kg
 Goal: ${goal || 'eating well'}
 Training: ${freq || 'general training'}${types ? `, doing ${types}` : ''}
+Training philosophy (their own words): ${philosophy || 'not yet specified'}
 Foods to avoid: ${p.avoidFoods || 'none specified'}
 Kitchen skill: ${skill || 'home cook'}
 Estimated daily targets: ~${calTarget} kcal, ~${protTarget}g+ protein
 
-Address them as ${p.name || 'there'} naturally — maybe once or twice in a conversation, not every single message. All recipe macros, portion sizes, and advice should reflect their actual body weight and goal above.
+Address them as ${p.name || 'there'} naturally — maybe once or twice in a conversation, not every single message. All recipe macros, portion sizes, and advice should reflect their actual body weight and goal above. Where the training philosophy is specified, let it shape your meal suggestions naturally — do not parrot it back, just align to it.
 
 `
 
   if (p.weightCutMode && p.fightDate && p.targetWeight) {
     section += `IMPORTANT: This athlete is in weight cut preparation for a fight/competition on ${p.fightDate}, targeting ${p.targetWeight}kg. Prioritise low-sodium, low-bloat, calorie-controlled meals. Flag any meals that may cause water retention. Where relevant, note rehydration and refeeding strategies post-weigh-in.\n\n`
-  }
-
-  if (p.trainingPhilosophy) {
-    section += `This athlete's training philosophy / influence: ${p.trainingPhilosophy}. Where relevant, align nutritional advice to this style.\n\n`
   }
 
   return section

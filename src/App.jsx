@@ -279,7 +279,21 @@ function parseMissingIngredients(rawText) {
 
 // ── Seed conversation ─────────────────────────────────────────────────────────
 
+// First-session philosophy question. Asked exactly once — only when the profile has a name
+// but no trainingPhilosophy yet. After capture, subsequent sessions skip this entirely.
+const PHILOSOPHY_OPENER = "Before we get into it — how do you train? Not the gym, the philosophy. Are you building something, maintaining it, or cutting?"
+
 function createSeedMessages(profile, sessions) {
+  // Philosophy capture takes precedence over both new-user and returning-user openers.
+  // A user we know (has a name) but who hasn't told us their philosophy yet hits this once.
+  const needsPhilosophy = profile?.name && (profile.trainingPhilosophy == null)
+  if (needsPhilosophy) {
+    return [
+      { id: 'seed-u', role: 'user',      content: 'I want meal ideas', seed: true },
+      { id: 'seed-a', role: 'assistant', content: PHILOSOPHY_OPENER, seed: true, philosophyAsk: true },
+    ]
+  }
+
   const isReturning = profile?.name && sessions?.length > 0
   let assistantContent
 
@@ -4511,7 +4525,12 @@ export default function App() {
   const [awaitingDishes, setAwaitingDishes] = useState(false)
   const [dishes,         setDishes]         = useState(null)
   const [dishImages,     setDishImages]     = useState([])
-  const [quickReplyType, setQuickReplyType] = useState('proteins')   // 'proteins'|'cuisine'|'time'|null
+  const [quickReplyType, setQuickReplyType] = useState(() => {
+    // Hold off on the fridge tray while we're still waiting on the first-session philosophy
+    // answer — the user needs to type freely, not pick chips.
+    const p = loadProfileOrEvict()
+    return (p?.name && p.trainingPhilosophy == null) ? null : 'proteins'
+  })   // 'proteins'|'cuisine'|'time'|null
   const [profile,        setProfile]        = useState(() => {
     // Never pre-populate profile if there is no active session —
     // prevents the returning-user screen from showing after sign-out.
@@ -4655,8 +4674,13 @@ export default function App() {
             goal: dp.goal || 'maintain',
             goals: [dp.goal || 'maintain'],
             currentWeight: dp.weight || null,
+            trainingPhilosophy: dp.trainingPhilosophy ?? null,
             completedAt: Date.now(),
           }
+          localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
+        } else if (currentProfile && data.dbProfile && currentProfile.trainingPhilosophy == null && data.dbProfile.trainingPhilosophy) {
+          // Cross-device: localStorage exists but doesn't yet carry the philosophy. Hydrate from DB.
+          currentProfile = { ...currentProfile, trainingPhilosophy: data.dbProfile.trainingPhilosophy }
           localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
         }
 
@@ -4721,8 +4745,12 @@ export default function App() {
               goal: dp.goal || 'maintain',
               goals: [dp.goal || 'maintain'],
               currentWeight: dp.weight || null,
+              trainingPhilosophy: dp.trainingPhilosophy ?? null,
               completedAt: Date.now(),
             }
+            localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
+          } else if (currentProfile && data.dbProfile && currentProfile.trainingPhilosophy == null && data.dbProfile.trainingPhilosophy) {
+            currentProfile = { ...currentProfile, trainingPhilosophy: data.dbProfile.trainingPhilosophy }
             localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
           }
 
@@ -4781,8 +4809,55 @@ export default function App() {
 
   async function submitMessage(text) {
     if (!text.trim() || streaming) return
+    const trimmed = text.trim()
 
-    const userMsg      = { id: Date.now(), role: 'user', content: text.trim() }
+    // First-session philosophy capture. If we don't yet have a trainingPhilosophy on the
+    // profile, the first message Remi sees in this Cook session IS the answer to his opener.
+    // Don't burn an LLM call on it — store it, acknowledge, then drop into the normal flow.
+    if (profile?.name && (profile.trainingPhilosophy == null)) {
+      const userMsg = { id: Date.now(), role: 'user', content: trimmed }
+      const ackMsg  = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: 'Noted. Open your fridge — what proteins have you got?',
+        seed: true,
+      }
+      setMessages(prev => [...prev, userMsg, ackMsg])
+      setInput('')
+
+      const updatedProfile = { ...profile, trainingPhilosophy: trimmed }
+      setProfile(updatedProfile)
+      localStorage.setItem('lhc_profile', JSON.stringify(updatedProfile))
+
+      // Persist to Supabase via the same auth-user POST path onboarding uses.
+      try {
+        const sessRaw = localStorage.getItem('supabase.auth.token')
+        const token   = sessRaw ? (JSON.parse(sessRaw)?.access_token) : null
+        if (token) {
+          fetch('/api/auth-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              name:  updatedProfile.name,
+              sport: updatedProfile.primarySport || '',
+              goal:  updatedProfile.goal || '',
+              training_philosophy: trimmed,
+            }),
+          })
+            .then(r => r.json())
+            .then(result => console.log('[philosophy] saved:', result))
+            .catch(err  => console.error('[philosophy] save error:', err))
+        }
+      } catch (err) {
+        console.error('[philosophy] persist exception:', err)
+      }
+
+      posthog.capture('training_philosophy_captured')
+      setQuickReplyType('proteins')   // Open the fridge tray for the standard flow
+      return
+    }
+
+    const userMsg      = { id: Date.now(), role: 'user', content: trimmed }
     const nextMessages = [...messages, userMsg]
 
     setMessages(nextMessages)
@@ -5237,11 +5312,15 @@ export default function App() {
             const saved = { ...remiProfile, completedAt: Date.now(), version: PROFILE_VERSION }
             localStorage.setItem('lhc_profile', JSON.stringify(saved))
             setProfile(saved)
+            // Re-seed the chat against the just-saved profile so the philosophy opener
+            // actually fires for the post-onboarding Cook session. The fridge tray waits.
+            setMessages(createSeedMessages(saved, sessions))
+            setQuickReplyType(saved.trainingPhilosophy == null ? null : 'proteins')
             posthog.identify(posthog.get_distinct_id(), { name: remiProfile.name, goal: remiProfile.goal })
             posthog.capture('onboarding_completed', { goal: remiProfile.goal, sport: remiProfile.primarySport })
             // Upsert profile to DB via auth-user POST (uses service role key, bypasses RLS)
             const session = (() => { try { return JSON.parse(localStorage.getItem('supabase.auth.token') || 'null') } catch { return null } })()
-            const profileData = { name: saved.name, sport: saved.primarySport || '', goal: saved.goal || '' }
+            const profileData = { name: saved.name, sport: saved.primarySport || '', goal: saved.goal || '', training_philosophy: null }
             console.log('Onboarding complete, writing profile:', profileData)
             if (session?.access_token) {
               fetch('/api/auth-user', {

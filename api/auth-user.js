@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   // ── POST — upsert profile on onboarding completion ────────────────────────────
   if (req.method === 'POST') {
-    const { name, sport, goal } = req.body || {}
+    const { name, sport, goal, training_philosophy } = req.body || {}
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     const upsertPayload = {
@@ -34,6 +34,11 @@ export default async function handler(req, res) {
       name:  name  || '',
       sport: sport || '',
       goal:  goal  || '',
+    }
+    // Only include training_philosophy when the caller passes it (explicit null is fine).
+    // Onboarding writes null; the first-session capture writes the user's typed answer.
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'training_philosophy')) {
+      upsertPayload.training_philosophy = training_philosophy
     }
     console.log('[auth-user] Upsert payload:', upsertPayload)
 
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
     let rows
     try {
       roleRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal`,
+        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,training_philosophy`,
         {
           headers: {
             'apikey':        serviceRoleKey || supabaseKey,
@@ -92,7 +97,13 @@ export default async function handler(req, res) {
           const row = rows[0]
           dbRowExists = true
           if (row.role) dbRole = row.role
-          if (row.name) dbProfile = { name: row.name, sport: row.sport || null, goal: row.goal || null, weight: row.weight || null }
+          if (row.name) dbProfile = {
+            name:               row.name,
+            sport:              row.sport || null,
+            goal:               row.goal || null,
+            weight:             row.weight || null,
+            trainingPhilosophy: row.training_philosophy ?? null,
+          }
         }
       }
     } catch {
