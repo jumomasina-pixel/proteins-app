@@ -3319,7 +3319,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
             Remi
           </p>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.14em', margin: '10px 0 0', textTransform: 'uppercase' }}>
-            Personal Chef · Coach · Guide
+            Personal Chef · Nutritionist · Guide
           </p>
         </div>
 
@@ -3597,7 +3597,7 @@ function SetPasswordScreen({ accessToken, onSuccess }) {
         <div style={{ textAlign: 'center', marginBottom: 52 }}>
           <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.75rem, 12vw, 3.5rem)', color: '#00E5A0', margin: 0, lineHeight: 1 }}>Remi</p>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.14em', margin: '10px 0 0', textTransform: 'uppercase' }}>
-            Personal Chef · Coach · Guide
+            Personal Chef · Nutritionist · Guide
           </p>
         </div>
 
