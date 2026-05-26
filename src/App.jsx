@@ -876,6 +876,27 @@ const CHAT_STYLES = `
   .mint-dot { animation: mintPulse 1.2s ease-in-out infinite; }
   .mint-dot:nth-child(2) { animation-delay: 0.18s; }
   .mint-dot:nth-child(3) { animation-delay: 0.36s; }
+
+  /* Handoff card reveal — a plated moment, not a list item. */
+  @keyframes handoffRise {
+    0%   { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes handoffGlow {
+    0%   { opacity: 0; }
+    35%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .handoff-card { animation: handoffRise 300ms ease-out both; }
+  .handoff-glow {
+    position: absolute;
+    inset: -24px;
+    border-radius: 24px;
+    background: radial-gradient(ellipse at center, rgba(0,229,160,0.10) 0%, rgba(0,229,160,0.06) 35%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: handoffGlow 1400ms ease-out both;
+  }
 `
 
 // ── Skeleton card (warm palette) ──────────────────────────────────────────────
@@ -1021,53 +1042,59 @@ function CookingState() {
   )
 }
 
-// In-chat recipe handoff card — teaser only. Routes to the existing detail view.
+// In-chat recipe handoff card — teaser only. Lands as a designed moment, not a list item.
+// Routes to the existing DetailView where the full numbered method lives.
 function HandoffCard({ dish, onOpen }) {
   const m = dish?.dietician?.macros || {}
   const cuisine = dish?.chef?.cuisine
   const hook    = dish?.dietician?.note || dish?.chef?.flavour || ''
   return (
-    <div
-      style={{
-        backgroundColor: '#1A1A1A',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 10,
-        overflow: 'hidden',
-        width: '100%',
-        maxWidth: 420,
-      }}
-    >
-      <div style={{ width: '100%', height: 90, overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
-        <CardImageHeader dishName={dish.name} cuisine={cuisine} initialUrl={dish._imgUrl ?? null} />
-      </div>
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#F0F0F0', margin: 0, lineHeight: 1.2 }}>
-          {dish.name}
-        </h3>
-        {hook && (
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, lineHeight: 1.5 }}>
-            {hook}
-          </p>
-        )}
-        <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0' }}>
-          {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
+    <div style={{ position: 'relative', width: '100%', maxWidth: 420 }}>
+      {/* Bloom-then-settle mint glow — behind the card container ONLY, never behind text. */}
+      <div className="handoff-glow" aria-hidden />
+      <div
+        className="handoff-card"
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          backgroundColor: '#1A1A1A',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 10,
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ width: '100%', height: 90, overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
+          <CardImageHeader dishName={dish.name} cuisine={cuisine} initialUrl={dish._imgUrl ?? null} />
         </div>
-        <button
-          onClick={() => onOpen(dish)}
-          style={{
-            marginTop: 6,
-            width: '100%', height: 48,
-            backgroundColor: '#00E5A0',
-            color: '#0D0D0D',
-            border: 'none', borderRadius: 8,
-            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15,
-            cursor: 'pointer',
-            transition: 'opacity 200ms ease',
-            touchAction: 'manipulation',
-          }}
-        >
-          Open the recipe →
-        </button>
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#F0F0F0', margin: 0, lineHeight: 1.2 }}>
+            {dish.name}
+          </h3>
+          {hook && (
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, lineHeight: 1.5 }}>
+              {hook}
+            </p>
+          )}
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0' }}>
+            {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
+          </div>
+          <button
+            onClick={() => onOpen(dish)}
+            style={{
+              marginTop: 6,
+              width: '100%', height: 48,
+              backgroundColor: '#00E5A0',
+              color: '#0D0D0D',
+              border: 'none', borderRadius: 8,
+              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15,
+              cursor: 'pointer',
+              transition: 'opacity 200ms ease',
+              touchAction: 'manipulation',
+            }}
+          >
+            Open the recipe →
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -4775,15 +4802,24 @@ export default function App() {
               const _newCount = parseInt(localStorage.getItem(_gKey) || '0', 10) + 1
               localStorage.setItem(_gKey, String(_newCount))
               setGenCount(_newCount)
-              // Surface dishes as handoff cards INSIDE the chat — no view switch.
-              setMessages(prev => [...prev, {
-                id: Date.now(),
-                role: 'assistant',
-                content: parsed.length === 1
-                  ? 'Plated. Here\'s tonight\'s dish.'
-                  : `Plated. ${parsed.length} ways to go — pick one.`,
-                handoffDishes: parsed,
-              }])
+              // Guardrail: the surfaced dish MUST have a parseable full method (≥ 3 steps).
+              // A method-less recipe is a generation failure — never render it.
+              const surfaced = parsed.find(d => Array.isArray(d?.dietician?.cookSteps) && d.dietician.cookSteps.length >= 3)
+              if (surfaced) {
+                setMessages(prev => [...prev, {
+                  id: Date.now(),
+                  role: 'assistant',
+                  content: `Here. ${surfaced.name}.`,
+                  handoffDish: surfaced,
+                }])
+              } else {
+                console.error('[meals] Generation completed but no dish carried a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
+                setMessages(prev => [...prev, {
+                  id: Date.now(),
+                  role: 'assistant',
+                  content: "Remi's thinking. Give it a moment.",
+                }])
+              }
               setQuickReplyType(null)
             } else {
               setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: accumulated }])
@@ -4847,14 +4883,22 @@ export default function App() {
           const _newCount2 = parseInt(localStorage.getItem(_gKey2) || '0', 10) + 1
           localStorage.setItem(_gKey2, String(_newCount2))
           setGenCount(_newCount2)
-          setMessages(prev => [...prev, {
-            id: Date.now(),
-            role: 'assistant',
-            content: parsed.length === 1
-              ? 'Plated. Here\'s tonight\'s dish.'
-              : `Plated. ${parsed.length} ways to go — pick one.`,
-            handoffDishes: parsed,
-          }])
+          const surfaced2 = parsed.find(d => Array.isArray(d?.dietician?.cookSteps) && d.dietician.cookSteps.length >= 3)
+          if (surfaced2) {
+            setMessages(prev => [...prev, {
+              id: Date.now(),
+              role: 'assistant',
+              content: `Here. ${surfaced2.name}.`,
+              handoffDish: surfaced2,
+            }])
+          } else {
+            console.error('[meals] Salvage parse produced no dish with a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
+            setMessages(prev => [...prev, {
+              id: Date.now(),
+              role: 'assistant',
+              content: "Remi's thinking. Give it a moment.",
+            }])
+          }
           setQuickReplyType(null)
         } else {
           throw new Error('The connection dropped before your recipes arrived. Try again.')
@@ -5545,21 +5589,18 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {msg.handoffDishes && msg.handoffDishes.length > 0 && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {msg.handoffDishes.map((dish, i) => (
-                      <HandoffCard
-                        key={i}
-                        dish={dish}
-                        onOpen={d => {
-                          setViewingDish(d)
-                          setViewingDishImg(d._imgUrl ?? null)
-                          setSavedBackTo('chat')
-                          posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'chat_handoff' })
-                          setView('detail')
-                        }}
-                      />
-                    ))}
+                {msg.handoffDish && (
+                  <div style={{ marginTop: 12 }}>
+                    <HandoffCard
+                      dish={msg.handoffDish}
+                      onOpen={d => {
+                        setViewingDish(d)
+                        setViewingDishImg(d._imgUrl ?? null)
+                        setSavedBackTo('chat')
+                        posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'chat_handoff' })
+                        setView('detail')
+                      }}
+                    />
                   </div>
                 )}
               </div>
