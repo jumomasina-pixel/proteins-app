@@ -2040,10 +2040,11 @@ function RemiCorner({ profile }) {
     setLoading(true)
     setError(null)
     try {
+      const freshProfile = JSON.parse(localStorage.getItem('lhc_profile') || '{}')
       const res = await fetch('/api/remi-corner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tab: activeTab, profile: mapProfileForApi(profile) }),
+        body: JSON.stringify({ tab: activeTab, profile: freshProfile }),
       })
       const data = await res.json()
       if (data.tip) {
@@ -2077,7 +2078,7 @@ function RemiCorner({ profile }) {
   return (
     <div className="rounded-2xl p-5 space-y-4" style={sectionCard}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#7A6B5A' }}>Remi's Corner</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: '#888888' }}>Remi's Corner</p>
         <button
           onClick={() => { setTip(null); fetchTip(tab) }}
           disabled={loading}
@@ -2093,7 +2094,15 @@ function RemiCorner({ profile }) {
         {[{ id: 'fuel', label: '🥗 Fuel' }, { id: 'perform', label: '💪 Perform' }].map(t => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              // Clear cached tip for destination tab so stale tips from other users don't persist
+              try {
+                const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}')
+                delete cached[t.id]
+                localStorage.setItem(cacheKey, JSON.stringify(cached))
+              } catch {}
+              setTab(t.id)
+            }}
             className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
             style={{
               backgroundColor: tab === t.id ? '#00E5A0' : '#252525',
@@ -2256,7 +2265,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(0,229,160,0.15)', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 0' }}>
             <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: '#00E5A0', lineHeight: 1, userSelect: 'none' }}>R</span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Remi's Note</span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Remi's Corner</span>
           </div>
           <RemiCorner profile={profile} />
         </div>

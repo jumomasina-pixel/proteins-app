@@ -1,29 +1,44 @@
 import Anthropic from '@anthropic-ai/sdk'
 
+// Resolve profile fields — handles both v7 (new) and legacy mapped schema
+function resolveProfile(p) {
+  const name   = p?.name || 'this athlete'
+  const weight = p?.weight ?? p?.currentWeight ?? null
+  // goals: v7 uses goals[] array; legacy uses goal string
+  const goalsArr = Array.isArray(p?.goals) ? p.goals : []
+  const goal   = goalsArr[0] || p?.goal || 'maintain'
+  const sport  = p?.primarySport || ''
+  // trainingFrequency: v7 uses trainingFrequency; legacy uses trainingFreq
+  const freq   = p?.trainingFrequency || p?.trainingFreq || ''
+  const philosophy = p?.trainingPhilosophy || ''
+  const weightCutMode = !!p?.weightCutMode
+  const fightDate     = p?.fightDate || ''
+  const targetWeight  = p?.fightTargetWeight ?? p?.targetWeight ?? null
+  return { name, weight, goal, sport, freq, philosophy, weightCutMode, fightDate, targetWeight }
+}
+
 const FUEL_PROMPT = (p) => {
-  if (p?.weightCutMode && p?.fightDate && p?.targetWeight) {
-    return `You are a sports dietician. This athlete is in weight cut preparation for a fight/competition on ${p.fightDate}, targeting ${p.targetWeight}kg (currently ${p.weight ?? '?'}kg). Give one specific, actionable tip for low-sodium, low-bloat eating today. Be direct and practical. 2–3 sentences max.`
+  const { name, weight, goal, sport, weightCutMode, fightDate, targetWeight } = resolveProfile(p)
+  if (weightCutMode && fightDate && targetWeight) {
+    return `You are a sports dietician. This athlete is in weight cut preparation for a fight/competition on ${fightDate}, targeting ${targetWeight}kg (currently ${weight ?? '?'}kg). Give one specific, actionable tip for low-sodium, low-bloat eating today. Be direct and practical. 2–3 sentences max.`
   }
-  const goal = p?.goal || 'maintain'
-  const name = p?.name || 'this athlete'
-  const weight = p?.weight ? `${p.weight}kg` : 'their weight'
-  const sport = p?.primarySport ? ` who does ${p.primarySport}` : ''
-  return `You are a sports dietician. Give one specific, actionable fuelling tip for ${name}${sport} at ${weight} who wants to ${goal}. Focus on today — something they can actually do at their next meal. Direct, no fluff. 2–3 sentences.`
+  const weightStr = weight ? `${weight}kg` : 'their current weight'
+  const sportStr  = sport ? ` who does ${sport}` : ''
+  return `You are a sports dietician. Give one specific, actionable fuelling tip for ${name}${sportStr} at ${weightStr} who wants to ${goal}. Focus on today — something they can actually do at their next meal. Direct, no fluff. 2–3 sentences.`
 }
 
 const PERFORM_PROMPT = (p) => {
-  const sport = p?.primarySport ? p.primarySport : 'general training'
-  const freq = p?.trainingFreq ? ` (trains ${p.trainingFreq})` : ''
-  const philosophy = p?.trainingPhilosophy ? ` Their philosophy: ${p.trainingPhilosophy}.` : ''
-  return `You are a performance nutritionist. Give one specific tip on how nutrition can improve performance in ${sport}${freq}.${philosophy} Focus on timing, recovery, or a specific nutrient. Direct, actionable, 2–3 sentences. No generic advice.`
+  const { name, sport, freq, philosophy } = resolveProfile(p)
+  const sportStr = sport || 'general training'
+  const freqStr  = freq ? ` (trains ${freq})` : ''
+  const philStr  = philosophy ? ` Their philosophy: ${philosophy}.` : ''
+  return `You are a performance nutritionist. Give one specific tip on how nutrition can improve performance in ${sportStr} for ${name}${freqStr}.${philStr} Focus on timing, recovery, or a specific nutrient. Direct, actionable, 2–3 sentences. No generic advice.`
 }
 
 const GREETING_PROMPT = (p, timeOfDay) => {
-  const name = p?.name || 'there'
-  const goal = p?.goal || 'maintain'
-  const sport = p?.primarySport || 'general training'
-  const freq = p?.trainingFreq || 'regularly'
-  return `Generate one sentence greeting for ${name}. Their goal is ${goal}, primary sport is ${sport}, training frequency is ${freq}. Current time of day: ${timeOfDay || 'day'}. The sentence should feel like a coach who knows them well — precise, warm, not performative. No exclamation marks. Under 20 words.`
+  const { name, goal, sport, freq } = resolveProfile(p)
+  const freqStr = freq || 'regularly'
+  return `Generate one sentence greeting for ${name}. Their goal is ${goal}, primary sport is ${sport || 'general training'}, training frequency is ${freqStr}. Current time of day: ${timeOfDay || 'day'}. The sentence should feel like a coach who knows them well — precise, warm, not performative. No exclamation marks. Under 20 words.`
 }
 
 export default async function handler(req, res) {
