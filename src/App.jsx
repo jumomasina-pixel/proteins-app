@@ -1042,18 +1042,52 @@ function CookingState() {
   )
 }
 
+// A "real method" guardrail. A token method ≤ a few short phrases is a generation failure —
+// re-request rather than rendering a method-less recipe. Threshold:
+//   • at least 5 numbered steps (allows for genuinely simple dishes),
+//   • AND total step text ≥ 300 chars (rejects 5×"do X" stubs),
+//   • AND average step ≥ 40 chars (rejects "Sear. Flip. Rest. Plate. Eat.").
+function isCompleteMethod(dish) {
+  const steps = dish?.dietician?.cookSteps
+  if (!Array.isArray(steps) || steps.length < 5) return false
+  const cleaned = steps.map(s => (typeof s === 'string' ? s.trim() : '')).filter(Boolean)
+  if (cleaned.length < 5) return false
+  const total = cleaned.reduce((sum, s) => sum + s.length, 0)
+  if (total < 300) return false
+  if (total / cleaned.length < 40) return false
+  return true
+}
+
+// Lead-in line in Remi's voice presenting the plated dishes.
+function handoffLeadIn(dishes) {
+  if (dishes.length === 1) return `Here. ${dishes[0].name}.`
+  if (dishes.length === 2) return 'Plated. Two ways to go — open one.'
+  return 'Plated. Three ways to go — open one.'
+}
+
 // In-chat recipe handoff card — teaser only. Lands as a designed moment, not a list item.
-// Routes to the existing DetailView where the full numbered method lives.
-function HandoffCard({ dish, onOpen }) {
+// The WHOLE card is a tap target. Routes to the existing DetailView page where the full
+// numbered method lives. Chat hands off — it never contains the full recipe.
+function HandoffCard({ dish, onOpen, delay = 0 }) {
   const m = dish?.dietician?.macros || {}
   const cuisine = dish?.chef?.cuisine
   const hook    = dish?.dietician?.note || dish?.chef?.flavour || ''
+  // Cache the resolved Unsplash URL so DetailView can use the same image without re-fetching.
+  function handleImageResolved(url, credit) {
+    dish._imgUrl    = url
+    dish._imgCredit = credit
+  }
+  function open() { onOpen(dish) }
+  function onKeyDown(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: 420 }}>
-      {/* Bloom-then-settle mint glow — behind the card container ONLY, never behind text. */}
-      <div className="handoff-glow" aria-hidden />
+      <div className="handoff-glow" aria-hidden style={{ animationDelay: `${delay}ms` }} />
       <div
         className="handoff-card"
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={onKeyDown}
         style={{
           position: 'relative',
           zIndex: 1,
@@ -1061,10 +1095,19 @@ function HandoffCard({ dish, onOpen }) {
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 10,
           overflow: 'hidden',
+          cursor: 'pointer',
+          touchAction: 'manipulation',
+          animationDelay: `${delay}ms`,
         }}
+        aria-label={`Open the recipe — ${dish.name}`}
       >
         <div style={{ width: '100%', height: 90, overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
-          <CardImageHeader dishName={dish.name} cuisine={cuisine} initialUrl={dish._imgUrl ?? null} />
+          <CardImageHeader
+            dishName={dish.name}
+            cuisine={cuisine}
+            initialUrl={dish._imgUrl ?? null}
+            onImageResolved={handleImageResolved}
+          />
         </div>
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#F0F0F0', margin: 0, lineHeight: 1.2 }}>
@@ -1078,22 +1121,20 @@ function HandoffCard({ dish, onOpen }) {
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0' }}>
             {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
           </div>
-          <button
-            onClick={() => onOpen(dish)}
+          <div
             style={{
               marginTop: 6,
-              width: '100%', height: 48,
+              width: '100%', height: 44,
               backgroundColor: '#00E5A0',
               color: '#0D0D0D',
-              border: 'none', borderRadius: 8,
+              borderRadius: 8,
               fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15,
-              cursor: 'pointer',
-              transition: 'opacity 200ms ease',
-              touchAction: 'manipulation',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none',
             }}
           >
             Open the recipe →
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1549,7 +1590,25 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
   const [checkedItems,    setCheckedItems]    = useState(new Set())
   const [listCopied,      setListCopied]      = useState(false)
   const [showShareModal,  setShowShareModal]  = useState(false)
+  const [resolvedImg,     setResolvedImg]     = useState(imgUrl || dish._imgUrl || null)
   const { chef, dietician } = dish
+
+  // If the page opened without an image (e.g. routed straight from a chat handoff before the
+  // thumbnail finished resolving), fetch the hero from /api/unsplash so the page never opens
+  // on a flat mint bar. Uses the SAME source the dish cards already use.
+  useEffect(() => {
+    if (resolvedImg) return
+    let cancelled = false
+    const params = new URLSearchParams({ query: dish.name })
+    if (chef?.cuisine) params.set('cuisine', chef.cuisine)
+    fetch(`/api/unsplash?${params}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled && d.url) setResolvedImg(d.url) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const heroImg = resolvedImg
 
   function showToast(message, action = null) {
     setToast({ visible: true, message, action })
@@ -1615,11 +1674,11 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
         </button>
       </div>
 
-      {/* ── Hero image ── */}
-      {imgUrl ? (
+      {/* ── Hero image — own row, full width, text never on top ── */}
+      {heroImg ? (
         <>
           <div className="relative w-full overflow-hidden" style={{ height: '55vh' }}>
-            <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
+            <img src={heroImg} alt={dish.name} className="w-full h-full object-cover" />
             <button
               onClick={onBack}
               style={{
@@ -1646,31 +1705,30 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
           </div>
         </>
       ) : (
-        <div className="relative w-full h-24 sm:h-32 flex items-end" style={{ backgroundColor: '#00E5A0' }}>
-          <div className="px-4 pb-5 max-w-2xl mx-auto w-full">
-            <button
-              onClick={onBack}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(13,13,13,0.75)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 20,
-                padding: '8px 16px',
-                color: '#F0F0F0',
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 500,
-                fontSize: 13,
-                cursor: 'pointer',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Back to dishes
-            </button>
-          </div>
+        <div className="relative w-full overflow-hidden" style={{ height: '55vh', backgroundColor: '#1A1A1A' }}>
+          <button
+            onClick={onBack}
+            style={{
+              position: 'absolute', top: 16, left: 16, zIndex: 10,
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(13,13,13,0.75)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 20,
+              padding: '8px 16px',
+              color: '#F0F0F0',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 500,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back to dishes
+          </button>
         </div>
       )}
 
@@ -1756,7 +1814,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
             {chef.steps?.length > 0 && (
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#7A6B5A' }}>
-                  Remi's method
+                  Method
                 </h3>
                 <CookStepsList steps={chef.steps} accentColor={chefAccent} />
               </div>
@@ -1792,7 +1850,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
             {dietician.cookSteps.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A6B5A' }}>Quick cook steps</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A6B5A' }}>Method</h3>
                   {dietician.cookTime && dietician.cookTime !== '—' && (
                     <span className="text-xs font-medium" style={{ color: '#7A6B5A' }}>
                       Total: ~{dietician.cookTime} mins
@@ -4802,15 +4860,14 @@ export default function App() {
               const _newCount = parseInt(localStorage.getItem(_gKey) || '0', 10) + 1
               localStorage.setItem(_gKey, String(_newCount))
               setGenCount(_newCount)
-              // Guardrail: the surfaced dish MUST have a parseable full method (≥ 3 steps).
-              // A method-less recipe is a generation failure — never render it.
-              const surfaced = parsed.find(d => Array.isArray(d?.dietician?.cookSteps) && d.dietician.cookSteps.length >= 3)
-              if (surfaced) {
+              // Guardrail: each surfaced dish MUST carry a real method, not a token summary.
+              const validDishes = parsed.filter(isCompleteMethod)
+              if (validDishes.length > 0) {
                 setMessages(prev => [...prev, {
                   id: Date.now(),
                   role: 'assistant',
-                  content: `Here. ${surfaced.name}.`,
-                  handoffDish: surfaced,
+                  content: handoffLeadIn(validDishes),
+                  handoffDishes: validDishes,
                 }])
               } else {
                 console.error('[meals] Generation completed but no dish carried a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
@@ -4883,13 +4940,13 @@ export default function App() {
           const _newCount2 = parseInt(localStorage.getItem(_gKey2) || '0', 10) + 1
           localStorage.setItem(_gKey2, String(_newCount2))
           setGenCount(_newCount2)
-          const surfaced2 = parsed.find(d => Array.isArray(d?.dietician?.cookSteps) && d.dietician.cookSteps.length >= 3)
-          if (surfaced2) {
+          const validDishes2 = parsed.filter(isCompleteMethod)
+          if (validDishes2.length > 0) {
             setMessages(prev => [...prev, {
               id: Date.now(),
               role: 'assistant',
-              content: `Here. ${surfaced2.name}.`,
-              handoffDish: surfaced2,
+              content: handoffLeadIn(validDishes2),
+              handoffDishes: validDishes2,
             }])
           } else {
             console.error('[meals] Salvage parse produced no dish with a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
@@ -5589,18 +5646,22 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {msg.handoffDish && (
-                  <div style={{ marginTop: 12 }}>
-                    <HandoffCard
-                      dish={msg.handoffDish}
-                      onOpen={d => {
-                        setViewingDish(d)
-                        setViewingDishImg(d._imgUrl ?? null)
-                        setSavedBackTo('chat')
-                        posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'chat_handoff' })
-                        setView('detail')
-                      }}
-                    />
+                {msg.handoffDishes && msg.handoffDishes.length > 0 && (
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {msg.handoffDishes.map((dish, i) => (
+                      <HandoffCard
+                        key={i}
+                        dish={dish}
+                        delay={i * 120}
+                        onOpen={d => {
+                          setViewingDish(d)
+                          setViewingDishImg(d._imgUrl ?? null)
+                          setSavedBackTo('chat')
+                          posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'chat_handoff' })
+                          setView('detail')
+                        }}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
