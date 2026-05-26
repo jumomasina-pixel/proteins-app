@@ -1,5 +1,6 @@
 import posthog from 'posthog-js'
 import { useState, useRef, useEffect, useMemo } from 'react'
+import remiLogoUrl from './assets/remi-logo.svg'
 
 posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
   api_host: 'https://us.i.posthog.com',
@@ -2675,8 +2676,6 @@ function NumericKeypad({ value, onChange }) {
 }
 
 function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
-  const TOTAL_STEPS = 9
-
   const [step,              setStep]          = useState(1)
   const [name,              setName]          = useState('')
   const [weight,            setWeight]        = useState('')
@@ -2695,6 +2694,13 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
   const isMaintainOnly = goals.length === 1 && goals.includes('Maintain')
   const isCombat       = trainingTypes.some(t => COMBAT_SPORTS.includes(t))
   const isFightGoal    = sportGoal === 'A fight or competition'
+
+  // Visible-step model: counter + progress bar derive from this single source.
+  // Step 4 (target weight) is hidden when goals are Maintain-only.
+  const visibleSteps  = isMaintainOnly ? [1, 2, 3, 5, 6, 7, 8, 9] : [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  const visibleIndex  = visibleSteps.indexOf(step) + 1
+  const visibleTotal  = visibleSteps.length
+  const isFinalStep   = step === visibleSteps[visibleSteps.length - 1]
 
   function fightDateISO() {
     if (!fightDay || !fightMonth || !fightYear || fightYear.length < 4) return ''
@@ -2830,7 +2836,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
 
       {/* Mint progress line — fixed top */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1A1A', zIndex: 100 }}>
-        <div style={{ height: '100%', width: `${(step / TOTAL_STEPS) * 100}%`, backgroundColor: '#00E5A0', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', borderRadius: '0 2px 2px 0' }} />
+        <div style={{ height: '100%', width: `${(visibleIndex / visibleTotal) * 100}%`, backgroundColor: '#00E5A0', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', borderRadius: '0 2px 2px 0' }} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 40px' }}>
@@ -2841,7 +2847,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
             {backChevron}
           </button>
           <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#555555', letterSpacing: '0.12em' }}>
-            {step.toString().padStart(2, '0')} / 09
+            {visibleIndex.toString().padStart(2, '0')} / {visibleTotal.toString().padStart(2, '0')}
           </span>
           <div style={{ width: 20 }} />
         </div>
@@ -2853,7 +2859,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
           {step === 1 && (
             <>
               <div style={{ marginBottom: 4 }}>
-                <RemiLogo size={40} />
+                <img src={remiLogoUrl} alt="Remi" style={{ width: 44, height: 44, display: 'block' }} />
               </div>
               <h2 style={HS}>Let's start. What do I call you?</h2>
               <input
@@ -3080,7 +3086,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
               Skip
             </button>
           )}
-          {step < TOTAL_STEPS ? (
+          {!isFinalStep ? (
             <button
               onClick={() => canProceed() && advanceStep()}
               disabled={!canProceed()}
