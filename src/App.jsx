@@ -1826,21 +1826,30 @@ function SplashScreen({ onGetStarted }) {
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
       <style>{SPLASH_STYLES}</style>
 
-      {/* Top: wordmark */}
-      <div className="splash-el splash-el-0" style={{ textAlign: 'center', position: 'relative' }}>
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 300, height: 300, borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(0,229,160,0.08) 0%, transparent 70%)',
-          pointerEvents: 'none', zIndex: 0,
-        }} />
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 48, color: '#F0F0F0', letterSpacing: '0.01em', position: 'relative', zIndex: 1, margin: 0, lineHeight: 1 }}>
-          Remi
-        </h1>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12, position: 'relative', zIndex: 1 }}>
-          Personal Chef · Nutritionist · Guide
-        </p>
+      {/* Top: logo mark + wordmark group — kept together so space-between layout is unchanged */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+        {/* Logo row — glow contained here, never touches wordmark or subline */}
+        <div className="splash-el splash-el-0" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            position: 'absolute',
+            width: 200, height: 200, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0,229,160,0.12) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <img src="/remi-logo.svg" alt="Remi" style={{ height: '64px', width: 'auto' }} />
+        </div>
+
+        {/* Wordmark + subline */}
+        <div className="splash-el splash-el-1" style={{ textAlign: 'center', marginTop: 20 }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 48, color: '#F0F0F0', letterSpacing: '0.01em', margin: 0, lineHeight: 1 }}>
+            Remi
+          </h1>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12 }}>
+            Personal Chef · Nutritionist · Guide
+          </p>
+        </div>
+
       </div>
 
       {/* Middle: tagline */}
@@ -3481,6 +3490,20 @@ function WelcomeBackScreen({ name, lastSignInAt, onKitchen, onDashboard }) {
       padding: '24px',
     }}>
       <style>{WELCOME_BACK_STYLES}</style>
+
+      {/* Logo row — glow is contained here, never touches greeting row */}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+        <div style={{
+          position: 'absolute',
+          width: 170,
+          height: 170,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0,229,160,0.10) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+        <img src="/remi-logo.svg" alt="Remi" style={{ height: '64px', width: 'auto' }} />
+      </div>
+
       <p style={{
         fontFamily: 'Inter, sans-serif',
         fontSize: 22,

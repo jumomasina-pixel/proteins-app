@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json',
     }
 
-    // 1. Delete all rows from the users table
+    // 1. Delete all rows from the profiles table
     const tableRes = await fetch(
       `${SUPABASE_URL}/rest/v1/profiles?id=neq.null`,
       {
