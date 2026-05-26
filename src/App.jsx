@@ -2027,7 +2027,7 @@ const SPLASH_STYLES = `
   .splash-el-3 { animation-delay: 450ms; }
 `
 
-function SplashScreen({ onGetStarted }) {
+function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped = false }) {
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
       <style>{SPLASH_STYLES}</style>
@@ -2067,6 +2067,16 @@ function SplashScreen({ onGetStarted }) {
 
       {/* Bottom: CTA */}
       <div className="splash-el splash-el-3" style={{ width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        {referralCoachName && !referralCapped && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#00E5A0', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+            You've been invited by {referralCoachName}. Let's get started.
+          </p>
+        )}
+        {referralCapped && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+            {referralCoachName ? `${referralCoachName}'s roster is full.` : "This coach's roster is full."} You can still sign up directly below.
+          </p>
+        )}
         <button
           onClick={onGetStarted}
           style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 56, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
@@ -2337,6 +2347,99 @@ function RemiCorner({ profile }) {
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
+
+// Coach referral card — Phase 1. Surfaces the coach's own referral link, live client count,
+// and the hard seat cap (20). Live count comes from the profile state (hydrated on session
+// restore). PHASE 2: replace the seat cap copy with billing status + monthly credit total.
+function CoachCard({ slug, clientCount, seatCap }) {
+  const [copied, setCopied] = useState(false)
+  const url = `https://chefremi.io/join/${slug}`
+
+  function handleCopy() {
+    try {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1800)
+      })
+    } catch {}
+  }
+
+  const atCap = (clientCount ?? 0) >= seatCap
+
+  return (
+    <div style={{
+      backgroundColor: '#1A1A1A',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 10,
+      padding: 20,
+      marginBottom: 24,
+      display: 'flex', flexDirection: 'column', gap: 18,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+          Coach
+        </p>
+        {atCap && (
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#FF4D4D', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Roster full
+          </span>
+        )}
+      </div>
+
+      {/* Referral link */}
+      <div>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>
+          Your referral link
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <code style={{
+            flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#F0F0F0',
+            backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 8, padding: '10px 12px',
+          }}>
+            {url}
+          </code>
+          <button
+            onClick={handleCopy}
+            style={{
+              flexShrink: 0, height: 38, padding: '0 14px', borderRadius: 8, border: 'none',
+              backgroundColor: '#00E5A0', color: '#0D0D0D',
+              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
+              cursor: 'pointer', touchAction: 'manipulation',
+            }}
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+      </div>
+
+      {/* Active clients + seat cap */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '14px 16px' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>
+            Active clients
+          </p>
+          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#00E5A0', margin: 0, lineHeight: 1 }}>
+            {clientCount ?? 0}
+          </p>
+        </div>
+        <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '14px 16px' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>
+            Seat cap
+          </p>
+          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#F0F0F0', margin: 0, lineHeight: 1 }}>
+            {seatCap}
+          </p>
+        </div>
+      </div>
+
+      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', lineHeight: 1.5, margin: 0 }}>
+        Every client you bring earns you $1/month. Build your roster.
+      </p>
+    </div>
+  )
+}
 
 function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut }) {
   const cuisineFreq = useMemo(() => {
@@ -2721,6 +2824,15 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               Nothing here yet. Open the Cook tab and get your first dishes.
             </p>
           </div>
+        )}
+
+        {/* ── Coach card — Founding Coach Phase 1 ── */}
+        {isCoach && profile?.referralSlug && (
+          <CoachCard
+            slug={profile.referralSlug}
+            clientCount={profile.clientCount ?? 0}
+            seatCap={20}
+          />
         )}
 
         {/* ── Quick Start CTA ── */}
@@ -4514,6 +4626,18 @@ export default function App() {
   const recoveryAccessToken = isRecovery ? hashParams.get('access_token') : null
   if (isRecovery) window.history.replaceState(null, '', '/')
 
+  // ── Referral slug detection — /join/:slug routing ────────────────────────────
+  // Capture the slug from the URL into localStorage so it survives sign-up / sign-in.
+  // Validation (does the coach exist, are they capped) happens in a useEffect below.
+  if (!isRecovery) {
+    const pathMatch = window.location.pathname.match(/^\/join\/([a-z0-9][a-z0-9-]{1,30})\/?$/i)
+    if (pathMatch) {
+      const slug = pathMatch[1].toLowerCase()
+      try { localStorage.setItem('remi_referral_slug', slug) } catch {}
+      window.history.replaceState(null, '', '/')
+    }
+  }
+
   const [messages,       setMessages]       = useState(() => {
     const p = loadProfileOrEvict()
     const s = (() => { try { const r = localStorage.getItem('lhc_sessions'); return r ? JSON.parse(r) : [] } catch { return [] } })()
@@ -4576,6 +4700,10 @@ export default function App() {
   const [suggestions,        setSuggestions]        = useState([])
   const [welcomeBackData,    setWelcomeBackData]    = useState(null)
   const [recoveryToken,      setRecoveryToken]      = useState(recoveryAccessToken)
+  const [referralCoachName,  setReferralCoachName]  = useState(() => {
+    try { return localStorage.getItem('remi_referral_coach_name') || null } catch { return null }
+  })
+  const [referralCapped,     setReferralCapped]     = useState(false)
 
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
@@ -4675,13 +4803,25 @@ export default function App() {
             goals: [dp.goal || 'maintain'],
             currentWeight: dp.weight || null,
             trainingPhilosophy: dp.trainingPhilosophy ?? null,
+            referralSlug: dp.referralSlug ?? null,
+            referredBy: dp.referredBy ?? null,
+            clientCount: dp.clientCount ?? 0,
             completedAt: Date.now(),
           }
           localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
-        } else if (currentProfile && data.dbProfile && currentProfile.trainingPhilosophy == null && data.dbProfile.trainingPhilosophy) {
-          // Cross-device: localStorage exists but doesn't yet carry the philosophy. Hydrate from DB.
-          currentProfile = { ...currentProfile, trainingPhilosophy: data.dbProfile.trainingPhilosophy }
-          localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
+        } else if (currentProfile && data.dbProfile) {
+          // Cross-device: localStorage exists but might be missing recent DB-only fields. Hydrate.
+          const dp = data.dbProfile
+          const hydrated = { ...currentProfile }
+          let dirty = false
+          if (hydrated.trainingPhilosophy == null && dp.trainingPhilosophy) { hydrated.trainingPhilosophy = dp.trainingPhilosophy; dirty = true }
+          if (hydrated.referralSlug == null && dp.referralSlug)             { hydrated.referralSlug       = dp.referralSlug;       dirty = true }
+          if ((hydrated.clientCount ?? 0) !== (dp.clientCount ?? 0))        { hydrated.clientCount        = dp.clientCount ?? 0;   dirty = true }
+          if (hydrated.referredBy == null && dp.referredBy)                 { hydrated.referredBy         = dp.referredBy;         dirty = true }
+          if (dirty) {
+            currentProfile = hydrated
+            localStorage.setItem('lhc_profile', JSON.stringify(currentProfile))
+          }
         }
 
         if (data.dbRowExists) {
@@ -4699,6 +4839,44 @@ export default function App() {
       })
       .catch(() => setView('splash'))
   }
+
+  // ── Validate referral slug (if any) — runs once, fires the splash line ───────
+  useEffect(() => {
+    let slug
+    try { slug = localStorage.getItem('remi_referral_slug') } catch { return }
+    if (!slug) return
+    // Skip validation if we already have the coach name cached for this slug
+    let cancelled = false
+    fetch('/api/referral', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ action: 'validate', slug }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return
+        if (data?.valid) {
+          setReferralCoachName(data.coachName || null)
+          setReferralCapped(false)
+          try { localStorage.setItem('remi_referral_coach_name', data.coachName || '') } catch {}
+        } else if (data?.reason === 'capped') {
+          setReferralCoachName(data.coachName || null)
+          setReferralCapped(true)
+          // Clear the slug so we don't try to attribute the signup to a full coach.
+          try { localStorage.removeItem('remi_referral_slug') } catch {}
+        } else {
+          // not_found or unknown — drop the slug silently
+          setReferralCoachName(null)
+          setReferralCapped(false)
+          try {
+            localStorage.removeItem('remi_referral_slug')
+            localStorage.removeItem('remi_referral_coach_name')
+          } catch {}
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     // Recovery links are fully handled synchronously before this effect runs.
@@ -5287,7 +5465,11 @@ export default function App() {
 
   // ── View: Splash ─────────────────────────────────────────────────────────────
   if (view === 'splash') {
-    return <SplashScreen onGetStarted={() => setView('auth')} />
+    return <SplashScreen
+      onGetStarted={() => setView('auth')}
+      referralCoachName={referralCoachName}
+      referralCapped={referralCapped}
+    />
   }
 
   // ── View: Auth (email + password) ────────────────────────────────────────────
@@ -5320,7 +5502,18 @@ export default function App() {
             posthog.capture('onboarding_completed', { goal: remiProfile.goal, sport: remiProfile.primarySport })
             // Upsert profile to DB via auth-user POST (uses service role key, bypasses RLS)
             const session = (() => { try { return JSON.parse(localStorage.getItem('supabase.auth.token') || 'null') } catch { return null } })()
-            const profileData = { name: saved.name, sport: saved.primarySport || '', goal: saved.goal || '', training_philosophy: null }
+            // Founding Coach — attribute this signup to the referring coach (if any).
+            // The slug is stripped from localStorage after a successful record so it never
+            // double-counts on profile re-saves.
+            let referralSlugForWrite = null
+            try { referralSlugForWrite = localStorage.getItem('remi_referral_slug') } catch {}
+            const profileData = {
+              name:                 saved.name,
+              sport:                saved.primarySport || '',
+              goal:                 saved.goal || '',
+              training_philosophy:  null,
+              ...(referralSlugForWrite ? { referred_by: referralSlugForWrite } : {}),
+            }
             console.log('Onboarding complete, writing profile:', profileData)
             if (session?.access_token) {
               fetch('/api/auth-user', {
@@ -5329,7 +5522,29 @@ export default function App() {
                 body: JSON.stringify(profileData),
               })
                 .then(r => r.json())
-                .then(result => { console.log('auth-user POST result:', result) })
+                .then(result => {
+                  console.log('auth-user POST result:', result)
+                  // Once the profile row exists, attribute the seat to the coach.
+                  if (referralSlugForWrite) {
+                    fetch('/api/referral', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'record', slug: referralSlugForWrite }),
+                    })
+                      .then(r => r.json())
+                      .then(rec => {
+                        console.log('[referral] record result:', rec)
+                        posthog.capture('referral_signup_attributed', { slug: referralSlugForWrite, capped: !!rec?.capped })
+                      })
+                      .catch(err => console.error('[referral] record error:', err))
+                      .finally(() => {
+                        try {
+                          localStorage.removeItem('remi_referral_slug')
+                          localStorage.removeItem('remi_referral_coach_name')
+                        } catch {}
+                      })
+                  }
+                })
                 .catch(err => { console.error('auth-user POST error:', err) })
             } else {
               console.warn('Onboarding complete but no session token — profile not written to DB')

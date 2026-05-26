@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   // ── POST — upsert profile on onboarding completion ────────────────────────────
   if (req.method === 'POST') {
-    const { name, sport, goal, training_philosophy } = req.body || {}
+    const { name, sport, goal, training_philosophy, referred_by } = req.body || {}
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     const upsertPayload = {
@@ -39,6 +39,11 @@ export default async function handler(req, res) {
     // Onboarding writes null; the first-session capture writes the user's typed answer.
     if (Object.prototype.hasOwnProperty.call(req.body || {}, 'training_philosophy')) {
       upsertPayload.training_philosophy = training_philosophy
+    }
+    // Only include referred_by when the caller passes a non-empty slug — never overwrite a
+    // prior referral attribution back to null on a re-save.
+    if (typeof referred_by === 'string' && referred_by.trim()) {
+      upsertPayload.referred_by = referred_by.trim()
     }
     console.log('[auth-user] Upsert payload:', upsertPayload)
 
@@ -79,7 +84,7 @@ export default async function handler(req, res) {
     let rows
     try {
       roleRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,training_philosophy`,
+        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,training_philosophy,referral_slug,referred_by,client_count`,
         {
           headers: {
             'apikey':        serviceRoleKey || supabaseKey,
@@ -103,6 +108,9 @@ export default async function handler(req, res) {
             goal:               row.goal || null,
             weight:             row.weight || null,
             trainingPhilosophy: row.training_philosophy ?? null,
+            referralSlug:       row.referral_slug ?? null,
+            referredBy:         row.referred_by ?? null,
+            clientCount:        row.client_count ?? 0,
           }
         }
       }
