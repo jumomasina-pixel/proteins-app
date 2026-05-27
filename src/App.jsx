@@ -4748,24 +4748,6 @@ export default function App() {
     setIsCoach(role === 'coach')
   }
 
-  async function saveUserIfNew(email, currentProfile) {
-    try {
-      await fetch('/api/save-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name:   currentProfile?.name          ?? '',
-          email:  email,
-          sport:  currentProfile?.primarySport  ?? '',
-          goal:   currentProfile?.goal          ?? '',
-          weight: currentProfile?.currentWeight ?? null,
-        }),
-      })
-    } catch (err) {
-      console.error('[saveUserIfNew]', err)
-    }
-  }
-
   // ── Session detection on mount ─────────────────────────────────────────────
 
   // ── Shared: process a valid access_token + refresh_token into a session ──────
@@ -4826,7 +4808,6 @@ export default function App() {
 
         if (data.dbRowExists) {
           setProfile(currentProfile)
-          saveUserIfNew(data.user.email, currentProfile)
           const prevSignIn = localStorage.getItem('remi_prev_sign_in')
           const firstName = (dbName || localName || 'there').split(' ')[0]
           setWelcomeBackData({ name: firstName, lastSignInAt: prevSignIn })
