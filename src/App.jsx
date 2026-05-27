@@ -4675,6 +4675,262 @@ function IntelView({ isPro, onProClick }) {
   )
 }
 
+// ── Recipe Reveal — the ah-huh moment ────────────────────────────────────────
+//
+// After plating completes, the chat gives way to this dedicated full-screen
+// view: a presenting header in Remi's voice, three (or fewer) recipe cards
+// staggered into view, and the combined "What You Need" shopping list anchored
+// at the bottom. The cards land — they don't just appear.
+//
+// Self-contained animation styles so this works whether or not CHAT_STYLES has
+// been injected by the chat view earlier in the session.
+
+const REVEAL_STYLES = `
+  @keyframes revealFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes revealRise {
+    0%   { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes revealGlow {
+    0%   { opacity: 0; }
+    35%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .reveal-header { animation: revealFade 400ms ease both; }
+  .reveal-card   { animation: revealRise 320ms ease-out both; }
+  .reveal-glow   {
+    position: absolute; inset: -24px; border-radius: 24px;
+    background: radial-gradient(ellipse at center, rgba(0,229,160,0.10) 0%, rgba(0,229,160,0.06) 35%, transparent 70%);
+    pointer-events: none; z-index: 0;
+    animation: revealGlow 1400ms ease-out both;
+  }
+  .reveal-foot   { animation: revealFade 400ms ease 600ms both; }
+`
+
+function RevealCard({ dish, onOpen, delay = 0 }) {
+  const m = dish?.dietician?.macros || {}
+  const cuisine = dish?.chef?.cuisine
+  const hook    = dish?.dietician?.note || dish?.chef?.flavour || ''
+  // Cache the resolved Unsplash URL onto the dish so DetailView opens with the
+  // hero already populated — no second fetch, no flash of empty state.
+  function handleImageResolved(url, credit) {
+    dish._imgUrl    = url
+    dish._imgCredit = credit
+  }
+  function open() { onOpen(dish) }
+  function onKeyDown(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      {/* Bloom-then-settle mint glow — behind the card container ONLY, never behind text */}
+      <div className="reveal-glow" aria-hidden style={{ animationDelay: `${delay}ms` }} />
+      <div
+        className="reveal-card"
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={onKeyDown}
+        aria-label={`Open the recipe — ${dish.name}`}
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          backgroundColor: '#1A1A1A',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 10,
+          overflow: 'hidden',
+          cursor: 'pointer',
+          touchAction: 'manipulation',
+          animationDelay: `${delay}ms`,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Image — own row, full width, ZERO text overlay */}
+        <div style={{ width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', borderRadius: '8px 8px 0 0', backgroundColor: '#1A1A1A' }}>
+          <CardImageHeader
+            dishName={dish.name}
+            cuisine={cuisine}
+            initialUrl={dish._imgUrl ?? null}
+            onImageResolved={handleImageResolved}
+          />
+        </div>
+        {/* Content row — separate vertical row, never overlaps the image */}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {cuisine && (
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+              {cuisine}
+            </p>
+          )}
+          <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#F0F0F0', margin: 0, lineHeight: 1.2 }}>
+            {dish.name}
+          </h3>
+          {hook && (
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, lineHeight: 1.5 }}>
+              {hook}
+            </p>
+          )}
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0', marginTop: 4 }}>
+            {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish }) {
+  const [checkedItems, setCheckedItems] = useState(new Set())
+  const [listCopied,   setListCopied]   = useState(false)
+
+  function toggleCheckedItem(i) {
+    setCheckedItems(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+  function handleCopyShoppingList() {
+    const unchecked = (missingIngredients || []).filter((_, i) => !checkedItems.has(i))
+    if (unchecked.length === 0) return
+    navigator.clipboard.writeText(unchecked.join('\n')).then(() => {
+      setListCopied(true)
+      setTimeout(() => setListCopied(false), 2000)
+    })
+  }
+
+  // Split the existing handoffLeadIn output into a Syne headline + Inter sub-line.
+  // 1 dish:  "Here. <name>."          → headline "Here.", sub "<name>."
+  // 2 dishes: "Plated. Two ways…"     → headline "Plated.", sub "Two ways…"
+  // 3 dishes: "Plated. Three ways…"   → headline "Plated.", sub "Three ways…"
+  const lead = handoffLeadIn(dishes || [])
+  const idx  = lead.indexOf('. ')
+  const headerTitle = idx >= 0 ? lead.slice(0, idx + 1) : lead
+  const headerSub   = idx >= 0 ? lead.slice(idx + 2)    : ''
+
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
+      <style>{REVEAL_STYLES}</style>
+
+      {/* Top bar: back affordance to chat */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <button
+          onClick={onBack}
+          aria-label="Back to chat"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'none', border: 'none', padding: 0,
+            color: '#888888', cursor: 'pointer',
+            fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back to chat
+        </button>
+      </div>
+
+      {/* Presenting header — Syne title + Inter sub-line */}
+      <div className="reveal-header" style={{ padding: '40px 20px 24px', maxWidth: 1120, margin: '0 auto', width: '100%' }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2rem, 6vw, 3rem)', color: '#F0F0F0', letterSpacing: '-0.01em', lineHeight: 1.05, margin: 0 }}>
+          {headerTitle}
+        </h1>
+        {headerSub && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#888888', margin: '10px 0 0', lineHeight: 1.5 }}>
+            {headerSub}
+          </p>
+        )}
+      </div>
+
+      {/* The three cards — side-by-side on desktop, stacked on mobile */}
+      <div style={{ padding: '8px 20px 28px', maxWidth: 1120, margin: '0 auto', width: '100%' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 16,
+          }}
+        >
+          {(dishes || []).map((dish, i) => (
+            <RevealCard key={i} dish={dish} delay={i * 150} onOpen={onOpenDish} />
+          ))}
+        </div>
+      </div>
+
+      {/* What You Need — anchored under the cards, last to fade in */}
+      {missingIngredients && missingIngredients.length > 0 && (
+        <div className="reveal-foot" style={{ padding: '24px 20px 48px', maxWidth: 1120, margin: '0 auto', width: '100%' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>
+            What You Need
+          </p>
+          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20 }}>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {missingIngredients.map((item, i) => {
+                const checked = checkedItems.has(i)
+                return (
+                  <li
+                    key={i}
+                    onClick={() => toggleCheckedItem(i)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      fontFamily: 'Inter, sans-serif', fontSize: 14, lineHeight: 1.5,
+                      cursor: 'pointer', userSelect: 'none',
+                      opacity: checked ? 0.4 : 1,
+                      transition: 'opacity 200ms ease',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 20, height: 20, borderRadius: 4,
+                        border: '2px solid #00E5A0',
+                        backgroundColor: checked ? '#00E5A0' : 'transparent',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'background-color 200ms ease',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {checked && (
+                        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                          <path d="M1 4.5L4 7.5L10 1" stroke="#0D0D0D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </span>
+                    <span style={{ color: '#F0F0F0', textDecoration: checked ? 'line-through' : 'none', transition: 'text-decoration 200ms ease' }}>
+                      {item}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            {(() => {
+              const allChecked = missingIngredients.every((_, i) => checkedItems.has(i))
+              return (
+                <button
+                  onClick={handleCopyShoppingList}
+                  disabled={allChecked}
+                  style={{
+                    marginTop: 20, width: '100%', height: 44, borderRadius: 8,
+                    backgroundColor: listCopied ? '#009966' : allChecked ? '#1A1A1A' : '#00E5A0',
+                    color: allChecked ? '#555555' : '#0D0D0D',
+                    border: allChecked ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                    cursor: allChecked ? 'default' : 'pointer',
+                    fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  {listCopied ? '✓ Copied' : allChecked ? '✓ All picked up' : 'Copy List'}
+                </button>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -5163,12 +5419,16 @@ export default function App() {
               // Guardrail: each surfaced dish MUST carry a real method, not a token summary.
               const validDishes = parsed.filter(isCompleteMethod)
               if (validDishes.length > 0) {
+                // Chat conversation gives way to the dedicated reveal page — the moment
+                // of arrival. A quiet breadcrumb in chat preserves the conversation log
+                // and gives the user a re-entry door if they back out to chat.
                 setMessages(prev => [...prev, {
                   id: Date.now(),
                   role: 'assistant',
                   content: handoffLeadIn(validDishes),
-                  handoffDishes: validDishes,
+                  revealBreadcrumb: true,
                 }])
+                setView('reveal')
               } else {
                 console.error('[meals] Generation completed but no dish carried a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
                 setMessages(prev => [...prev, {
@@ -5246,8 +5506,9 @@ export default function App() {
               id: Date.now(),
               role: 'assistant',
               content: handoffLeadIn(validDishes2),
-              handoffDishes: validDishes2,
+              revealBreadcrumb: true,
             }])
+            setView('reveal')
           } else {
             console.error('[meals] Salvage parse produced no dish with a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
             setMessages(prev => [...prev, {
@@ -5716,6 +5977,33 @@ export default function App() {
     )
   }
 
+  // ── View: Recipe Reveal — the ah-huh page ────────────────────────────────────
+  // Reads from the existing dishes + missingIngredients state populated by the
+  // chat completion path. If a user lands here without dishes (e.g. via direct
+  // navigation/back from detail after a reload), fall through to the chat.
+  if (view === 'reveal' && Array.isArray(dishes) && dishes.length > 0) {
+    return (
+      <>
+        <RecipeReveal
+          dishes={dishes}
+          missingIngredients={missingIngredients}
+          onBack={() => setView('chat')}
+          onOpenDish={d => {
+            setViewingDish(d)
+            setViewingDishImg(d._imgUrl ?? null)
+            setSavedBackTo('reveal')
+            posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'reveal' })
+            setView('detail')
+          }}
+        />
+        <BottomNav activeView="chat" onNavigate={v => {
+          if (v === 'saved') { setSavedBackTo('reveal'); setView('saved') }
+          else setView(v)
+        }} isPro={isPro} />
+      </>
+    )
+  }
+
   // ── View: Detail ─────────────────────────────────────────────────────────────
   if (view === 'detail' && (selectedDish !== null || viewingDish !== null)) {
     const dish       = viewingDish ?? dishes[selectedDish]
@@ -5987,22 +6275,19 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {msg.handoffDishes && msg.handoffDishes.length > 0 && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {msg.handoffDishes.map((dish, i) => (
-                      <HandoffCard
-                        key={i}
-                        dish={dish}
-                        delay={i * 120}
-                        onOpen={d => {
-                          setViewingDish(d)
-                          setViewingDishImg(d._imgUrl ?? null)
-                          setSavedBackTo('chat')
-                          posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'chat_handoff' })
-                          setView('detail')
-                        }}
-                      />
-                    ))}
+                {msg.revealBreadcrumb && (
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      onClick={() => setView('reveal')}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: 'none', border: 'none', padding: '6px 0',
+                        color: '#00E5A0', cursor: 'pointer',
+                        fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600,
+                      }}
+                    >
+                      View the recipes →
+                    </button>
                   </div>
                 )}
               </div>
