@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const secret = process.env.ADMIN_RESET_SECRET
+  const secret = (process.env.ADMIN_RESET_SECRET || '').trim()
   if (!secret) {
     return res.status(500).json({ error: 'ADMIN_RESET_SECRET env var not set' })
   }
