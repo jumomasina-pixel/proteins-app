@@ -2025,9 +2025,75 @@ const SPLASH_STYLES = `
   .splash-el-1 { animation-delay: 150ms; }
   .splash-el-2 { animation-delay: 300ms; }
   .splash-el-3 { animation-delay: 450ms; }
+  .splash-el-4 { animation-delay: 600ms; }
 `
 
 function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped = false }) {
+  // Invited state — a personal invite from a real human is the highest-trust entry point
+  // in the app, so the coach's name is the hero of the screen. Brand recedes, the
+  // invitation leads. Capped roster falls through to the default layout below.
+  const isInvited = !!referralCoachName && !referralCapped
+  if (isInvited) {
+    const firstName = (referralCoachName || '').trim().split(/\s+/)[0] || referralCoachName
+    return (
+      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '64px 24px 48px' }}>
+        <style>{SPLASH_STYLES}</style>
+
+        {/* Top: brand mark, smaller — recedes so the invite leads */}
+        <div className="splash-el splash-el-0" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                width: 140, height: 140, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }}
+            />
+            <img src="/remi-logo.svg" alt="Remi" style={{ height: '40px', width: 'auto' }} />
+          </div>
+          <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#888888', letterSpacing: '0.01em', margin: '10px 0 0', lineHeight: 1 }}>
+            Remi
+          </p>
+        </div>
+
+        {/* HERO: the invitation */}
+        <div style={{ textAlign: 'center', maxWidth: 420, width: '100%' }}>
+          <p className="splash-el splash-el-1" style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', margin: 0, lineHeight: 1.4 }}>
+            You've been invited by
+          </p>
+          <h1 className="splash-el splash-el-2" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.5rem, 11vw, 3rem)', color: '#00E5A0', letterSpacing: '-0.01em', margin: '12px 0 0', lineHeight: 1.05 }}>
+            {firstName}
+          </h1>
+          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, fontWeight: 400, color: '#F0F0F0', margin: '20px 0 0', lineHeight: 1.5 }}>
+            They've set up Remi for you. Let's get you started.
+          </p>
+          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 300, color: '#888888', lineHeight: 1.6, margin: '28px 0 0' }}>
+            Eat like a chef. Train like an athlete. Live like both.
+          </p>
+        </div>
+
+        {/* CTA */}
+        <div className="splash-el splash-el-4" style={{ width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <button
+            onClick={onGetStarted}
+            style={{ width: '100%', backgroundColor: '#00E5A0', color: '#0D0D0D', borderRadius: 8, height: 56, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', cursor: 'pointer' }}
+          >
+            Get started
+          </button>
+          <button
+            onClick={onGetStarted}
+            style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
+          >
+            Already have an account? Sign in
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Default (no slug / capped roster) — UNCHANGED.
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
       <style>{SPLASH_STYLES}</style>
