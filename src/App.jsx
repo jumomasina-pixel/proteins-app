@@ -236,45 +236,106 @@ function parseDishes(rawText) {
   })
 }
 
+// Classifier — true iff this line looks like a real grocery-list ingredient,
+// not a section header, macro readout, metadata line, version label, dish title,
+// or a sentence from method prose. Used to scrub the AI's raw output of garbage
+// before it reaches the user as a shopping list.
+function isLikelyIngredient(line) {
+  if (!line || typeof line !== 'string') return false
+  const s = line.trim()
+  if (s.length < 2 || s.length > 100) return false
+  if (!/[a-z]/i.test(s)) return false
+  if (/^nothing\b/i.test(s)) return false
+
+  // Reject section headers / labels (with or without trailing colon/em-dash)
+  if (/^(macros?|cuisine\s*style|cuisine|flavou?r\s*profile|flavou?r|how\s+it\s+would|chef'?s?\s+method|method|key\s+technique|quick\s+cook\s+steps|dietician'?s?\s+note|difficulty|cook\s*time|what\s+changes|missing\s+ingredients|shopping\s+list|chef\s+version|dietician\s+version|what\s+you(?:'|'|')?ll\s+need|what\s+you\s+need|ingredients?\s*needed|ingredients?|est\.?\s*calories|est\.?\s*cal)\b\s*[:—–-]?/i.test(s)) return false
+
+  // Reject macro / nutrition readouts
+  if (/\b(calories|protein|carbs?|carbohydrates?|fat|kcal)\s*[:~]/i.test(s)) return false
+  if (/^~?\d[\d,.]*\s*(kcal|cal)\b/i.test(s)) return false
+  if (/^~?\d[\d,.]*g\s*(protein|carbs?|fat)?\s*$/i.test(s)) return false
+  if (/^(easy|medium|pro)\s*$/i.test(s)) return false
+  if (/^~?\d[\d.,\s]*\s*(mins?|minutes?)\s*$/i.test(s)) return false
+
+  // Reject dish-title / version markers
+  if (/🍽️|✅|⚠️/.test(s)) return false
+  if (/[—–-]\s*(chef|dietician)\s+version/i.test(s)) return false
+
+  // Reject lines that look like sentences (method prose) — multiple sentence terminators
+  if (/[.!?]\s+[A-Z].*[.!?]/.test(s)) return false
+
+  return true
+}
+
+// Dedup a list of ingredient strings, case- and whitespace-insensitive,
+// preserving the first occurrence (which usually has the best quantity prefix).
+function dedupeIngredients(items) {
+  const seen = new Set()
+  const out = []
+  for (const item of items) {
+    const key = item.toLowerCase().replace(/\s+/g, ' ').trim()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(item)
+  }
+  return out
+}
+
+// Extract the combined "what you need" shopping list from the raw AI output.
+// The system prompt emits ONE consolidated MISSING INGREDIENTS section on the
+// third dish, between Difficulty and Quick cook steps. We pull ONLY that
+// section, stop hard at the next known header, then per-line filter through
+// isLikelyIngredient and dedup. If no clean section is found, return an empty
+// list — better silence than garbage. (The old fallback that grabbed everything
+// after "what changes" was the source of macros/headers leaking into the list.)
 function parseMissingIngredients(rawText) {
-  // Strip markdown bold/italic/headings first so **MISSING INGREDIENTS** still matches
+  if (!rawText || typeof rawText !== 'string') return []
   const text = rawText
     .replace(/\*\*([^*]*)\*\*/g, '$1')
     .replace(/\*([^*]*)\*/g, '$1')
     .replace(/^#{1,6}\s*/gm, '')
 
-  // Accept heading variants, optional colon, optional blank line, then the bullet list.
-  // \n+ (not \s*\n) lets a blank line sit between the heading and the first bullet.
-  const m = text.match(
-    /(?:MISSING INGREDIENTS|WHAT\s+YOU(?:'|'|')\s*LL\s+NEED|YOU(?:'|'|')\s*LL\s+NEED|SHOPPING\s+LIST)\s*:?\s*\n+([\s\S]+?)(?:\n{2,}|$)/i
+  const sectionMatch = text.match(
+    /(?:MISSING\s+INGREDIENTS|WHAT\s+YOU(?:'|'|')\s*LL\s+NEED|YOU(?:'|'|')\s*LL\s+NEED|SHOPPING\s+LIST)\s*:?\s*\n([\s\S]+?)(?=\n\s*(?:Quick\s+cook\s+steps|Chef'?s?\s+method|Macros|Key\s+technique|What\s+changes|Dietician'?s?\s+note|Difficulty|Cook\s*time|Cuisine|Flavou?r|How\s+it\s+would|Est\.?\s*calories|🍽️|✅|⚠️|MISSING\s+INGREDIENTS)|\n{2,}|$)/i
   )
-  if (m) {
-    const items = m[1]
-      .split('\n')
-      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
-      .filter(l => l.length > 0 && !/^nothing/i.test(l))
-    if (items.length > 0) {
-      return items
-    }
-  }
+  if (!sectionMatch) return []
 
-  // Fallback: scan for bullet/numbered lines appearing after known section markers
-  const afterMarker = text.match(
-    /(?:what\s+changes|you(?:'|'|')\s*ll\s+need|ingredients?\s*needed|shopping\s+list)\s*:?\s*\n([\s\S]+)/i
-  )
-  if (afterMarker) {
-    const fallbackItems = afterMarker[1]
-      .split('\n')
-      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
-      .filter(l => l.length > 0 && /[a-z]/i.test(l) && l.length < 100)
-      .slice(0, 20)
-    if (fallbackItems.length > 0) {
-      return fallbackItems
-    }
-  }
+  const items = sectionMatch[1]
+    .split('\n')
+    .map(l => l.replace(/^[\s>]*[-•*]\s*|^\s*\d+[.)]\s*/, '').trim())
+    .filter(isLikelyIngredient)
 
-  // Last resort: surface a helpful message so the section still renders
-  return ['Check the full recipe above for ingredients needed.']
+  return dedupeIngredients(items)
+}
+
+// Heuristic per-dish filter — given the combined shopping list and a single
+// dish, return only the ingredients whose key noun appears in this dish's
+// method/note/key-technique text. Crude but functional: the AI doesn't emit
+// per-dish ingredient arrays in the structured response, so this is the best
+// honest split until the macro format block evolves to carry them.
+const INGREDIENT_STOP_WORDS = new Set([
+  'the','and','for','tbsp','tsp','cup','cups','gram','grams','kg','oz','lb','ml',
+  'litre','liter','small','medium','large','fresh','dried','ground','sliced',
+  'chopped','minced','optional','with','to','of','or','a','an','tin','can',
+  'bunch','clove','cloves','piece','pieces','pinch','dash','about',
+])
+function ingredientsForDish(allIngredients, dish) {
+  if (!Array.isArray(allIngredients) || allIngredients.length === 0) return []
+  const haystack = [
+    ...(dish?.dietician?.cookSteps   || []),
+    ...(dish?.dietician?.whatChanges || []),
+    dish?.dietician?.note         || '',
+    dish?.dietician?.keyTechnique || '',
+    dish?.chef?.restaurant        || '',
+    dish?.chef?.flavour           || '',
+    dish?.name                    || '',
+  ].join(' ').toLowerCase()
+  return allIngredients.filter(ing => {
+    const words = ing.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/)
+      .filter(w => w.length >= 3 && !INGREDIENT_STOP_WORDS.has(w))
+    if (words.length === 0) return false
+    return words.some(w => haystack.includes(w))
+  })
 }
 
 // ── Seed conversation ─────────────────────────────────────────────────────────
@@ -2041,16 +2102,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
 
         {/* Top: brand mark, smaller — recedes so the invite leads */}
         <div className="splash-el splash-el-0" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div
-              aria-hidden
-              style={{
-                position: 'absolute',
-                width: 140, height: 140, borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%)',
-                pointerEvents: 'none',
-              }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img src="/remi-logo.svg" alt="Remi" style={{ height: '40px', width: 'auto' }} />
           </div>
           <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: '#888888', letterSpacing: '0.01em', margin: '10px 0 0', lineHeight: 1 }}>
@@ -2101,14 +2153,8 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
       {/* Top: logo mark + wordmark group — kept together so space-between layout is unchanged */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-        {/* Logo row — glow contained here, never touches wordmark or subline */}
-        <div className="splash-el splash-el-0" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{
-            position: 'absolute',
-            width: 200, height: 200, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(0,229,160,0.12) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
+        {/* Logo row */}
+        <div className="splash-el splash-el-0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <img src="/remi-logo.svg" alt="Remi" style={{ height: '64px', width: 'auto' }} />
         </div>
 
@@ -4056,16 +4102,8 @@ function WelcomeBackScreen({ name, lastSignInAt, onKitchen, onDashboard }) {
     }}>
       <style>{WELCOME_BACK_STYLES}</style>
 
-      {/* Logo row — glow is contained here, never touches greeting row */}
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-        <div style={{
-          position: 'absolute',
-          width: 170,
-          height: 170,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0,229,160,0.10) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
+      {/* Logo row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
         <img src="/remi-logo.svg" alt="Remi" style={{ height: '64px', width: 'auto' }} />
       </div>
 
@@ -5056,6 +5094,11 @@ export default function App() {
 
   const scrollRef      = useRef(null)
   const abortRef       = useRef(null)
+  // Synchronous re-entrancy guard for submitMessage. React state (streaming) is
+  // async; if a second send fires before React has applied setStreaming(true),
+  // both calls see streaming===false AND stale profile.trainingPhilosophy,
+  // both push messages, both fire fetch. This ref blocks the second call deterministically.
+  const sendingRef     = useRef(false)
   const inputRef       = useRef(null)
   const sessionDataRef = useRef({ proteins: [], cuisine: '', time: '' })
 
@@ -5289,7 +5332,9 @@ export default function App() {
   // ── Core message send ──────────────────────────────────────────────────────
 
   async function submitMessage(text) {
+    if (sendingRef.current) return                // synchronous re-entrancy guard
     if (!text.trim() || streaming) return
+    sendingRef.current = true
     const trimmed = text.trim()
 
     // First-session philosophy capture. If we don't yet have a trainingPhilosophy on the
@@ -5335,6 +5380,10 @@ export default function App() {
 
       posthog.capture('training_philosophy_captured')
       setQuickReplyType('proteins')   // Open the fridge tray for the standard flow
+      // Defer the ref reset past the current tick so a synchronously-queued
+      // duplicate click (rapid double-tap, touch+click fall-through) can't slip
+      // through while React is still processing the first call's state updates.
+      setTimeout(() => { sendingRef.current = false }, 0)
       return
     }
 
@@ -5539,6 +5588,7 @@ export default function App() {
       setStreaming(false)
       setStreamContent('')
       setAwaitingDishes(false)
+      sendingRef.current = false
     }
   }
 
@@ -6010,7 +6060,12 @@ export default function App() {
     const imgUrl     = viewingDish ? viewingDishImg : (dishImages[selectedDish]?.url ?? null)
     const imgCredit  = viewingDish ? (viewingDish._imgCredit ?? null) : (dishImages[selectedDish]?.credit ?? null)
     const backTo     = viewingDish ? savedBackTo : 'cards'
-    const detailIngredients = viewingDish ? [] : missingIngredients
+    // DetailView shows ingredients for THIS dish only — filter the combined list
+    // by the dish's own method/note/technique text via ingredientsForDish().
+    // Opened from 'cards' (legacy path) keeps the full list.
+    const detailIngredients = viewingDish
+      ? ingredientsForDish(missingIngredients, viewingDish)
+      : missingIngredients
     return (
       <DetailView
         dish={dish}
