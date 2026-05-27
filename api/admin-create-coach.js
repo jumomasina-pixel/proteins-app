@@ -25,6 +25,12 @@ export default async function handler(req, res) {
   const authHeader = req.headers['authorization'] || ''
   const provided = authHeader.replace(/^Bearer\s+/i, '').trim()
   if (provided !== secret) {
+    // TEMPORARY DEBUG — remove once auth mismatch is diagnosed.
+    console.log('[debug] secret length:', secret.length)
+    console.log('[debug] provided length:', provided.length)
+    console.log('[debug] secret first3:', secret.slice(0,3), 'last3:', secret.slice(-3))
+    console.log('[debug] provided first3:', provided.slice(0,3), 'last3:', provided.slice(-3))
+    console.log('[debug] match:', provided === secret)
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
