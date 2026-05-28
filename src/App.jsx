@@ -2553,6 +2553,32 @@ function CoachCard({ slug, clientCount, seatCap }) {
   )
 }
 
+function getDailyCalTarget(profile) {
+  const weight = Number(profile?.weight)
+  if (!weight) return 2100
+
+  const freq = profile?.trainingFrequency || profile?.trainingFreq || ''
+  const multiplierMap = {
+    'Rarely':         1.2,
+    '1–2× a week':   1.375,
+    '1-2x':           1.375,
+    '3–4× a week':   1.55,
+    '3-4x':           1.55,
+    '5–6× a week':   1.725,
+    '5-6x':           1.725,
+    'Every day':      1.9,
+  }
+  const multiplier = multiplierMap[freq] ?? 1.55
+
+  const goals = Array.isArray(profile?.goals) ? profile.goals : (profile?.goal ? [profile.goal] : [])
+  let adjustment = 0
+  if (goals.some(g => g === 'Lose fat' || g === 'lose' || g === 'cut'))        adjustment = -300
+  else if (goals.some(g => g === 'Build lean muscle' || g === 'build' || g === 'bulk')) adjustment = +200
+
+  const raw = Math.round(weight * 24 * multiplier) + adjustment
+  return Math.min(3500, Math.max(1400, raw))
+}
+
 const DASHBOARD_STYLES = `
   .dash-grid {
     display: grid;
@@ -2582,7 +2608,7 @@ const DASHBOARD_STYLES = `
   }
 `
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0 }) {
 
   const [dashToast, setDashToast] = useState(null)
   const dayPlanRef = useRef(null)
@@ -2618,9 +2644,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
       return p.date === todayISO ? p : null
     } catch { return null }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [dayPlanVersion])
 
-  const dailyCalTarget = profile?.dailyCalTarget || 2100
+  const dailyCalTarget = profile?.dailyCalTarget || getDailyCalTarget(profile)
 
   const todayMacros = useMemo(() => {
     let cals = 0, protein = 0, carbs = 0, fat = 0
@@ -5095,6 +5121,7 @@ export default function App() {
     try { return localStorage.getItem('remi_referral_coach_name') || null } catch { return null }
   })
   const [referralCapped,     setReferralCapped]     = useState(false)
+  const [dayPlanVersion,     setDayPlanVersion]     = useState(0)
 
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
@@ -5786,6 +5813,26 @@ export default function App() {
       return next
     })
     posthog.capture('recipe_saved', { dish_name: dish.name, cuisine: dish.chef?.cuisine })
+
+    // Write dinner slot to remi_day_plan so the dashboard reflects it immediately
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10)
+      const raw = localStorage.getItem('remi_day_plan')
+      let plan = raw ? JSON.parse(raw) : null
+      if (!plan || plan.date !== todayStr) {
+        plan = { date: todayStr, breakfast: null, lunch: null, dinner: null }
+      }
+      plan.dinner = {
+        name: dish.name,
+        kcal:    parseInt(dish.dietician?.macros?.calories) || 0,
+        protein: parseInt(dish.dietician?.macros?.protein)  || 0,
+        carbs:   parseInt(dish.dietician?.macros?.carbs)    || 0,
+        fat:     parseInt(dish.dietician?.macros?.fat)      || 0,
+      }
+      localStorage.setItem('remi_day_plan', JSON.stringify(plan))
+      setDayPlanVersion(v => v + 1)
+    } catch {}
+
     if (isFirst) {
       localStorage.setItem('remi_first_recipe_saved', 'true')
       setMessages(prev => [...prev, {
@@ -5985,6 +6032,7 @@ export default function App() {
           onAdminPanel={() => setView('admin-panel')}
           onSignOut={handleSignOut}
           isPremium={isPremium}
+          dayPlanVersion={dayPlanVersion}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
