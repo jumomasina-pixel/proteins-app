@@ -1668,6 +1668,21 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
   const [resolvedImg,     setResolvedImg]     = useState(imgUrl || dish._imgUrl || null)
   const { chef, dietician } = dish
 
+  // TEMPORARY DIAGNOSTIC — remove once Detail/METHOD render is diagnosed.
+  // Logs the dish shape on mount so we can see whether cookSteps is populated
+  // (render regression) or empty/undefined (content regression).
+  useEffect(() => {
+    console.log('[detail-debug] dish:', {
+      name: dish?.name,
+      chefStepsCount:    Array.isArray(chef?.steps) ? chef.steps.length : `not-array (${typeof chef?.steps})`,
+      dietCookStepsCount: Array.isArray(dietician?.cookSteps) ? dietician.cookSteps.length : `not-array (${typeof dietician?.cookSteps})`,
+      chefStepsSample:    Array.isArray(chef?.steps) ? chef.steps.slice(0, 2) : chef?.steps,
+      dietCookStepsSample: Array.isArray(dietician?.cookSteps) ? dietician.cookSteps.slice(0, 2) : dietician?.cookSteps,
+      mode_atMount: 'diet',
+      full_dietician_keys: dietician ? Object.keys(dietician) : null,
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // If the page opened without an image (e.g. routed straight from a chat handoff before the
   // thumbnail finished resolving), fetch the hero from /api/unsplash so the page never opens
   // on a flat mint bar. Uses the SAME source the dish cards already use.
