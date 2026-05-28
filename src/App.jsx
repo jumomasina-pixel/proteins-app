@@ -2553,430 +2553,461 @@ function CoachCard({ slug, clientCount, seatCap }) {
   )
 }
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut }) {
-  const cuisineFreq = useMemo(() => {
-    const counts = {}
-    savedRecipes.forEach(r => {
-      const raw = r.chef?.cuisine ?? ''
-      const c = raw.split(/[/,]/)[0].trim()
-      if (c.length > 1) counts[c] = (counts[c] || 0) + 1
+const DASHBOARD_STYLES = `
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .dash-grid {
+      grid-template-columns: 320px 1fr;
+    }
+    .dash-col-left {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+    }
+    .day-plan-slots {
+      grid-template-columns: repeat(3, 1fr) !important;
+    }
+  }
+  .dash-action:hover {
+    border-color: rgba(0, 229, 160, 0.3) !important;
+    box-shadow: 0 0 0 1px rgba(0, 229, 160, 0.15) !important;
+  }
+  .dash-plan-btn:hover {
+    color: #00E5A0 !important;
+    border-color: #00E5A0 !important;
+  }
+`
+
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false }) {
+
+  const [dashToast, setDashToast] = useState(null)
+  const dayPlanRef = useRef(null)
+
+  function showDashToast(msg) {
+    setDashToast(msg)
+    setTimeout(() => setDashToast(null), 2500)
+  }
+
+  const todayISO = new Date().toISOString().slice(0, 10)
+
+  const fuelTip = useMemo(() => {
+    try {
+      const tips = JSON.parse(localStorage.getItem(`lhc_corner_tips_${todayISO}`) || '{}')
+      return tips.fuel || null
+    } catch { return null }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const greetingLine = useMemo(() => {
+    try {
+      const g = JSON.parse(localStorage.getItem('lhc_greeting') || '{}')
+      return (g.date === todayISO && g.text) ? g.text : null
+    } catch { return null }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const dayPlan = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('remi_day_plan')
+      if (!raw) return null
+      const p = JSON.parse(raw)
+      return p.date === todayISO ? p : null
+    } catch { return null }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const dailyCalTarget = profile?.dailyCalTarget || 2100
+
+  const todayMacros = useMemo(() => {
+    let cals = 0, protein = 0, carbs = 0, fat = 0
+    sessions.filter(s => (s.date || '').startsWith(todayISO)).forEach(s => {
+      ;(s.dishes || []).forEach(d => {
+        const m = d?.dietician?.macros
+        if (m) {
+          cals    += parseInt(m.calories) || 0
+          protein += parseInt(m.protein)  || 0
+          carbs   += parseInt(m.carbs)    || 0
+          fat     += parseInt(m.fat)      || 0
+        }
+      })
     })
-    sessions.forEach(s => {
-      if (s.cuisine) counts[s.cuisine] = (counts[s.cuisine] || 0) + 1
-    })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3)
+    return { cals, protein, carbs, fat }
+  }, [sessions, todayISO])
+
+  const proteinTarget = profile?.weight ? Math.round(Number(profile.weight) * 1.8) : 160
+  const carbsTarget   = Math.round((dailyCalTarget * 0.40) / 4)
+  const fatTarget     = Math.round((dailyCalTarget * 0.25) / 9)
+
+  const ringR      = 36
+  const ringCirc   = 2 * Math.PI * ringR
+  const ringOffset = ringCirc * (1 - Math.min(todayMacros.cals / dailyCalTarget, 1))
+
+  const recentMeals = useMemo(() => {
+    const results = []
+    for (const r of [...savedRecipes].reverse()) {
+      results.push({ name: r.name, kcal: r.dietician?.macros?.calories || r.chef?.calories || '—' })
+      if (results.length >= 3) break
+    }
+    if (results.length < 3) {
+      for (const s of sessions) {
+        for (const d of (s.dishes || [])) {
+          if (typeof d === 'object' && d?.name) {
+            results.push({ name: d.name, kcal: d.dietician?.macros?.calories || '—' })
+            if (results.length >= 3) break
+          }
+        }
+        if (results.length >= 3) break
+      }
+    }
+    return results
   }, [savedRecipes, sessions])
 
-  const proteinFreq = useMemo(() => {
-    const counts = {}
-    sessions.forEach(s => {
-      ;(s.proteins || []).forEach(p => { counts[p] = (counts[p] || 0) + 1 })
+  const weekData = useMemo(() => {
+    const now = new Date()
+    const dow = now.getDay()
+    const offset = dow === 0 ? -6 : 1 - dow
+    const monday = new Date(now)
+    monday.setHours(0, 0, 0, 0)
+    monday.setDate(now.getDate() + offset)
+    const letters = ['M','T','W','T','F','S','S']
+    const todayEnd = new Date(todayISO + 'T23:59:59')
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      const iso = d.toISOString().slice(0, 10)
+      const isToday  = iso === todayISO
+      const isFuture = d > todayEnd
+      const daySessions = sessions.filter(s => (s.date || '').startsWith(iso))
+      const hit  = daySessions.some(s => s.cooked === true)
+      const miss = daySessions.length > 0 && !hit && !isFuture
+      return { iso, letter: letters[i], isToday, isFuture, hit, miss }
     })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])
-  }, [sessions])
+  }, [sessions, todayISO])
 
-  const topProtein    = proteinFreq[0]
-  const last4Recipes  = [...savedRecipes].reverse().slice(0, 4)
-  const last3Sessions = sessions.slice(0, 3)
+  const pastDays     = weekData.filter(d => !d.isFuture)
+  const hitCount     = pastDays.filter(d => d.hit).length
+  const adherencePct = pastDays.length > 0 ? Math.round((hitCount / pastDays.length) * 100) : 0
+  const streakCount  = streak?.count || 0
 
-  const GOAL_LABEL_MAP = {
-    lose:      { label: 'Fat Loss',                  emoji: '🔥' },
-    build:     { label: 'Muscle Build',              emoji: '💪' },
-    maintain:  { label: 'Maintain Weight',           emoji: '⚖️' },
-    eat_clean: { label: 'Eat Cleaner',               emoji: '🥗' },
-    energy:    { label: 'Energy & Performance',      emoji: '⚡' },
-    fitness:   { label: 'Fitness & Endurance',       emoji: '🏃' },
-    sleep:     { label: 'Better Sleep & Recovery',   emoji: '😴' },
-    stress:    { label: 'Reduce Stress Eating',      emoji: '🧠' },
-  }
-  // Support both old single-goal profiles and new multi-goal ones
-  const activeGoals = Array.isArray(profile?.goals)
-    ? profile.goals
-    : (profile?.goal ? [profile.goal] : [])
-  const primaryGoal = activeGoals[0]
-  const goalInfo = primaryGoal
-    ? (GOAL_LABEL_MAP[primaryGoal] ?? { label: primaryGoal, emoji: '🎯' })
-    : { label: 'Set a goal', emoji: '🎯' }
-  // Extra goal chips beyond the first
-  const extraGoals = activeGoals.slice(1).map(g => GOAL_LABEL_MAP[g]?.label ?? g)
+  const avgProtein = useMemo(() => {
+    const weekISOs = new Set(weekData.filter(d => !d.isFuture).map(d => d.iso))
+    let total = 0, count = 0
+    sessions.forEach(s => {
+      if (weekISOs.has((s.date || '').slice(0, 10))) {
+        ;(s.dishes || []).forEach(d => {
+          const p = parseInt(d?.dietician?.macros?.protein)
+          if (!isNaN(p)) { total += p; count++ }
+        })
+      }
+    })
+    return count > 0 ? Math.round(total / count) : null
+  }, [sessions, weekData])
 
-  const isActive  = ['3-4x', '5-6x'].includes(profile?.trainingFreq)
-  const calTarget = primaryGoal === 'build'    ? '2,200–2,600' :
-                    primaryGoal === 'maintain' ? '2,000–2,200' :
-                    isActive                   ? '1,800–2,100' : '1,500–1,800'
-  const protTarget = profile?.weight ? Math.round(Number(profile.weight) * 1.8) : 160
-
-  function fmtDate(iso) {
-    const d    = new Date(iso)
-    const days = Math.floor((Date.now() - d) / 86400000)
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Yesterday'
-    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  const cardBase = {
+    backgroundColor: '#1A1A1A',
+    border: '0.5px solid rgba(255,255,255,0.08)',
+    borderRadius: 10,
   }
 
-  const sectionCard = { backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }
-
-  // Time-of-day greeting
-  const hour = new Date().getHours()
-  const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
-
-  // Goal bar: only shown for fat-loss goal with both weight and goalAmount
-  const showGoalBar = activeGoals.includes('lose') &&
-    profile?.weight && profile?.goalAmount &&
-    Number(profile.goalAmount) > 0
+  const secLabel = {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 11,
+    fontWeight: 500,
+    color: '#666666',
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    margin: 0,
+  }
 
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', padding: '48px 20px 96px' }}>
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+    <>
+      <style>{DASHBOARD_STYLES}</style>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 32 }}>
-          <div>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.75rem, 6vw, 2.25rem)', color: '#F0F0F0', margin: 0, lineHeight: 1.1 }}>
-              Back, {profile?.name}.
-            </h1>
-            {isAdmin && (
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', marginTop: 4 }}>Admin view</p>
-            )}
-            {!isAdmin && isCoach && (
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', marginTop: 4 }}>Coach access</p>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="hidden sm:block"
-            style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 12px', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, marginTop: 6 }}
-          >
-            Back
-          </button>
+      {dashToast && (
+        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, backgroundColor: '#1A1A1A', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#E8E8E8', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+          {dashToast}
         </div>
+      )}
 
-        {/* ── Hero calorie card ── */}
-        <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '24px 20px', textAlign: 'center', marginBottom: 10 }}>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>Daily Calorie Target</p>
-          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(2rem, 7vw, 3rem)', fontWeight: 700, color: '#00E5A0', margin: 0, lineHeight: 1 }}>
-            {calTarget}
-          </p>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '8px 0 0' }}>{protTarget}g+ protein</p>
-        </div>
+      <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', padding: '24px 20px 120px' }}>
+        <div style={{ maxWidth: 1140, margin: '0 auto' }}>
 
-        {/* ── THREE-UP STAT HERO ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 10 }}>
-          {[
-            { label: 'Day streak',    value: streak?.count ?? 0, mint: true },
-            { label: 'Recipes saved', value: stats?.totalRecipes ?? 0, mint: true },
-            { label: 'Kcal saved',    value: stats?.totalCalSaved ? (stats.totalCalSaved >= 1000 ? `${(stats.totalCalSaved / 1000).toFixed(1)}k` : stats.totalCalSaved) : 0, mint: false },
-          ].map(({ label, value, mint }) => (
-            <div
-              key={label}
-              style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '16px 10px', textAlign: 'center' }}
-            >
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>
-                {label}
-              </p>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(1.25rem, 4vw, 1.75rem)', fontWeight: 700, color: mint ? '#00E5A0' : '#F0F0F0', margin: 0, lineHeight: 1 }}>
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
+          <div className="dash-grid">
 
-        {/* ── Remi's Note ── */}
-        <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(0,229,160,0.15)', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 0' }}>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: '#00E5A0', lineHeight: 1, userSelect: 'none' }}>R</span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Remi's Corner</span>
-          </div>
-          <RemiCorner profile={profile} />
-        </div>
+            {/* ══ LEFT COLUMN ══ */}
+            <div className="dash-col-left" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* ── Money saved + Weekly progress ring ── */}
-        {(() => {
-          const moneySaved = (stats?.totalRecipes ?? 0) * 14
-          const WEEKLY_GOAL = 5
-          const now = new Date()
-          const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
-          const sessionsThisWeek = sessions.filter(s => new Date(s.date) > weekAgo).length
-          const ringProgress = Math.min(sessionsThisWeek, WEEKLY_GOAL)
-          const radius = 40
-          const circ = 2 * Math.PI * radius
-          const offset = circ * (1 - ringProgress / WEEKLY_GOAL)
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              {/* Money saved */}
-              <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center' }}>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>Money Saved</p>
-                <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 700, color: '#C9A84C', margin: 0, lineHeight: 1 }}>
-                  ${moneySaved}
-                </p>
-              </div>
-              {/* Weekly progress ring */}
-              <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center' }}>
-                <svg width="80" height="80" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-                  <circle
-                    cx="50" cy="50" r={radius}
-                    fill="none" stroke="#00E5A0" strokeWidth="8" strokeLinecap="round"
-                    strokeDasharray={circ} strokeDashoffset={offset}
-                    style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-                  />
-                  <text
-                    x="50" y="54" textAnchor="middle" dominantBaseline="middle"
-                    style={{ fill: '#F0F0F0', fontSize: 16, fontWeight: 700, fontFamily: 'Syne, sans-serif', transform: 'rotate(90deg)', transformOrigin: '50px 50px' }}
-                  >
-                    {ringProgress}/{WEEKLY_GOAL}
-                  </text>
-                </svg>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>This week</p>
-              </div>
-            </div>
-          )
-        })()}
-
-        {/* ── Goal bar ── */}
-        {showGoalBar && (() => {
-          const start  = Number(profile.weight)
-          const target = start - Number(profile.goalAmount)
-          return (
-            <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>Fat Loss Target</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#F0F0F0' }}>{start} kg</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#00E5A0' }}>→ {target} kg</span>
-              </div>
-              <div style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: 3, width: `${Math.min(100, (sessions.length / 30) * 100)}%`, background: 'linear-gradient(90deg, #00E5A0, #00C080)', transition: 'width 0.7s ease' }} />
-              </div>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: '8px 0 0' }}>
-                Goal: lose {profile.goalAmount} kg · {sessions.length} session{sessions.length !== 1 ? 's' : ''} completed
-              </p>
-            </div>
-          )
-        })()}
-
-        {/* ── Goals card ── */}
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>Your Goals</p>
-        <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 4px' }}>
-                {activeGoals.length > 1 ? 'Goals' : 'Goal'}
-              </p>
-              <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.125rem, 4vw, 1.375rem)', color: '#F0F0F0', margin: 0 }}>{goalInfo.label}</p>
-              {extraGoals.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                  {extraGoals.map(g => (
-                    <span key={g} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#888888', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      {g}
+              {/* A. GREETING CARD */}
+              <div style={{ ...cardBase, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#00E5A0', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                    {profile?.name || 'You'}
+                  </span>
+                  {streakCount > 0 && (
+                    <span style={{ backgroundColor: '#0D2B1E', border: '0.5px solid #00E5A0', borderRadius: 20, padding: '3px 10px', fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#00E5A0' }}>
+                      {streakCount} day streak
                     </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={onEditProfile}
-              style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#00E5A0', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', flexShrink: 0 }}
-            >
-              Edit →
-            </button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: '#00E5A0', margin: '0 0 4px' }}>{calTarget}</p>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', margin: 0 }}>kcal / day</p>
-            </div>
-            <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: '#00E5A0', margin: '0 0 4px' }}>{protTarget}g+</p>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', margin: 0 }}>protein / day</p>
-            </div>
-          </div>
-          {profile?.weight && (
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: '12px 0 0' }}>
-              Based on {profile.weight}kg{profile.trainingFreq ? ` · trains ${profile.trainingFreq}/week` : ''}
-            </p>
-          )}
-        </div>
-
-        {/* ── Saved recipes mini-grid ── */}
-        {last4Recipes.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>Saved Recipes</p>
-              <button
-                onClick={onViewSaved}
-                style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#00E5A0', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-              >
-                See all ({savedRecipes.length}) →
-              </button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {last4Recipes.map(recipe => (
-                <button
-                  key={recipe._id}
-                  onClick={() => onOpenRecipe(recipe)}
-                  style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden', textAlign: 'left', cursor: 'pointer', display: 'block', padding: 0 }}
-                >
-                  <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: '#111111', overflow: 'hidden' }}>
-                    {recipe._imgUrl && (
-                      <img src={recipe._imgUrl} alt={recipe.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    )}
-                  </div>
-                  <div style={{ padding: '10px 12px' }}>
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600, color: '#F0F0F0', margin: '0 0 4px', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {recipe.name}
-                    </p>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#888888' }}>
-                      {recipe.dietician?.macros?.calories ?? '—'} kcal
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Favourite cuisines ── */}
-        {cuisineFreq.length > 0 && (
-          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px' }}>Favourite Cuisines</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {cuisineFreq.map(([cuisine, count], i) => {
-                const pct = Math.round((count / cuisineFreq[0][1]) * 100)
-                const barColor = i === 0 ? '#00E5A0' : i === 1 ? '#C9A84C' : '#888888'
-                return (
-                  <div key={cuisine}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#F0F0F0' }}>{cuisine}</span>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#888888' }}>{count}×</span>
-                    </div>
-                    <div style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)' }}>
-                      <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, backgroundColor: barColor, transition: 'width 0.5s ease' }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── Go-to protein ── */}
-        {topProtein && (
-          <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, marginBottom: 10 }}>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>Go-to Protein</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: '#0D0D0D', border: '1px solid rgba(0,229,160,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: '#00E5A0', textTransform: 'uppercase' }}>
-                  {topProtein[0].charAt(0)}
-                </span>
-              </div>
-              <div>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600, color: '#F0F0F0', margin: '0 0 3px', textTransform: 'capitalize' }}>{topProtein[0]}</p>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>
-                  Used in {topProtein[1]} session{topProtein[1] !== 1 ? 's' : ''} — your most-cooked protein
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Recent sessions ── */}
-        {last3Sessions.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>Recent Sessions</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {last3Sessions.map(session => (
-                <div key={session.id} style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: session.proteins?.length > 0 || session.dishes?.length > 0 ? 10 : 0 }}>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {fmtDate(session.date)}
-                    </span>
-                    {session.cuisine && (
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#888888', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        {session.cuisine}
-                      </span>
-                    )}
-                  </div>
-                  {session.proteins?.length > 0 && (
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '0 0 8px' }}>
-                      <span style={{ color: '#F0F0F0', fontWeight: 500 }}>Proteins:</span>{' '}
-                      {session.proteins.join(', ')}
-                    </p>
                   )}
-                  {session.dishes?.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {session.dishes.map((d, i) => {
-                        const dishName = typeof d === 'object' ? d.name : d
-                        const isClickable = typeof d === 'object'
-                        return isClickable ? (
-                          <button
-                            key={i}
-                            onClick={() => onOpenSessionDish?.(d)}
-                            style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '4px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#00E5A0', border: '1px solid rgba(0,229,160,0.25)', fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            {dishName} →
-                          </button>
-                        ) : (
-                          <span key={i} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '4px 10px', borderRadius: 6, backgroundColor: '#0D0D0D', color: '#888888', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            {dishName}
-                          </span>
+                </div>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#CCCCCC', lineHeight: 1.6, margin: 0 }}>
+                  {greetingLine || "Good to have you back. Let's eat well tonight."}
+                </p>
+              </div>
+
+              {/* B. MACRO RING CARD */}
+              <div style={{ ...cardBase, padding: 16 }}>
+                <p style={{ ...secLabel, marginBottom: 14 }}>Today's Targets</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ position: 'relative', width: 88, height: 88, flexShrink: 0 }}>
+                    <svg width="88" height="88" viewBox="0 0 88 88" style={{ display: 'block', transform: 'rotate(-90deg)' }}>
+                      <circle cx="44" cy="44" r={ringR} fill="none" stroke="#2A2A2A" strokeWidth="7" />
+                      <circle cx="44" cy="44" r={ringR} fill="none" stroke="#00E5A0" strokeWidth="7" strokeLinecap="round"
+                        strokeDasharray={ringCirc}
+                        strokeDashoffset={todayMacros.cals === 0 ? ringCirc : ringOffset}
+                        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                      />
+                    </svg>
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, pointerEvents: 'none' }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#E8E8E8', lineHeight: 1 }}>
+                        {todayMacros.cals}
+                      </span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#666666', lineHeight: 1 }}>
+                        of {dailyCalTarget}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[
+                      { label: 'Protein', consumed: todayMacros.protein, target: proteinTarget, color: '#00E5A0' },
+                      { label: 'Carbs',   consumed: todayMacros.carbs,   target: carbsTarget,   color: '#4DC8FF' },
+                      { label: 'Fat',     consumed: todayMacros.fat,     target: fatTarget,     color: '#C9A84C' },
+                    ].map(({ label, consumed, target, color }) => (
+                      <div key={label}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#999999' }}>{label}</span>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#E8E8E8' }}>{consumed}g / {target}g</span>
+                        </div>
+                        <div style={{ height: 4, backgroundColor: '#2A2A2A', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', borderRadius: 2, backgroundColor: color, width: target > 0 ? `${Math.min((consumed / target) * 100, 100)}%` : '0%', transition: 'width 0.5s ease' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* C. QUICK ACTIONS */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button className="dash-action" onClick={onQuickStart}
+                  style={{ ...cardBase, border: '0.5px solid rgba(255,255,255,0.08)', padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <i className="ti ti-flame" style={{ fontSize: 18, color: '#00E5A0' }} />
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Cook</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>Generate dinner</span>
+                </button>
+
+                <button className="dash-action" onClick={() => showDashToast('Coming soon')}
+                  style={{ ...cardBase, border: '0.5px solid rgba(255,255,255,0.08)', padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <i className="ti ti-pencil" style={{ fontSize: 18, color: '#00E5A0' }} />
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Log meal</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>Manual entry</span>
+                </button>
+
+                <button className="dash-action"
+                  onClick={() => {
+                    if (isPremium) {
+                      dayPlanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    } else {
+                      showDashToast('Day planning is a Premium feature — coming soon.')
+                    }
+                  }}
+                  style={{ gridColumn: '1 / -1', backgroundColor: '#0D2B1E', border: '0.5px solid #00E5A0', borderRadius: 10, padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <i className="ti ti-calendar" style={{ fontSize: 18, color: '#00E5A0', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Plan my day</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>Breakfast · Lunch · Dinner</span>
+                  </div>
+                  {!isPremium && (
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>PREMIUM</span>
+                  )}
+                </button>
+              </div>
+
+            </div>
+
+            {/* ══ RIGHT COLUMN ══ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+              {/* A. REMI'S READ */}
+              <div style={{ ...cardBase, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#0D2B1E', border: '1px solid #00E5A0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, color: '#00E5A0' }}>R</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ ...secLabel, color: '#00E5A0', marginBottom: 6 }}>Remi's Read</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#CCCCCC', lineHeight: 1.6, margin: 0 }}>
+                      {fuelTip || "Train tomorrow — your carbs are low. Add rice or sourdough to dinner tonight and you'll wake up fuelled."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* B. DAY PLAN */}
+              <div ref={dayPlanRef} style={{ ...cardBase, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <p style={{ ...secLabel, margin: 0 }}>Day Plan</p>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PREMIUM</span>
+                </div>
+
+                {isPremium ? (
+                  <>
+                    {(() => {
+                      const planned   = ['breakfast','lunch','dinner'].reduce((sum, k) => sum + (dayPlan?.[k]?.kcal || 0), 0)
+                      const remaining = Math.max(0, dailyCalTarget - planned)
+                      const pct       = Math.min((planned / dailyCalTarget) * 100, 100)
+                      return (
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ height: 6, backgroundColor: '#2A2A2A', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+                            <div style={{ height: '100%', backgroundColor: '#00E5A0', borderRadius: 3, width: `${pct}%`, transition: 'width 0.5s ease' }} />
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#999999' }}>
+                              <span style={{ color: '#E8E8E8', fontWeight: 600 }}>{remaining}</span> kcal remaining
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                      {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => {
+                        const meal = dayPlan?.[key]
+                        return (
+                          <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid #2A2A2A', borderRadius: 8, padding: 12, minHeight: 90 }}>
+                            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
+                            {meal ? (
+                              <>
+                                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#E8E8E8', lineHeight: 1.4, margin: '0 0 4px' }}>{meal.name}</p>
+                                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#00E5A0', fontWeight: 700, margin: 0 }}>{meal.kcal} kcal</p>
+                              </>
+                            ) : (
+                              <button className="dash-plan-btn" onClick={() => showDashToast('Meal planning coming in the next build.')}
+                                style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#333333', border: '0.5px dashed #2A2A2A', borderRadius: 6, padding: '6px 10px', background: 'none', cursor: 'pointer', transition: 'color 200ms ease, border-color 200ms ease' }}>
+                                + Plan {key}
+                              </button>
+                            )}
+                          </div>
                         )
                       })}
                     </div>
+                  </>
+                ) : (
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ opacity: 0.35, pointerEvents: 'none' }}>
+                      <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                        {['BREAKFAST','LUNCH','DINNER'].map(label => (
+                          <div key={label} style={{ backgroundColor: '#111111', border: '0.5px solid #2A2A2A', borderRadius: 8, padding: 12, minHeight: 90 }}>
+                            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>{label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0 }}>Plan your full day with Premium.</p>
+                      <button onClick={() => {}} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#00E5A0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                        Learn more →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* C. BOTTOM ROW */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+                {/* Recent meals */}
+                <div style={{ ...cardBase, padding: 16 }}>
+                  <p style={{ ...secLabel, marginBottom: 12 }}>Recent Meals</p>
+                  {recentMeals.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {recentMeals.map((meal, i) => (
+                        <div key={i}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10 }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0 }} />
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#CCCCCC', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</span>
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#555555', flexShrink: 0 }}>{meal.kcal}</span>
+                          </div>
+                          {i < recentMeals.length - 1 && <div style={{ height: '0.5px', backgroundColor: '#222222', marginBottom: 10 }} />}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555', margin: 0 }}>No meals cooked yet.</p>
                   )}
                 </div>
-              ))}
+
+                {/* Weekly adherence */}
+                <div style={{ ...cardBase, padding: 16 }}>
+                  <p style={{ ...secLabel, marginBottom: 12 }}>This Week</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 14 }}>
+                    {weekData.map((day, i) => {
+                      let bg = '#111111', letterColor = '#555555', border = 'none'
+                      if (day.hit)     { bg = '#0D2B1E'; letterColor = '#00E5A0' }
+                      if (day.miss)    { bg = '#1E1515' }
+                      if (day.isToday) { bg = '#0D2B1E'; border = '0.5px solid #00E5A0'; letterColor = '#00E5A0' }
+                      return (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <div style={{ width: '100%', height: 28, borderRadius: 4, backgroundColor: bg, border }} />
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: letterColor }}>{day.letter}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                    {[
+                      { label: 'Adherence', value: `${adherencePct}%` },
+                      { label: 'Streak',    value: String(streakCount)  },
+                      { label: 'Avg protein', value: avgProtein != null ? `${avgProtein}g` : '—' },
+                    ].map(({ label, value }) => (
+                      <div key={label} style={{ textAlign: 'center' }}>
+                        <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#00E5A0', margin: '0 0 4px', lineHeight: 1 }}>{value}</p>
+                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Coach card */}
+              {isCoach && profile?.referralSlug && (
+                <CoachCard slug={profile.referralSlug} clientCount={profile.clientCount ?? 0} seatCap={20} />
+              )}
+
+              {/* Quick Start + sign out */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+                <button onClick={onQuickStart}
+                  style={{ width: '100%', height: 52, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}>
+                  Start cooking →
+                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 24 }}>
+                  {isAdmin && (
+                    <button onClick={onAdminPanel} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', cursor: 'pointer', padding: '4px 0' }}>Admin</button>
+                  )}
+                  <button onClick={onSignOut} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555', cursor: 'pointer', padding: '4px 0' }}>Sign out</button>
+                </div>
+              </div>
+
             </div>
           </div>
-        )}
-
-        {/* Empty state */}
-        {last3Sessions.length === 0 && last4Recipes.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '64px 0 32px' }}>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', lineHeight: 1.6, maxWidth: 280, margin: '0 auto' }}>
-              Nothing here yet. Open the Cook tab and get your first dishes.
-            </p>
-          </div>
-        )}
-
-        {/* ── Coach card — Founding Coach Phase 1 ── */}
-        {isCoach && profile?.referralSlug && (
-          <CoachCard
-            slug={profile.referralSlug}
-            clientCount={profile.clientCount ?? 0}
-            seatCap={20}
-          />
-        )}
-
-        {/* ── Quick Start CTA ── */}
-        <button
-          onClick={onQuickStart}
-          style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, cursor: 'pointer', marginBottom: 24 }}
-        >
-          Start cooking →
-        </button>
-
-        {/* ── Sign out / Admin ── */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, paddingBottom: 8 }}>
-          {isAdmin && (
-            <button
-              onClick={onAdminPanel}
-              style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
-            >
-              Admin
-            </button>
-          )}
-          <button
-            onClick={onSignOut}
-            style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555', cursor: 'pointer', padding: '4px 0' }}
-          >
-            Sign out
-          </button>
         </div>
-
       </div>
-    </div>
+    </>
   )
 }
+
 
 const ONBOARDING_STYLES = `
   @keyframes ob-fade-up {
@@ -5068,6 +5099,9 @@ export default function App() {
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
 
+  // Premium gate — set manually via localStorage.setItem('remi_premium', 'true') in console
+  const isPremium = localStorage.getItem('remi_premium') === 'true'
+
   // Did You Cook — find the most recent session that is 12–48h old
   const didYouCookSession = useMemo(() => {
     const now = Date.now()
@@ -5950,6 +5984,7 @@ export default function App() {
           isCoach={isCoach}
           onAdminPanel={() => setView('admin-panel')}
           onSignOut={handleSignOut}
+          isPremium={isPremium}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
