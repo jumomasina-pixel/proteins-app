@@ -2484,6 +2484,111 @@ function RemiCorner({ profile }) {
   )
 }
 
+// ── Cookbook page ─────────────────────────────────────────────────────────────
+
+const COOKBOOK_STYLES = `
+  .cookbook-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  @media (min-width: 768px) {
+    .cookbook-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+  }
+`
+
+function CookbookCard({ recipe, onOpen, onAddToDayPlan }) {
+  return (
+    <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* Tappable image + name/kcal area */}
+      <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onOpen()} style={{ cursor: 'pointer', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <CardImageHeader
+          dishName={recipe.name}
+          cuisine={recipe.chef?.cuisine}
+          initialUrl={recipe._imgUrl ?? null}
+          initialCredit={recipe._imgCredit ?? null}
+        />
+        <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, color: '#F0F0F0', margin: 0, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {recipe.name}
+          </p>
+          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0', margin: 0 }}>
+            {recipe.dietician?.macros?.calories || '—'} kcal
+          </p>
+        </div>
+      </div>
+      {/* Add to Day Plan — does NOT open the recipe */}
+      <div style={{ padding: '0 12px 12px' }}>
+        <button
+          onClick={e => { e.stopPropagation(); onAddToDayPlan(recipe) }}
+          style={{ width: '100%', height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, cursor: 'pointer' }}>
+          Add to Day Plan →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CookbookView({ savedRecipes, onBack, onOpenRecipe, onAddToDayPlan, onStartCooking }) {
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', paddingBottom: 100 }}>
+      <style>{COOKBOOK_STYLES}</style>
+
+      {/* Back nav */}
+      <div style={{ padding: '12px 16px' }}>
+        <button
+          onClick={onBack}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#888888' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Dashboard
+        </button>
+      </div>
+
+      {/* Header */}
+      <div style={{ padding: '8px 16px 24px' }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.75rem, 6vw, 2.25rem)', color: '#F0F0F0', margin: '0 0 6px', lineHeight: 1.1 }}>
+          MY COOKBOOK
+        </h1>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 14, color: '#888888', margin: 0 }}>
+          {savedRecipes.length} saved recipe{savedRecipes.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '0 16px' }}>
+        {savedRecipes.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', textAlign: 'center', gap: 20 }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, maxWidth: 280, lineHeight: 1.6 }}>
+              No saved recipes yet. Start cooking to build your cookbook.
+            </p>
+            <button
+              onClick={onStartCooking}
+              style={{ height: 48, padding: '0 28px', borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
+              Start cooking →
+            </button>
+          </div>
+        ) : (
+          <div className="cookbook-grid">
+            {savedRecipes.map((recipe, i) => (
+              <CookbookCard
+                key={recipe._id || i}
+                recipe={recipe}
+                onOpen={() => onOpenRecipe(recipe)}
+                onAddToDayPlan={onAddToDayPlan}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 // Coach referral card — Phase 1. Surfaces the coach's own referral link, live client count,
@@ -2634,11 +2739,19 @@ const DASHBOARD_STYLES = `
   }
 `
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {} }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {} }) {
 
-  const [dashToast, setDashToast] = useState(null)
-  const [dayPlanModal, setDayPlanModal] = useState(null)
+  const [dashToast,      setDashToast]      = useState(null)
+  const [dayPlanModal,   setDayPlanModal]   = useState(null)
   const [savedRecipesDrawer, setSavedRecipesDrawer] = useState(false)
+  // Log meal modal state
+  const [logMealOpen,  setLogMealOpen]  = useState(false)
+  const [logName,      setLogName]      = useState('')
+  const [logKcal,      setLogKcal]      = useState('')
+  const [logProtein,   setLogProtein]   = useState('')
+  const [logCarbs,     setLogCarbs]     = useState('')
+  const [logFat,       setLogFat]       = useState('')
+  const [logSlot,      setLogSlot]      = useState('dinner')
   const dayPlanRef = useRef(null)
 
   function showDashToast(msg) {
@@ -2864,7 +2977,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>Generate dinner</span>
                 </button>
 
-                <button className="dash-action" onClick={() => showDashToast('Coming soon')}
+                <button className="dash-action" onClick={() => setLogMealOpen(true)}
                   style={{ ...cardBase, border: '0.5px solid rgba(255,255,255,0.08)', padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <i className="ti ti-pencil" style={{ fontSize: 18, color: '#00E5A0' }} />
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Log meal</span>
@@ -2882,8 +2995,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   style={{ gridColumn: '1 / -1', backgroundColor: '#0D2B1E', border: '0.5px solid #00E5A0', borderRadius: 10, padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <i className="ti ti-calendar" style={{ fontSize: 18, color: '#00E5A0', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Plan my day</span>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>Breakfast · Lunch · Dinner</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Day Plan</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>View today's plan</span>
                   </div>
                   {!isPremium && (
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>PREMIUM</span>
@@ -3029,42 +3142,16 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 </div>
               </div>
 
-              {/* MY COOKBOOK */}
-              <div>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>
-                  My Cookbook
-                </p>
-                {savedRecipes.length === 0 ? (
-                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#555555', margin: 0 }}>
-                    Save a recipe to build your cookbook.
-                  </p>
-                ) : (
-                  <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-                    {savedRecipes.map((recipe, i) => (
-                      <button
-                        key={recipe._id || i}
-                        onClick={() => onOpenRecipe(recipe)}
-                        style={{
-                          flexShrink: 0, width: 160, height: 80, borderRadius: 8,
-                          backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)',
-                          padding: '10px 12px', cursor: 'pointer', textAlign: 'left',
-                          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                        }}>
-                        <p style={{
-                          fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14,
-                          color: '#F0F0F0', margin: 0, lineHeight: 1.3,
-                          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                        }}>
-                          {recipe.name}
-                        </p>
-                        <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#888888', margin: 0 }}>
-                          {recipe.dietician?.macros?.calories || '—'} kcal
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* MY COOKBOOK — full-width button, taps to dedicated cookbook page */}
+              <button
+                onClick={onOpenCookbook}
+                style={{ width: '100%', height: 56, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 18px' }}>
+                <span>My Cookbook</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#888888' }}>{savedRecipes.length} saved</span>
+                  <span style={{ color: '#888888', fontSize: 16 }}>→</span>
+                </span>
+              </button>
 
               {/* Coach card */}
               {isCoach && profile?.referralSlug && (
@@ -3090,14 +3177,131 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         </div>
       </div>
 
+      {/* Log meal bottom sheet — responsive: max-width 480px centred desktop, full-width mobile */}
+      {logMealOpen && (
+        <div
+          onClick={() => setLogMealOpen(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 480, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px', boxSizing: 'border-box' }}>
+            {/* Header */}
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 20px', textAlign: 'center' }}>
+              Log a Meal
+            </p>
+
+            {/* Meal name */}
+            <input
+              type="text"
+              value={logName}
+              onChange={e => setLogName(e.target.value)}
+              placeholder="Meal name"
+              style={{ width: '100%', height: 48, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0D0D0D', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontSize: 16, padding: '0 14px', boxSizing: 'border-box', outline: 'none', marginBottom: 10 }}
+            />
+
+            {/* kcal */}
+            <input
+              type="number"
+              value={logKcal}
+              onChange={e => setLogKcal(e.target.value)}
+              placeholder="Calories (kcal)"
+              style={{ width: '100%', height: 48, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0D0D0D', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontSize: 16, padding: '0 14px', boxSizing: 'border-box', outline: 'none', marginBottom: 10 }}
+            />
+
+            {/* Optional macros row — 3 equal-width inputs */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+              {[
+                { label: 'Protein (g)', val: logProtein, set: setLogProtein },
+                { label: 'Carbs (g)',   val: logCarbs,   set: setLogCarbs   },
+                { label: 'Fat (g)',     val: logFat,     set: setLogFat     },
+              ].map(({ label, val, set }) => (
+                <input
+                  key={label}
+                  type="number"
+                  value={val}
+                  onChange={e => set(e.target.value)}
+                  placeholder={label}
+                  style={{ height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0D0D0D', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontSize: 13, padding: '0 10px', boxSizing: 'border-box', outline: 'none', width: '100%' }}
+                />
+              ))}
+            </div>
+
+            {/* Meal slot chips */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {['breakfast','lunch','dinner'].map(slot => {
+                const active = logSlot === slot
+                return (
+                  <button
+                    key={slot}
+                    onClick={() => setLogSlot(slot)}
+                    style={{ flex: 1, height: 44, borderRadius: 8, border: `1px solid ${active ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`, backgroundColor: active ? '#00E5A0' : '#1A1A1A', color: active ? '#0D0D0D' : '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: active ? 600 : 500, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize', transition: 'background-color 150ms ease, border-color 150ms ease' }}>
+                    {slot.charAt(0).toUpperCase() + slot.slice(1)}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Confirm */}
+            <button
+              disabled={!logName.trim() || !logKcal}
+              onClick={() => {
+                if (!logName.trim() || !logKcal) return
+                try {
+                  const todayStr = new Date().toISOString().slice(0, 10)
+                  const raw  = localStorage.getItem('remi_day_plan')
+                  let plan   = raw ? JSON.parse(raw) : null
+                  if (!plan || plan.date !== todayStr) {
+                    plan = { date: todayStr, breakfast: null, lunch: null, dinner: null }
+                  }
+                  plan[logSlot] = {
+                    name:    logName.trim(),
+                    kcal:    parseInt(logKcal) || 0,
+                    protein: parseInt(logProtein) || 0,
+                    carbs:   parseInt(logCarbs)   || 0,
+                    fat:     parseInt(logFat)     || 0,
+                  }
+                  localStorage.setItem('remi_day_plan', JSON.stringify(plan))
+                  // Optionally append to saved recipes if not already present
+                  try {
+                    const saved = JSON.parse(localStorage.getItem('lhc_saved_recipes') || '[]')
+                    const alreadySaved = saved.some(r => r.name?.toLowerCase() === logName.trim().toLowerCase())
+                    if (!alreadySaved) {
+                      saved.push({
+                        _id: `manual_${Date.now()}`,
+                        name: logName.trim(),
+                        dietician: { macros: { calories: logKcal, protein: logProtein || '—', carbs: logCarbs || '—', fat: logFat || '—' }, cookSteps: [], whatChanges: [] },
+                        chef: { cuisine: '', flavour: '', steps: [], calories: '' },
+                      })
+                      localStorage.setItem('lhc_saved_recipes', JSON.stringify(saved))
+                    }
+                  } catch {}
+                  onDayPlanUpdated()
+                } catch {}
+                const slotLabel = logSlot.charAt(0).toUpperCase() + logSlot.slice(1)
+                showDashToast(`Logged to ${slotLabel}`)
+                setLogMealOpen(false)
+                setLogName(''); setLogKcal(''); setLogProtein(''); setLogCarbs(''); setLogFat(''); setLogSlot('dinner')
+              }}
+              style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer', marginBottom: 10, opacity: (!logName.trim() || !logKcal) ? 0.4 : 1, transition: 'opacity 200ms ease' }}>
+              Log meal
+            </button>
+            <button
+              onClick={() => { setLogMealOpen(false); setLogName(''); setLogKcal(''); setLogProtein(''); setLogCarbs(''); setLogFat(''); setLogSlot('dinner') }}
+              style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Saved recipes drawer */}
       {savedRecipesDrawer && (
         <div
           onClick={() => setSavedRecipesDrawer(false)}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9500, display: 'flex', alignItems: 'flex-end' }}>
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxHeight: '72vh', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            style={{ width: '100%', maxWidth: 480, maxHeight: '72vh', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
             <div style={{ padding: '20px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
               <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>
                 Saved Recipes
@@ -3145,10 +3349,10 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
       {dayPlanModal && (
         <div
           onClick={() => setDayPlanModal(null)}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9000, display: 'flex', alignItems: 'flex-end' }}>
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+            style={{ width: '100%', maxWidth: 480, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px', boxSizing: 'border-box' }}>
             <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 20px', textAlign: 'center' }}>
               {dayPlanModal.mealLabel}
             </p>
@@ -6238,6 +6442,8 @@ export default function App() {
           dayPlanVersion={dayPlanVersion}
           onOpenCookWithPrompt={handleOpenCookWithPrompt}
           onLogSavedRecipe={handleLogSavedRecipe}
+          onDayPlanUpdated={() => setDayPlanVersion(v => v + 1)}
+          onOpenCookbook={() => setView('cookbook')}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
@@ -6272,10 +6478,10 @@ export default function App() {
           return (
             <div
               onClick={() => setDayPlanSlotSheet(null)}
-              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end' }}>
+              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               <div
                 onClick={e => e.stopPropagation()}
-                style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+                style={{ width: '100%', maxWidth: 480, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px', boxSizing: 'border-box' }}>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px', textAlign: 'center' }}>
                   Log this for...
                 </p>
@@ -6366,6 +6572,98 @@ export default function App() {
     )
   }
 
+  // ── View: Cookbook ───────────────────────────────────────────────────────────
+  if (view === 'cookbook') {
+    return (
+      <>
+        <CookbookView
+          savedRecipes={savedRecipes}
+          onBack={() => setView('dashboard')}
+          onStartCooking={handleReset}
+          onOpenRecipe={recipe => {
+            setViewingDish(recipe)
+            setViewingDishImg(recipe._imgUrl ?? null)
+            setSavedBackTo('cookbook')
+            setView('detail')
+          }}
+          onAddToDayPlan={handleAddToDayPlan}
+        />
+        <BottomNav activeView="saved" onNavigate={v => {
+          if (v === 'saved') { setSavedBackTo('cookbook'); setView('saved') }
+          else setView(v)
+        }} isPro={isPro} />
+        {dayPlanSlotSheet && (() => {
+          const SLOTS = ['breakfast', 'lunch', 'dinner']
+          const cap   = s => s.charAt(0).toUpperCase() + s.slice(1)
+          const confirmSlot = (slot) => {
+            try {
+              const todayStr = new Date().toISOString().slice(0, 10)
+              const raw  = localStorage.getItem('remi_day_plan')
+              let plan   = raw ? JSON.parse(raw) : null
+              if (!plan || plan.date !== todayStr) {
+                plan = { date: todayStr, breakfast: null, lunch: null, dinner: null }
+              }
+              const d = dayPlanSlotSheet.dish
+              plan[slot] = {
+                name:    d.name,
+                kcal:    parseInt(d.dietician?.macros?.calories) || 0,
+                protein: parseInt(d.dietician?.macros?.protein)  || 0,
+                carbs:   parseInt(d.dietician?.macros?.carbs)    || 0,
+                fat:     parseInt(d.dietician?.macros?.fat)      || 0,
+              }
+              localStorage.setItem('remi_day_plan', JSON.stringify(plan))
+              setDayPlanVersion(v => v + 1)
+            } catch {}
+            setDayPlanSlotSheet(null)
+            setTargetMeal(null)
+            showAppToast(`Logged to ${cap(slot)}`)
+          }
+          return (
+            <div
+              onClick={() => setDayPlanSlotSheet(null)}
+              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', maxWidth: 480, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px', boxSizing: 'border-box' }}>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px', textAlign: 'center' }}>
+                  Log this for...
+                </p>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  {SLOTS.map(slot => {
+                    const active = dayPlanSlotSheet.selected === slot
+                    return (
+                      <button
+                        key={slot}
+                        onClick={() => setDayPlanSlotSheet(s => ({ ...s, selected: slot }))}
+                        style={{ flex: 1, height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: active ? '#00E5A0' : '#1A1A1A', color: active ? '#0D0D0D' : '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'background-color 150ms ease, color 150ms ease' }}>
+                        {cap(slot)}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => confirmSlot(dayPlanSlotSheet.selected)}
+                  style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}>
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setDayPlanSlotSheet(null)}
+                  style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+        {appToast && (
+          <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 9200, backgroundColor: '#1A1A1A', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#E8E8E8', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+            {appToast}
+          </div>
+        )}
+      </>
+    )
+  }
+
   // ── View: Saved recipes ──────────────────────────────────────────────────────
   if (view === 'saved') {
     return (
@@ -6443,10 +6741,10 @@ export default function App() {
           return (
             <div
               onClick={() => setDayPlanSlotSheet(null)}
-              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end' }}>
+              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               <div
                 onClick={e => e.stopPropagation()}
-                style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+                style={{ width: '100%', maxWidth: 480, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px', boxSizing: 'border-box' }}>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px', textAlign: 'center' }}>
                   Log this for...
                 </p>
@@ -6549,10 +6847,10 @@ export default function App() {
           return (
             <div
               onClick={() => setDayPlanSlotSheet(null)}
-              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end' }}>
+              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               <div
                 onClick={e => e.stopPropagation()}
-                style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+                style={{ width: '100%', maxWidth: 480, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px', boxSizing: 'border-box' }}>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px', textAlign: 'center' }}>
                   Log this for...
                 </p>
