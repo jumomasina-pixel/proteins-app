@@ -80,11 +80,12 @@ export default async function handler(req, res) {
     let dbRole = 'free'
     let dbProfile = null
     let dbRowExists = false
+    let isPremium = false
     let roleRes
     let rows
     try {
       roleRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,training_philosophy,referral_slug,referred_by,client_count`,
+        `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(user.email)}&select=role,name,sport,goal,training_philosophy,referral_slug,referred_by,client_count,is_premium`,
         {
           headers: {
             'apikey':        serviceRoleKey || supabaseKey,
@@ -102,6 +103,7 @@ export default async function handler(req, res) {
           const row = rows[0]
           dbRowExists = true
           if (row.role) dbRole = row.role
+          isPremium = row.is_premium === true
           if (row.name) dbProfile = {
             name:               row.name,
             sport:              row.sport || null,
@@ -119,7 +121,7 @@ export default async function handler(req, res) {
     }
 
     console.log('AUTH-USER GET — profiles query status:', roleRes?.status, 'rows returned:', rows?.length, 'dbRowExists:', dbRowExists)
-    return res.status(200).json({ user, role: dbRole, dbProfile, dbRowExists })
+    return res.status(200).json({ user, role: dbRole, dbProfile, dbRowExists, isPremium })
   }
 
   return res.status(405).json({ error: 'Method not allowed' })

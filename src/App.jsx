@@ -1658,7 +1658,7 @@ function CookStepsList({ steps, accentColor }) {
   )
 }
 
-function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave, onRemove, onNavigateDashboard, missingIngredients = [] }) {
+function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave, onRemove, onNavigateDashboard, missingIngredients = [], onAddToDayPlan = null }) {
   const [mode,            setMode]            = useState('diet')
   const [copied,          setCopied]          = useState(false)
   const [toast,           setToast]           = useState({ visible: false, message: '', action: null })
@@ -1729,6 +1729,21 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
   return (
     <div className="animate-fade-in min-h-screen pb-44 sm:pb-28" style={{ backgroundColor: '#0F0D0B' }}>
       <PaperTexture />
+
+      {/* Dashboard back nav */}
+      {onNavigateDashboard && (
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', position: 'relative', zIndex: 20 }}>
+          <button
+            onClick={onNavigateDashboard}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#888888' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Dashboard
+          </button>
+        </div>
+      )}
 
       {/* Toast — tappable when action exists */}
       <div
@@ -2055,6 +2070,17 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
               <>Save This</>
             )}
           </button>
+
+          {/* Add to Day Plan */}
+          {onAddToDayPlan && (
+            <button
+              onClick={() => onAddToDayPlan(dish)}
+              className="w-full flex items-center justify-center transition-all duration-200 active:opacity-80"
+              style={{ height: 56, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}
+            >
+              Add to Day Plan →
+            </button>
+          )}
 
           {/* Copy button */}
           <button
@@ -2608,10 +2634,11 @@ const DASHBOARD_STYLES = `
   }
 `
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {} }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {} }) {
 
   const [dashToast, setDashToast] = useState(null)
   const [dayPlanModal, setDayPlanModal] = useState(null)
+  const [savedRecipesDrawer, setSavedRecipesDrawer] = useState(false)
   const dayPlanRef = useRef(null)
 
   function showDashToast(msg) {
@@ -2717,7 +2744,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
   const pastDays     = weekData.filter(d => !d.isFuture)
   const hitCount     = pastDays.filter(d => d.hit).length
-  const adherencePct = pastDays.length > 0 ? Math.round((hitCount / pastDays.length) * 100) : 0
+  const filledSlots  = ['breakfast','lunch','dinner'].filter(k => !!dayPlan?.[k]?.name).length
+  const adherencePct = Math.round((filledSlots / 3) * 100)
   const streakCount  = streak?.count || 0
 
   const avgProtein = useMemo(() => {
@@ -3001,6 +3029,43 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 </div>
               </div>
 
+              {/* MY COOKBOOK */}
+              <div>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>
+                  My Cookbook
+                </p>
+                {savedRecipes.length === 0 ? (
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#555555', margin: 0 }}>
+                    Save a recipe to build your cookbook.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                    {savedRecipes.map((recipe, i) => (
+                      <button
+                        key={recipe._id || i}
+                        onClick={() => onOpenRecipe(recipe)}
+                        style={{
+                          flexShrink: 0, width: 160, height: 80, borderRadius: 8,
+                          backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)',
+                          padding: '10px 12px', cursor: 'pointer', textAlign: 'left',
+                          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                        }}>
+                        <p style={{
+                          fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14,
+                          color: '#F0F0F0', margin: 0, lineHeight: 1.3,
+                          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}>
+                          {recipe.name}
+                        </p>
+                        <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#888888', margin: 0 }}>
+                          {recipe.dietician?.macros?.calories || '—'} kcal
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Coach card */}
               {isCoach && profile?.referralSlug && (
                 <CoachCard slug={profile.referralSlug} clientCount={profile.clientCount ?? 0} seatCap={20} />
@@ -3025,6 +3090,57 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
         </div>
       </div>
 
+      {/* Saved recipes drawer */}
+      {savedRecipesDrawer && (
+        <div
+          onClick={() => setSavedRecipesDrawer(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9500, display: 'flex', alignItems: 'flex-end' }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxHeight: '72vh', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>
+                Saved Recipes
+              </p>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+              {savedRecipes.length === 0 ? (
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', padding: '24px 20px', textAlign: 'center', margin: 0 }}>
+                  No saved recipes yet.
+                </p>
+              ) : (
+                savedRecipes.map((recipe, i) => (
+                  <div
+                    key={recipe._id || i}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: i < savedRecipes.length - 1 ? '0.5px solid rgba(255,255,255,0.06)' : 'none' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, color: '#F0F0F0', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {recipe.name}
+                      </p>
+                      <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#888888', margin: 0 }}>
+                        {recipe.dietician?.macros?.calories || '—'} kcal
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { setSavedRecipesDrawer(false); onLogSavedRecipe(recipe) }}
+                      style={{ flexShrink: 0, height: 32, padding: '0 14px', borderRadius: 16, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                      Log this
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div style={{ padding: '12px 20px 32px', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                onClick={() => setSavedRecipesDrawer(false)}
+                style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Day Plan bottom sheet modal */}
       {dayPlanModal && (
         <div
@@ -3046,6 +3162,14 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 }}
                 style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
                 Generate with Remi
+              </button>
+              <button
+                onClick={() => {
+                  setDayPlanModal(null)
+                  setSavedRecipesDrawer(true)
+                }}
+                style={{ width: '100%', height: 56, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
+                Choose from saved
               </button>
               <button
                 onClick={() => {
@@ -4839,7 +4963,7 @@ const REVEAL_STYLES = `
   .reveal-foot   { animation: revealFade 400ms ease 600ms both; }
 `
 
-function RevealCard({ dish, onOpen, delay = 0 }) {
+function RevealCard({ dish, onOpen, delay = 0, onAddToDayPlan = null }) {
   const m = dish?.dietician?.macros || {}
   const cuisine = dish?.chef?.cuisine
   const hook    = dish?.dietician?.note || dish?.chef?.flavour || ''
@@ -4903,13 +5027,20 @@ function RevealCard({ dish, onOpen, delay = 0 }) {
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0', marginTop: 4 }}>
             {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
           </div>
+          {onAddToDayPlan && (
+            <button
+              onClick={e => { e.stopPropagation(); onAddToDayPlan(dish) }}
+              style={{ width: '100%', height: 56, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer', marginTop: 4 }}>
+              Add to Day Plan →
+            </button>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish }) {
+function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToDayPlan = null, onNavigateDashboard = null }) {
   const [checkedItems, setCheckedItems] = useState(new Set())
   const [listCopied,   setListCopied]   = useState(false)
 
@@ -4942,17 +5073,23 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish }) {
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
       <style>{REVEAL_STYLES}</style>
 
-      {/* Top bar: back affordance to chat */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      {/* Top bar: back affordances */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        {onNavigateDashboard ? (
+          <button
+            onClick={onNavigateDashboard}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, color: '#888888', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Dashboard
+          </button>
+        ) : <div />}
         <button
           onClick={onBack}
           aria-label="Back to chat"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: 'none', border: 'none', padding: 0,
-            color: '#888888', cursor: 'pointer',
-            fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500,
-          }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, color: '#888888', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500 }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
@@ -4983,7 +5120,7 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish }) {
           }}
         >
           {(dishes || []).map((dish, i) => (
-            <RevealCard key={i} dish={dish} delay={i * 150} onOpen={onOpenDish} />
+            <RevealCard key={i} dish={dish} delay={i * 150} onOpen={onOpenDish} onAddToDayPlan={onAddToDayPlan} />
           ))}
         </div>
       </div>
@@ -5163,8 +5300,8 @@ export default function App() {
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
 
-  // Premium gate — set manually via localStorage.setItem('remi_premium', 'true') in console
-  const isPremium = localStorage.getItem('remi_premium') === 'true'
+  // Premium gate — synced from Supabase on auth; can also be set via localStorage in console
+  const [isPremium, setIsPremium] = useState(() => localStorage.getItem('remi_premium') === 'true')
 
   // Did You Cook — find the most recent session that is 12–48h old
   const didYouCookSession = useMemo(() => {
@@ -5228,6 +5365,10 @@ export default function App() {
         const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
         localStorage.setItem('supabase.auth.token', JSON.stringify(session))
         applySession(session, data.role)
+
+        const premium = data.isPremium === true
+        localStorage.setItem('remi_premium', premium ? 'true' : 'false')
+        setIsPremium(premium)
 
         // Source 1: localStorage profile
         let currentProfile = loadProfileOrEvict()
@@ -5351,6 +5492,10 @@ export default function App() {
       .then(data => {
         if (data.user) {
           applySession({ ...stored, user: data.user }, data.role)
+
+          const premium = data.isPremium === true
+          localStorage.setItem('remi_premium', premium ? 'true' : 'false')
+          setIsPremium(premium)
 
           let currentProfile = loadProfileOrEvict()
           const localName = (currentProfile?.name || '').trim()
@@ -5741,6 +5886,14 @@ export default function App() {
     setView('chat')
   }
 
+  function handleAddToDayPlan(dish) {
+    setDayPlanSlotSheet({ dish, imgUrl: dish._imgUrl ?? null, imgCredit: dish._imgCredit ?? null, selected: 'breakfast' })
+  }
+
+  function handleLogSavedRecipe(dish) {
+    setDayPlanSlotSheet({ dish, imgUrl: dish._imgUrl ?? null, imgCredit: dish._imgCredit ?? null, selected: targetMeal ?? 'breakfast' })
+  }
+
   function showAppToast(msg) {
     setAppToast(msg)
     setTimeout(() => setAppToast(null), 2400)
@@ -6084,11 +6237,86 @@ export default function App() {
           isPremium={isPremium}
           dayPlanVersion={dayPlanVersion}
           onOpenCookWithPrompt={handleOpenCookWithPrompt}
+          onLogSavedRecipe={handleLogSavedRecipe}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
           else setView(v)
         }} isPro={isPro} />
+        {dayPlanSlotSheet && (() => {
+          const SLOTS = ['breakfast', 'lunch', 'dinner']
+          const cap   = s => s.charAt(0).toUpperCase() + s.slice(1)
+          const confirmSlot = (slot) => {
+            try {
+              const todayStr = new Date().toISOString().slice(0, 10)
+              const raw  = localStorage.getItem('remi_day_plan')
+              let plan   = raw ? JSON.parse(raw) : null
+              if (!plan || plan.date !== todayStr) {
+                plan = { date: todayStr, breakfast: null, lunch: null, dinner: null }
+              }
+              const d = dayPlanSlotSheet.dish
+              plan[slot] = {
+                name:    d.name,
+                kcal:    parseInt(d.dietician?.macros?.calories) || 0,
+                protein: parseInt(d.dietician?.macros?.protein)  || 0,
+                carbs:   parseInt(d.dietician?.macros?.carbs)    || 0,
+                fat:     parseInt(d.dietician?.macros?.fat)      || 0,
+              }
+              localStorage.setItem('remi_day_plan', JSON.stringify(plan))
+              setDayPlanVersion(v => v + 1)
+            } catch {}
+            setDayPlanSlotSheet(null)
+            setTargetMeal(null)
+            showAppToast(`Logged to ${cap(slot)}`)
+          }
+          return (
+            <div
+              onClick={() => setDayPlanSlotSheet(null)}
+              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end' }}>
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px', textAlign: 'center' }}>
+                  Log this for...
+                </p>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  {SLOTS.map(slot => {
+                    const active = dayPlanSlotSheet.selected === slot
+                    return (
+                      <button
+                        key={slot}
+                        onClick={() => setDayPlanSlotSheet(s => ({ ...s, selected: slot }))}
+                        style={{
+                          flex: 1, height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
+                          backgroundColor: active ? '#00E5A0' : '#1A1A1A',
+                          color: active ? '#0D0D0D' : '#F0F0F0',
+                          fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
+                          cursor: 'pointer', transition: 'background-color 150ms ease, color 150ms ease',
+                        }}>
+                        {cap(slot)}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => confirmSlot(dayPlanSlotSheet.selected)}
+                  style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}>
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setDayPlanSlotSheet(null)}
+                  style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+        {appToast && (
+          <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 9200, backgroundColor: '#1A1A1A', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#E8E8E8', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+            {appToast}
+          </div>
+        )}
       </>
     )
   }
@@ -6179,11 +6407,87 @@ export default function App() {
             posthog.capture('recipe_detail_viewed', { dish_name: d.name, source: 'reveal' })
             setView('detail')
           }}
+          onAddToDayPlan={handleAddToDayPlan}
+          onNavigateDashboard={() => setView('dashboard')}
         />
         <BottomNav activeView="chat" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('reveal'); setView('saved') }
           else setView(v)
         }} isPro={isPro} />
+        {dayPlanSlotSheet && (() => {
+          const SLOTS = ['breakfast', 'lunch', 'dinner']
+          const cap   = s => s.charAt(0).toUpperCase() + s.slice(1)
+          const confirmSlot = (slot) => {
+            try {
+              const todayStr = new Date().toISOString().slice(0, 10)
+              const raw  = localStorage.getItem('remi_day_plan')
+              let plan   = raw ? JSON.parse(raw) : null
+              if (!plan || plan.date !== todayStr) {
+                plan = { date: todayStr, breakfast: null, lunch: null, dinner: null }
+              }
+              const d = dayPlanSlotSheet.dish
+              plan[slot] = {
+                name:    d.name,
+                kcal:    parseInt(d.dietician?.macros?.calories) || 0,
+                protein: parseInt(d.dietician?.macros?.protein)  || 0,
+                carbs:   parseInt(d.dietician?.macros?.carbs)    || 0,
+                fat:     parseInt(d.dietician?.macros?.fat)      || 0,
+              }
+              localStorage.setItem('remi_day_plan', JSON.stringify(plan))
+              setDayPlanVersion(v => v + 1)
+            } catch {}
+            setDayPlanSlotSheet(null)
+            setTargetMeal(null)
+            showAppToast(`Logged to ${cap(slot)}`)
+          }
+          return (
+            <div
+              onClick={() => setDayPlanSlotSheet(null)}
+              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end' }}>
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px', textAlign: 'center' }}>
+                  Log this for...
+                </p>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  {SLOTS.map(slot => {
+                    const active = dayPlanSlotSheet.selected === slot
+                    return (
+                      <button
+                        key={slot}
+                        onClick={() => setDayPlanSlotSheet(s => ({ ...s, selected: slot }))}
+                        style={{
+                          flex: 1, height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
+                          backgroundColor: active ? '#00E5A0' : '#1A1A1A',
+                          color: active ? '#0D0D0D' : '#F0F0F0',
+                          fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
+                          cursor: 'pointer', transition: 'background-color 150ms ease, color 150ms ease',
+                        }}>
+                        {cap(slot)}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => confirmSlot(dayPlanSlotSheet.selected)}
+                  style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}>
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setDayPlanSlotSheet(null)}
+                  style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+        {appToast && (
+          <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 9200, backgroundColor: '#1A1A1A', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#E8E8E8', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+            {appToast}
+          </div>
+        )}
       </>
     )
   }
@@ -6212,6 +6516,7 @@ export default function App() {
           onRemove={() => handleRemoveRecipe(dish.name)}
           onNavigateDashboard={() => setView('dashboard')}
           missingIngredients={detailIngredients}
+          onAddToDayPlan={handleAddToDayPlan}
         />
 
         {/* Day-plan slot picker — appears on top of detail view after save */}
@@ -6497,36 +6802,35 @@ export default function App() {
         {/* ── Main chat column ── */}
         <div className="flex flex-col flex-1 min-w-0">
 
-          {/* Cook header — Remi + presence + overflow */}
+          {/* Cook header — Dashboard back · Remi presence */}
           <div
             className="shrink-0"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '16px 20px 12px',
+              padding: '12px 20px',
               borderBottom: '1px solid rgba(255,255,255,0.08)',
               backgroundColor: '#0D0D0D',
             }}
           >
-            <div>
-              <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#F0F0F0', lineHeight: 1, margin: 0 }}>
-                Remi
-              </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>In the kitchen</span>
-              </div>
-            </div>
             <button
               onClick={() => setView('dashboard')}
-              aria-label="More"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: '#888888', display: 'flex' }}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#888888' }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="5"  cy="12" r="2"/>
-                <circle cx="12" cy="12" r="2"/>
-                <circle cx="19" cy="12" r="2"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
               </svg>
+              Dashboard
             </button>
+            <div style={{ textAlign: 'center' }}>
+              <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: '#F0F0F0', lineHeight: 1, margin: 0 }}>
+                Remi
+              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888' }}>In the kitchen</span>
+              </div>
+            </div>
+            <div style={{ width: 80 }} />
           </div>
 
           {/* Messages */}

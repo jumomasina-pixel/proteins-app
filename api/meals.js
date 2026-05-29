@@ -184,7 +184,7 @@ export default async function handler(req, res) {
 
   console.log(`[meals] Request — messages: ${messages.length}, profile.name: ${profile?.name ?? 'null'}`)
 
-  const client = new Anthropic({ apiKey })
+  const client = new Anthropic({ apiKey, defaultHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31' } })
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
     const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
-      system,
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: messages.map(({ role, content }) => ({ role, content })),
     })
 

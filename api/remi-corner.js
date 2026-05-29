@@ -54,12 +54,13 @@ export default async function handler(req, res) {
   const { tab, type, profile, timeOfDay } = req.body
 
   if (type === 'greeting') {
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, defaultHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31' } })
     try {
       const message = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 80,
-        messages: [{ role: 'user', content: GREETING_PROMPT(profile, timeOfDay) }],
+        system: [{ type: 'text', text: GREETING_PROMPT(profile, timeOfDay), cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: 'Go.' }],
       })
       return res.status(200).json({ tip: message.content[0]?.text?.trim() ?? '' })
     } catch (err) {
@@ -74,13 +75,14 @@ export default async function handler(req, res) {
 
   const prompt = tab === 'perform' ? PERFORM_PROMPT(profile) : FUEL_PROMPT(profile)
 
-  const client = new Anthropic({ apiKey })
+  const client = new Anthropic({ apiKey, defaultHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31' } })
 
   try {
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 200,
-      messages: [{ role: 'user', content: prompt }],
+      system: [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: 'Go.' }],
     })
 
     const tip = message.content[0]?.text?.trim() ?? ''
