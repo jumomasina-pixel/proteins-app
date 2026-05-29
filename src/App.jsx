@@ -3040,8 +3040,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               <button
                 onClick={() => {
                   const prompt = `Give me a ${dayPlanModal.mealKey} for today`
+                  const key = dayPlanModal.mealKey
                   setDayPlanModal(null)
-                  onOpenCookWithPrompt(prompt)
+                  onOpenCookWithPrompt(prompt, key)
                 }}
                 style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
                 Generate with Remi
@@ -5155,6 +5156,9 @@ export default function App() {
   })
   const [referralCapped,     setReferralCapped]     = useState(false)
   const [dayPlanVersion,     setDayPlanVersion]     = useState(0)
+  const [targetMeal,         setTargetMeal]         = useState(null)
+  const [dayPlanSlotSheet,   setDayPlanSlotSheet]   = useState(null)
+  const [appToast,           setAppToast]           = useState(null)
 
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
@@ -5718,8 +5722,9 @@ export default function App() {
     setView('chat')
   }
 
-  function handleOpenCookWithPrompt(text) {
-    posthog.capture('day_plan_generate')
+  function handleOpenCookWithPrompt(text, mealType = null) {
+    posthog.capture('day_plan_generate', { meal_type: mealType })
+    setTargetMeal(mealType)
     setMessages(createSeedMessages(profile, sessions))
     setDishes(null)
     setDishImages([])
@@ -5734,6 +5739,11 @@ export default function App() {
     setQuickReplyType('proteins')
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
     setView('chat')
+  }
+
+  function showAppToast(msg) {
+    setAppToast(msg)
+    setTimeout(() => setAppToast(null), 2400)
   }
 
   function handleResetProfile() {
@@ -5865,24 +5875,13 @@ export default function App() {
     })
     posthog.capture('recipe_saved', { dish_name: dish.name, cuisine: dish.chef?.cuisine })
 
-    // Write dinner slot to remi_day_plan so the dashboard reflects it immediately
-    try {
-      const todayStr = new Date().toISOString().slice(0, 10)
-      const raw = localStorage.getItem('remi_day_plan')
-      let plan = raw ? JSON.parse(raw) : null
-      if (!plan || plan.date !== todayStr) {
-        plan = { date: todayStr, breakfast: null, lunch: null, dinner: null }
-      }
-      plan.dinner = {
-        name: dish.name,
-        kcal:    parseInt(dish.dietician?.macros?.calories) || 0,
-        protein: parseInt(dish.dietician?.macros?.protein)  || 0,
-        carbs:   parseInt(dish.dietician?.macros?.carbs)    || 0,
-        fat:     parseInt(dish.dietician?.macros?.fat)      || 0,
-      }
-      localStorage.setItem('remi_day_plan', JSON.stringify(plan))
-      setDayPlanVersion(v => v + 1)
-    } catch {}
+    // Open slot-picker sheet so user assigns to the correct meal slot
+    setDayPlanSlotSheet({
+      dish,
+      imgUrl: imgUrl ?? null,
+      imgCredit: imgCredit ?? null,
+      selected: targetMeal ?? 'dinner',
+    })
 
     if (isFirst) {
       localStorage.setItem('remi_first_recipe_saved', 'true')
@@ -6202,17 +6201,97 @@ export default function App() {
       ? ingredientsForDish(missingIngredients, viewingDish)
       : missingIngredients
     return (
-      <DetailView
-        dish={dish}
-        onBack={() => { setViewingDish(null); setViewingDishImg(null); setView(backTo) }}
-        imgUrl={imgUrl}
-        photographer={imgCredit}
-        isSaved={isRecipeSaved(dish.name)}
-        onSave={() => handleSaveRecipe(dish, imgUrl, imgCredit)}
-        onRemove={() => handleRemoveRecipe(dish.name)}
-        onNavigateDashboard={() => setView('dashboard')}
-        missingIngredients={detailIngredients}
-      />
+      <>
+        <DetailView
+          dish={dish}
+          onBack={() => { setViewingDish(null); setViewingDishImg(null); setView(backTo) }}
+          imgUrl={imgUrl}
+          photographer={imgCredit}
+          isSaved={isRecipeSaved(dish.name)}
+          onSave={() => handleSaveRecipe(dish, imgUrl, imgCredit)}
+          onRemove={() => handleRemoveRecipe(dish.name)}
+          onNavigateDashboard={() => setView('dashboard')}
+          missingIngredients={detailIngredients}
+        />
+
+        {/* Day-plan slot picker — appears on top of detail view after save */}
+        {dayPlanSlotSheet && (() => {
+          const SLOTS = ['breakfast', 'lunch', 'dinner']
+          const cap   = s => s.charAt(0).toUpperCase() + s.slice(1)
+          const confirmSlot = (slot) => {
+            try {
+              const todayStr = new Date().toISOString().slice(0, 10)
+              const raw  = localStorage.getItem('remi_day_plan')
+              let plan   = raw ? JSON.parse(raw) : null
+              if (!plan || plan.date !== todayStr) {
+                plan = { date: todayStr, breakfast: null, lunch: null, dinner: null }
+              }
+              const d = dayPlanSlotSheet.dish
+              plan[slot] = {
+                name:    d.name,
+                kcal:    parseInt(d.dietician?.macros?.calories) || 0,
+                protein: parseInt(d.dietician?.macros?.protein)  || 0,
+                carbs:   parseInt(d.dietician?.macros?.carbs)    || 0,
+                fat:     parseInt(d.dietician?.macros?.fat)      || 0,
+              }
+              localStorage.setItem('remi_day_plan', JSON.stringify(plan))
+              setDayPlanVersion(v => v + 1)
+            } catch {}
+            setDayPlanSlotSheet(null)
+            setTargetMeal(null)
+            showAppToast(`Logged to ${cap(slot)}`)
+          }
+          return (
+            <div
+              onClick={() => setDayPlanSlotSheet(null)}
+              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end' }}>
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 16px', textAlign: 'center' }}>
+                  Log this for...
+                </p>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  {SLOTS.map(slot => {
+                    const active = dayPlanSlotSheet.selected === slot
+                    return (
+                      <button
+                        key={slot}
+                        onClick={() => setDayPlanSlotSheet(s => ({ ...s, selected: slot }))}
+                        style={{
+                          flex: 1, height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
+                          backgroundColor: active ? '#00E5A0' : '#1A1A1A',
+                          color: active ? '#0D0D0D' : '#F0F0F0',
+                          fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
+                          cursor: 'pointer', transition: 'background-color 150ms ease, color 150ms ease',
+                        }}>
+                        {cap(slot)}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => confirmSlot(dayPlanSlotSheet.selected)}
+                  style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}>
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setDayPlanSlotSheet(null)}
+                  style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* App-level toast */}
+        {appToast && (
+          <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 9200, backgroundColor: '#1A1A1A', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#E8E8E8', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+            {appToast}
+          </div>
+        )}
+      </>
     )
   }
 
