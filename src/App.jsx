@@ -2608,9 +2608,10 @@ const DASHBOARD_STYLES = `
   }
 `
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0 }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {} }) {
 
   const [dashToast, setDashToast] = useState(null)
+  const [dayPlanModal, setDayPlanModal] = useState(null)
   const dayPlanRef = useRef(null)
 
   function showDashToast(msg) {
@@ -2912,7 +2913,9 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                       {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => {
                         const meal = dayPlan?.[key]
                         return (
-                          <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid #2A2A2A', borderRadius: 8, padding: 12, minHeight: 90 }}>
+                          <div key={key}
+                            onClick={!meal ? () => setDayPlanModal({ mealKey: key, mealLabel: label }) : undefined}
+                            style={{ backgroundColor: '#111111', border: '0.5px solid #2A2A2A', borderRadius: 8, padding: 12, minHeight: 90, cursor: meal ? 'default' : 'pointer', transition: 'border-color 200ms ease' }}>
                             <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
                             {meal ? (
                               <>
@@ -2920,10 +2923,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#00E5A0', fontWeight: 700, margin: 0 }}>{meal.kcal} kcal</p>
                               </>
                             ) : (
-                              <button className="dash-plan-btn" onClick={() => showDashToast('Meal planning coming in the next build.')}
-                                style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#333333', border: '0.5px dashed #2A2A2A', borderRadius: 6, padding: '6px 10px', background: 'none', cursor: 'pointer', transition: 'color 200ms ease, border-color 200ms ease' }}>
-                                + Plan {key}
-                              </button>
+                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#444444' }}>+ Plan {key.charAt(0).toUpperCase() + key.slice(1)}</span>
                             )}
                           </div>
                         )
@@ -2931,22 +2931,16 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     </div>
                   </>
                 ) : (
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ opacity: 0.35, pointerEvents: 'none' }}>
-                      <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-                        {['BREAKFAST','LUNCH','DINNER'].map(label => (
-                          <div key={label} style={{ backgroundColor: '#111111', border: '0.5px solid #2A2A2A', borderRadius: 8, padding: 12, minHeight: 90 }}>
-                            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>{label}</p>
-                          </div>
-                        ))}
+                  <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                    {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => (
+                      <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid #2A2A2A', borderRadius: 8, padding: 12, minHeight: 90 }}>
+                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>{label}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 15 }}>🔒</span>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555' }}>Unlock with Pro</span>
+                        </div>
                       </div>
-                    </div>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0 }}>Plan your full day with Premium.</p>
-                      <button onClick={() => {}} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#00E5A0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                        Learn more →
-                      </button>
-                    </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -3030,6 +3024,45 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
           </div>
         </div>
       </div>
+
+      {/* Day Plan bottom sheet modal */}
+      {dayPlanModal && (
+        <div
+          onClick={() => setDayPlanModal(null)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9000, display: 'flex', alignItems: 'flex-end' }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px 10px 0 0', padding: '24px 20px 40px' }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 20px', textAlign: 'center' }}>
+              {dayPlanModal.mealLabel}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => {
+                  const prompt = `Give me a ${dayPlanModal.mealKey} for today`
+                  setDayPlanModal(null)
+                  onOpenCookWithPrompt(prompt)
+                }}
+                style={{ width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
+                Generate with Remi
+              </button>
+              <button
+                onClick={() => {
+                  setDayPlanModal(null)
+                  showDashToast('Meal logging coming in the next build.')
+                }}
+                style={{ width: '100%', height: 56, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 15, cursor: 'pointer' }}>
+                Log manually
+              </button>
+            </div>
+            <button
+              onClick={() => setDayPlanModal(null)}
+              style={{ display: 'block', width: '100%', marginTop: 16, background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -5685,6 +5718,24 @@ export default function App() {
     setView('chat')
   }
 
+  function handleOpenCookWithPrompt(text) {
+    posthog.capture('day_plan_generate')
+    setMessages(createSeedMessages(profile, sessions))
+    setDishes(null)
+    setDishImages([])
+    setMissingIngredients([])
+    setShoppingListCopied(false)
+    setCheckedIngredients(new Set())
+    setSelectedDish(null)
+    setViewingDish(null)
+    setViewingDishImg(null)
+    setError(null)
+    setInput(text)
+    setQuickReplyType('proteins')
+    sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
+    setView('chat')
+  }
+
   function handleResetProfile() {
     posthog.capture('profile_reset')
     // Wipe all persisted data
@@ -6033,6 +6084,7 @@ export default function App() {
           onSignOut={handleSignOut}
           isPremium={isPremium}
           dayPlanVersion={dayPlanVersion}
+          onOpenCookWithPrompt={handleOpenCookWithPrompt}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
