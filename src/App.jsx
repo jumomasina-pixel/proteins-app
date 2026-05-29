@@ -448,10 +448,7 @@ function PaperTexture() {
 
 function RemiLogo({ size = 32 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 44 44" fill="none">
-      <path d="M22 8C22 8 14 16 14 24C14 28.4 17.6 32 22 32C26.4 32 30 28.4 30 24C30 16 22 8 22 8Z" fill="#00E5A0"/>
-      <path d="M22 14C22 14 18 19 18 24C18 26.2 19.8 28 22 28" stroke="#00C080" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-    </svg>
+    <img src="/remi-logo.svg" alt="Remi" style={{ height: size, width: 'auto', display: 'block' }} />
   )
 }
 
@@ -839,7 +836,8 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
       label: 'Cook',
       icon: (active) => (
         <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z" />
         </svg>
       ),
     },
@@ -1455,11 +1453,20 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl, initi
 
 function DishCard({ dish, onClick, onImageResolved }) {
   const m = dish.dietician.macros
+  const [hovered, setHovered] = useState(false)
   return (
     <button
       onClick={onClick}
-      className="w-full overflow-hidden text-left transition-all duration-200 hover:-translate-y-1.5 group"
-      style={{ backgroundColor: '#1A1A1A', borderRadius: 12, border: '0.5px solid rgba(240,234,224,0.08)', boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="w-full overflow-hidden text-left"
+      style={{
+        backgroundColor: '#1A1A1A',
+        borderRadius: 12,
+        border: '0.5px solid rgba(240,234,224,0.08)',
+        boxShadow: hovered ? '0 0 0 1px rgba(0,229,160,0.15)' : '0 2px 12px rgba(0,0,0,0.3)',
+        transition: 'box-shadow 200ms ease',
+      }}
     >
       <CardImageHeader dishName={dish.name} cuisine={dish.chef.cuisine} onImageResolved={onImageResolved} />
 
@@ -1497,7 +1504,7 @@ function DishCard({ dish, onClick, onImageResolved }) {
           </div>
         )}
 
-        <div className="pt-1 text-sm font-medium flex items-center gap-1.5 group-hover:gap-3 transition-all duration-200" style={{ color: '#888888', fontFamily: "Inter, sans-serif" }}>
+        <div className="pt-1 text-sm font-medium flex items-center gap-1.5" style={{ color: '#888888', fontFamily: "Inter, sans-serif" }}>
           View recipe <span>→</span>
         </div>
       </div>
@@ -1567,7 +1574,7 @@ function ShareCardModal({ dish, imgUrl, onClose }) {
               <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 15, fontWeight: 700, color: '#00E5A0' }}>
                 {value}
               </span>
-              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 9, color: '#555', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 9, color: '#888', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 {label}
               </span>
             </div>
@@ -1586,7 +1593,7 @@ function ShareCardModal({ dish, imgUrl, onClose }) {
           <button
             onClick={onClose}
             className="w-full py-3 rounded-xl text-sm font-medium"
-            style={{ backgroundColor: 'transparent', color: '#666' }}
+            style={{ backgroundColor: 'transparent', color: '#888' }}
           >
             Close
           </button>
@@ -2457,7 +2464,7 @@ function RemiCorner({ profile }) {
           ))}
         </div>
       ) : error ? (
-        <p className="text-xs" style={{ color: '#666' }}>{error}</p>
+        <p className="text-xs" style={{ color: '#888' }}>{error}</p>
       ) : tip ? (
         <div>{renderTipMarkdown(tip)}</div>
       ) : null}
@@ -2866,7 +2873,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
     fontFamily: 'Inter, sans-serif',
     fontSize: 11,
     fontWeight: 500,
-    color: '#666666',
+    color: '#888888',
     letterSpacing: '0.12em',
     textTransform: 'uppercase',
     margin: 0,
@@ -2924,7 +2931,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#E8E8E8', lineHeight: 1 }}>
                         {todayMacros.cals}
                       </span>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#666666', lineHeight: 1 }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#888888', lineHeight: 1 }}>
                         of {dailyCalTarget}
                       </span>
                     </div>
@@ -2955,14 +2962,14 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   style={{ ...cardBase, border: '0.5px solid rgba(255,255,255,0.08)', padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <i className="ti ti-flame" style={{ fontSize: 18, color: '#00E5A0' }} />
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Cook</span>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>Generate dinner</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>Generate dinner</span>
                 </button>
 
                 <button className="dash-action" onClick={() => setLogMealOpen(true)}
                   style={{ ...cardBase, border: '0.5px solid rgba(255,255,255,0.08)', padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <i className="ti ti-pencil" style={{ fontSize: 18, color: '#00E5A0' }} />
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Log meal</span>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>Manual entry</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>Manual entry</span>
                 </button>
 
                 <button className="dash-action"
@@ -2977,7 +2984,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   <i className="ti ti-calendar" style={{ fontSize: 18, color: '#00E5A0', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Day Plan</span>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#666666', display: 'block' }}>View today's plan</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>View today's plan</span>
                   </div>
                   {!isPremium && (
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>PREMIUM</span>
@@ -3038,7 +3045,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                           <div key={key}
                             onClick={!meal ? () => setDayPlanModal({ mealKey: key, mealLabel: label }) : undefined}
                             style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 12, minHeight: 90, cursor: meal ? 'default' : 'pointer', transition: 'border-color 200ms ease' }}>
-                            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
+                            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
                             {meal ? (
                               <>
                                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#E8E8E8', lineHeight: 1.4, margin: '0 0 4px' }}>{meal.name}</p>
@@ -3056,10 +3063,10 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
                     {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => (
                       <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 12, minHeight: 90 }}>
-                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>{label}</p>
+                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>{label}</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: 15 }}>🔒</span>
-                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555' }}>Unlock with Pro</span>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>Unlock with Pro</span>
                         </div>
                       </div>
                     ))}
@@ -3080,14 +3087,14 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10 }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0 }} />
                             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#CCCCCC', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</span>
-                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#555555', flexShrink: 0 }}>{meal.kcal}</span>
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', flexShrink: 0 }}>{meal.kcal}</span>
                           </div>
                           {i < recentMeals.length - 1 && <div style={{ height: '0.5px', backgroundColor: '#222222', marginBottom: 10 }} />}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555', margin: 0 }}>No meals cooked yet.</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>No meals cooked yet.</p>
                   )}
                 </div>
 
@@ -3096,7 +3103,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   <p style={{ ...secLabel, marginBottom: 12 }}>This Week</p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 14 }}>
                     {weekData.map((day, i) => {
-                      let bg = '#111111', letterColor = '#555555', border = 'none'
+                      let bg = '#111111', letterColor = '#888888', border = 'none'
                       if (day.hit)     { bg = '#0D2B1E'; letterColor = '#00E5A0' }
                       if (day.miss)    { bg = '#1E1515' }
                       if (day.isToday) { bg = '#0D2B1E'; border = '0.5px solid #00E5A0'; letterColor = '#00E5A0' }
@@ -3116,7 +3123,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     ].map(({ label, value }) => (
                       <div key={label} style={{ textAlign: 'center' }}>
                         <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#00E5A0', margin: '0 0 4px', lineHeight: 1 }}>{value}</p>
-                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#555555', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
+                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
                       </div>
                     ))}
                   </div>
@@ -3149,7 +3156,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   {isAdmin && (
                     <button onClick={onAdminPanel} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', cursor: 'pointer', padding: '4px 0' }}>Admin</button>
                   )}
-                  <button onClick={onSignOut} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#555555', cursor: 'pointer', padding: '4px 0' }}>Sign out</button>
+                  <button onClick={onSignOut} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', cursor: 'pointer', padding: '4px 0' }}>Sign out</button>
                 </div>
               </div>
 
@@ -3672,10 +3679,10 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
 
         {/* Header: back chevron left + step counter centred */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', marginBottom: 44 }}>
-          <button onClick={retreatStep} style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', zIndex: 1 }}>
+          <button onClick={retreatStep} style={{ background: 'none', border: 'none', color: '#888888', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', zIndex: 1 }}>
             {backChevron}
           </button>
-          <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#555555', letterSpacing: '0.12em' }}>
+          <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#888888', letterSpacing: '0.12em' }}>
             {visibleIndex.toString().padStart(2, '0')} / {visibleTotal.toString().padStart(2, '0')}
           </span>
           <div style={{ width: 20 }} />
@@ -3925,7 +3932,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
           {step === 8 && (
             <button
               onClick={advanceStep}
-              style={{ width: '100%', height: 44, backgroundColor: 'transparent', color: '#555555', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}
+              style={{ width: '100%', height: 44, backgroundColor: 'transparent', color: '#888888', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}
             >
               Skip
             </button>
@@ -3966,7 +3973,7 @@ function ProfileComplete({ profile, onEnter }) {
         <h2 className="remi-word-up" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.5rem, 8vw, 3.5rem)', color: '#F0F0F0', lineHeight: 1.05, marginBottom: 16 }}>
           Remi is ready.
         </h2>
-        <p className="remi-word-up" style={{ fontSize: '0.9375rem', color: '#666', fontFamily: "Inter, sans-serif", lineHeight: 1.6, marginBottom: 48, animationDelay: '0.42s' }}>
+        <p className="remi-word-up" style={{ fontSize: '0.9375rem', color: '#888', fontFamily: "Inter, sans-serif", lineHeight: 1.6, marginBottom: 48, animationDelay: '0.42s' }}>
           Built around you. Let's get to work.
         </p>
         <button
@@ -4087,7 +4094,7 @@ function ProModal({ onClose }) {
       <div style={{ position: 'relative', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '2rem', maxWidth: 400, width: '100%' }}>
         <button
           onClick={onClose}
-          style={{ position: 'absolute', top: 14, right: 16, background: 'none', border: 'none', color: '#555555', cursor: 'pointer', fontSize: '1.375rem', lineHeight: 1 }}
+          style={{ position: 'absolute', top: 14, right: 16, background: 'none', border: 'none', color: '#888888', cursor: 'pointer', fontSize: '1.375rem', lineHeight: 1 }}
           aria-label="Close"
         >×</button>
 
@@ -4121,7 +4128,7 @@ function ProModal({ onClose }) {
               >
                 {submitting ? 'Sending…' : 'Notify me when it\'s live'}
               </button>
-              <p style={{ textAlign: 'center', color: '#555555', fontSize: '0.75rem' }}>No spam. Just Remi.</p>
+              <p style={{ textAlign: 'center', color: '#888888', fontSize: '0.75rem' }}>No spam. Just Remi.</p>
             </form>
           </>
         )}
@@ -4168,7 +4175,7 @@ function PTFounderPage({ onClose }) {
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '3rem 1.25rem 4rem' }}>
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', fontSize: '0.875rem', fontFamily: "Inter, sans-serif", marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}
+          style={{ background: 'none', border: 'none', color: '#888888', cursor: 'pointer', fontSize: '0.875rem', fontFamily: "Inter, sans-serif", marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}
         >
           ← Back
         </button>
@@ -4239,7 +4246,7 @@ function PTFounderPage({ onClose }) {
             <select
               value={form.clientCount}
               onChange={set('clientCount')}
-              style={{ ...inputStyle, color: form.clientCount ? '#F0F0F0' : '#555555' }}
+              style={{ ...inputStyle, color: form.clientCount ? '#F0F0F0' : '#888888' }}
             >
               <option value="" disabled>Approx number of active clients</option>
               <option value="1-5">1–5</option>
@@ -4254,7 +4261,7 @@ function PTFounderPage({ onClose }) {
             >
               {submitting ? 'Sending…' : 'Apply as a Founding PT'}
             </button>
-            <p style={{ textAlign: 'center', color: '#555555', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+            <p style={{ textAlign: 'center', color: '#888888', fontSize: '0.8125rem', lineHeight: 1.5 }}>
               Spots 1–10 get lifetime free access. After that, Pro features are $19.99/mo.
             </p>
           </form>
@@ -4459,7 +4466,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
-              style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#666666', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
+              style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888888', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
             >
               {showPassword ? (
                 /* Eye-off icon */
@@ -4659,7 +4666,7 @@ function SetPasswordScreen({ accessToken, onSuccess }) {
       <button
         type="button"
         onClick={toggle}
-        style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#666666', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
+        style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888888', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
       >
         <EyeIcon show={show} />
       </button>
@@ -4912,7 +4919,7 @@ function AdminPanel({ onBack }) {
               style={{
                 width: '100%', height: 44, borderRadius: 8,
                 backgroundColor: !loading && selectedRole !== user.role ? '#00E5A0' : '#242424',
-                color: !loading && selectedRole !== user.role ? '#0D0D0D' : '#555555',
+                color: !loading && selectedRole !== user.role ? '#0D0D0D' : '#888888',
                 border: !loading && selectedRole !== user.role ? 'none' : '1px solid rgba(255,255,255,0.08)',
                 fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
                 cursor: loading || selectedRole === user.role ? 'not-allowed' : 'pointer',
@@ -4993,7 +5000,7 @@ function AdminPanel({ onBack }) {
                   style={{
                     width: '100%', height: 48, borderRadius: 8, border: 'none',
                     backgroundColor: resetLoading || !confirmed ? '#2A1A1A' : '#FF4D4D',
-                    color: resetLoading || !confirmed ? '#555555' : '#FFFFFF',
+                    color: resetLoading || !confirmed ? '#888888' : '#FFFFFF',
                     fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
                     cursor: resetLoading || !confirmed ? 'not-allowed' : 'pointer',
                     transition: 'all 150ms ease',
@@ -5064,7 +5071,7 @@ function IntelView({ isPro, onProClick }) {
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(1.75rem, 6vw, 2.5rem)', color: '#F0F0F0', lineHeight: 1.1, marginBottom: 10 }}>
           The science behind the meal.
         </h1>
-        <p style={{ fontSize: '0.875rem', color: '#555', fontFamily: "Inter, sans-serif", lineHeight: 1.6 }}>
+        <p style={{ fontSize: '0.875rem', color: '#888', fontFamily: "Inter, sans-serif", lineHeight: 1.6 }}>
           Research-backed nutrition and performance insights, curated weekly.
         </p>
       </div>
@@ -5156,7 +5163,7 @@ function IntelView({ isPro, onProClick }) {
                 Remi Pro
               </h3>
               <p style={{
-                fontSize: '0.8125rem', color: '#666',
+                fontSize: '0.8125rem', color: '#888',
                 fontFamily: "Inter, sans-serif", lineHeight: 1.6,
                 marginBottom: 24,
               }}>
@@ -5175,7 +5182,7 @@ function IntelView({ isPro, onProClick }) {
               >
                 Upgrade to Pro →
               </button>
-              <p style={{ fontSize: '0.7rem', color: '#555', fontFamily: "Inter, sans-serif" }}>
+              <p style={{ fontSize: '0.7rem', color: '#888', fontFamily: "Inter, sans-serif" }}>
                 $4.99 / month
               </p>
             </div>
@@ -5437,7 +5444,7 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToD
                   style={{
                     marginTop: 20, width: '100%', height: 44, borderRadius: 8,
                     backgroundColor: listCopied ? '#009966' : allChecked ? '#1A1A1A' : '#00E5A0',
-                    color: allChecked ? '#555555' : '#0D0D0D',
+                    color: allChecked ? '#888888' : '#0D0D0D',
                     border: allChecked ? '1px solid rgba(255,255,255,0.08)' : 'none',
                     cursor: allChecked ? 'default' : 'pointer',
                     fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
@@ -7051,7 +7058,7 @@ export default function App() {
                     <button onClick={() => setShowProModal(true)} style={{ color: '#C9A84C', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Go Pro →</button>
                   </div>
                   <p style={{ marginTop: 8, paddingLeft: '2rem' }}>
-                    <button onClick={() => setShowPTPage(true)} style={{ background: 'none', border: 'none', color: '#555555', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: "Inter, sans-serif", textDecoration: 'underline' }}>Are you a PT?</button>
+                    <button onClick={() => setShowPTPage(true)} style={{ background: 'none', border: 'none', color: '#888888', cursor: 'pointer', padding: 0, fontSize: '0.7rem', fontFamily: "Inter, sans-serif", textDecoration: 'underline' }}>Are you a PT?</button>
                   </p>
                 </div>
               ) : (
