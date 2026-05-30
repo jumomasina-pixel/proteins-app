@@ -3599,7 +3599,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 <button className="dash-action"
                   onClick={() => {
                     if (isPro) {
-                      dayPlanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      onOpenMealPlanner()
                     } else {
                       showDashToast('Day planning is a Pro feature — coming soon.')
                     }
@@ -3767,7 +3767,11 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                       {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => {
                         const slot = todaySlots?.[key]
                         return (
-                          <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <button
+                            key={key}
+                            onClick={() => onOpenMealPlanner({ day: todayKey, meal: key })}
+                            style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                          >
                             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', flexShrink: 0 }}>{label}</span>
                             {slot ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
@@ -3777,7 +3781,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                             ) : (
                               <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888' }}>—</span>
                             )}
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
@@ -6358,6 +6362,7 @@ export default function App() {
   const [dayPlanVersion,     setDayPlanVersion]     = useState(0)
   const [targetMeal,         setTargetMeal]         = useState(null)
   const [dayPlanSlotSheet,   setDayPlanSlotSheet]   = useState(null)
+  const [plannerInitialSlot, setPlannerInitialSlot] = useState(null)
   const [appToast,           setAppToast]           = useState(null)
   const [coachLogToast,      setCoachLogToast]      = useState(null)
   const [selectedClient,     setSelectedClient]     = useState(null)
@@ -7561,7 +7566,7 @@ export default function App() {
           onOpenCookbook={() => setView('cookbook')}
           onAddManualSavedRecipe={dish => handleSaveRecipe(dish, null, null)}
           onViewRoster={() => setView('coach-roster')}
-          onOpenMealPlanner={() => setView('planner')}
+          onOpenMealPlanner={(slot) => { setPlannerInitialSlot(slot || null); setView('planner') }}
           authToken={getAccessToken()}
           onLetCoachKnow={dishName => {
             const c = (() => { try { return JSON.parse(localStorage.getItem('remi_coach_name') || 'null') } catch { return null } })()
@@ -7662,7 +7667,10 @@ export default function App() {
         user={{ role: isAdmin ? 'admin' : userRole }}
         authToken={getAccessToken()}
         savedRecipes={savedRecipes}
-        onClose={() => setView('dashboard')}
+        profile={profile}
+        initialOpenSlot={plannerInitialSlot}
+        onOpenCook={() => { setPlannerInitialSlot(null); setView('cook') }}
+        onClose={() => { setPlannerInitialSlot(null); setView('dashboard') }}
       />
     )
   }

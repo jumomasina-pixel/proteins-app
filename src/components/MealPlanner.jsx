@@ -13,21 +13,9 @@ const DAYS = [
 const SLOTS = ['breakfast', 'lunch', 'dinner']
 
 const TEMPLATES = [
-  {
-    id: 'performance',
-    title: 'Performance',
-    desc: 'High protein. Built to train hard.',
-  },
-  {
-    id: 'cut',
-    title: 'Cut',
-    desc: 'Calorie controlled. Nothing wasted.',
-  },
-  {
-    id: 'maintenance',
-    title: 'Maintenance',
-    desc: 'Steady. Consistent. Sustainable.',
-  },
+  { id: 'performance', title: 'Performance', desc: 'High protein. Built to train hard.' },
+  { id: 'cut',         title: 'Cut',         desc: 'Calorie controlled. Nothing wasted.' },
+  { id: 'maintenance', title: 'Maintenance', desc: 'Steady. Consistent. Sustainable.' },
 ]
 
 function getMondayOf(date) {
@@ -48,7 +36,7 @@ function addDays(dateStr, n) {
 function formatWeekRange(monday) {
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const start = new Date(monday + 'T00:00:00')
-  const end = new Date(monday + 'T00:00:00')
+  const end   = new Date(monday + 'T00:00:00')
   end.setDate(end.getDate() + 6)
   return `${start.getDate()} ${MONTHS[start.getMonth()]} – ${end.getDate()} ${MONTHS[end.getMonth()]}`
 }
@@ -73,7 +61,79 @@ function recipeToSlot(r) {
   }
 }
 
+// Compute protein target from user profile
+function computeProteinTarget(profile) {
+  if (!profile) return null
+  const weight = parseFloat(profile.currentWeight || profile.weight) || null
+  if (!weight || weight <= 0) return null
+  const goals = (Array.isArray(profile.goals) ? profile.goals : [profile.goal || '']).map(g => (g || '').toLowerCase())
+  const isPerformance = goals.some(g => g.includes('performance') || g.includes('build lean') || g.includes('bulk') || g === 'recomp')
+  const isCut         = goals.some(g => g.includes('cut') || g.includes('lose'))
+  const multiplier    = isPerformance ? 2.0 : isCut ? 1.6 : 1.4
+  return Math.round(weight * multiplier)
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
+
+// Part 1: contextual hint banner shown at top of grid when savedRecipes is thin
+function HintBanner({ savedCount, onOpenCook, onDismiss }) {
+  const bannerStyle = {
+    backgroundColor: '#1A1A1A',
+    borderTop:    '1px solid rgba(255,255,255,0.08)',
+    borderRight:  '1px solid rgba(255,255,255,0.08)',
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    borderLeft:   '4px solid #00E5A0',
+    borderRadius: 8,
+    padding: '12px 16px',
+    marginBottom: 16,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 12,
+  }
+  const dismissBtn = (
+    <button
+      onClick={onDismiss}
+      aria-label="Dismiss"
+      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888888', fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0, marginTop: -2 }}
+    >
+      ×
+    </button>
+  )
+
+  if (savedCount === 0) {
+    return (
+      <div style={bannerStyle}>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#00E5A0', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>
+            PRO TIP
+          </p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#F0F0F0', margin: '0 0 8px', lineHeight: 1.5 }}>
+            Your saved dishes are the building blocks. Cook something in the kitchen first, then come back to plan your week.
+          </p>
+          {onOpenCook && (
+            <button
+              onClick={onOpenCook}
+              style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500, color: '#00E5A0', cursor: 'pointer', padding: 0 }}
+            >
+              Open the kitchen →
+            </button>
+          )}
+        </div>
+        {dismissBtn}
+      </div>
+    )
+  }
+
+  // 1–2 saved dishes: softer hint
+  return (
+    <div style={bannerStyle}>
+      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, flex: 1, lineHeight: 1.5 }}>
+        You have {savedCount} saved {savedCount === 1 ? 'dish' : 'dishes'}. The more you cook and save, the faster you can map a full week.
+      </p>
+      {dismissBtn}
+    </div>
+  )
+}
 
 function SlotCard({ slot, label, onClick, onRemove }) {
   if (!slot) {
@@ -101,7 +161,7 @@ function SlotCard({ slot, label, onClick, onRemove }) {
   return (
     <div style={{ borderRadius: 8, overflow: 'hidden', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', position: 'relative' }}>
       {slot.image ? (
-        <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden' }}>
+        <div style={{ aspectRatio: '16/9', overflow: 'hidden' }}>
           <img
             src={slot.image}
             alt=""
@@ -111,6 +171,7 @@ function SlotCard({ slot, label, onClick, onRemove }) {
       ) : (
         <div style={{ aspectRatio: '16/9', backgroundColor: '#111111', borderRadius: '8px 8px 0 0' }} />
       )}
+      {/* × remove — floated over image corner, dark pill bg so it reads against any image */}
       <button
         onClick={onRemove}
         aria-label="Remove"
@@ -135,6 +196,7 @@ function SlotCard({ slot, label, onClick, onRemove }) {
       >
         ×
       </button>
+      {/* Text strictly below image — never on top */}
       <div style={{ padding: '6px 8px 8px' }}>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#F0F0F0', margin: '0 0 3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {slot.title}
@@ -147,11 +209,17 @@ function SlotCard({ slot, label, onClick, onRemove }) {
   )
 }
 
-function DayRow({ dayDef, dayPlan, onSlotClick, onSlotRemove, onTrainingToggle }) {
+// Part 5: day row shows per-day kcal total; red if under-fuelled on a training day
+function DayRow({ dayDef, dayPlan, onSlotClick, onSlotRemove, onTrainingToggle, avgKcal }) {
   const training = dayPlan?.training ?? true
+  const dayTotal  = SLOTS.reduce((sum, slot) => sum + (dayPlan?.[slot]?.macros?.kcal || 0), 0)
+  const showTotal = dayTotal > 0 && avgKcal > 0
+  const underFuelled = training && showTotal && dayTotal < (avgKcal - 200)
+  const kcalColor = underFuelled ? '#FF4D4D' : '#888888'
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 1fr 1fr', gap: 8, alignItems: 'start', marginBottom: 12 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, paddingTop: 24 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, paddingTop: 24 }}>
         <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           {dayDef.label}
         </span>
@@ -174,6 +242,11 @@ function DayRow({ dayDef, dayPlan, onSlotClick, onSlotRemove, onTrainingToggle }
         >
           {training ? 'TRAIN' : 'REST'}
         </button>
+        {showTotal && (
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: kcalColor, letterSpacing: '-0.02em', textAlign: 'center' }}>
+            ~{dayTotal}
+          </span>
+        )}
       </div>
       {SLOTS.map(slot => (
         <SlotCard
@@ -207,10 +280,10 @@ function TemplatePicker({ onSelect, onScratch }) {
             style={{
               flex: 1,
               backgroundColor: '#1A1A1A',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
-              borderRight: '1px solid rgba(255,255,255,0.08)',
+              borderTop:    '1px solid rgba(255,255,255,0.08)',
+              borderRight:  '1px solid rgba(255,255,255,0.08)',
               borderBottom: '1px solid rgba(255,255,255,0.08)',
-              borderLeft: '4px solid #00E5A0',
+              borderLeft:   '4px solid #00E5A0',
               borderRadius: 8,
               padding: 16,
               display: 'flex',
@@ -277,7 +350,6 @@ function DishPickerSheet({ dishes, search, onSearch, filterChip, onFilter, onSel
 
   return (
     <>
-      <style>{MP_CSS}</style>
       <div
         onClick={onClose}
         style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(13,13,13,0.85)', zIndex: 1000 }}
@@ -298,7 +370,6 @@ function DishPickerSheet({ dishes, search, onSearch, filterChip, onFilter, onSel
           flexDirection: 'column',
         }}
       >
-        {/* Sheet header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', flexShrink: 0 }}>
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             Choose a Dish
@@ -311,7 +382,6 @@ function DishPickerSheet({ dishes, search, onSearch, filterChip, onFilter, onSel
           </button>
         </div>
 
-        {/* Search */}
         <div style={{ padding: '0 16px 10px', flexShrink: 0 }}>
           <input
             type="text"
@@ -335,7 +405,6 @@ function DishPickerSheet({ dishes, search, onSearch, filterChip, onFilter, onSel
           />
         </div>
 
-        {/* Filter chips */}
         <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', flexShrink: 0 }}>
           {CHIPS.map(chip => {
             const active = filterChip === chip.id
@@ -363,7 +432,6 @@ function DishPickerSheet({ dishes, search, onSearch, filterChip, onFilter, onSel
           })}
         </div>
 
-        {/* Dish list */}
         <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
           {dishes.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -419,7 +487,12 @@ function DishPickerSheet({ dishes, search, onSearch, filterChip, onFilter, onSel
   )
 }
 
-function BottomBar({ avgKcal, avgProtein, repeatConfirm, onRepeat, onConfirmRepeat, onCancelRepeat }) {
+// Part 4: richer bottom bar — avg kcal, protein, meal coverage, on-target indicator
+function BottomBar({ avgKcal, avgProtein, filledCount, proteinTarget, repeatConfirm, onRepeat, onConfirmRepeat, onCancelRepeat }) {
+  const showDetail   = filledCount >= 3
+  const onTarget     = proteinTarget !== null && avgProtein >= proteinTarget
+  const underBy      = showDetail && proteinTarget !== null && !onTarget ? proteinTarget - avgProtein : null
+
   return (
     <div style={{
       position: 'fixed',
@@ -433,15 +506,25 @@ function BottomBar({ avgKcal, avgProtein, repeatConfirm, onRepeat, onConfirmRepe
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 12,
       zIndex: 100,
     }}>
-      <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, margin: 0, lineHeight: 1.6 }}>
-        <span style={{ color: '#00E5A0' }}>~{avgKcal} kcal</span>
-        <span style={{ color: '#888888' }}> avg/day · </span>
-        <span style={{ color: '#888888' }}>{avgProtein}g protein avg</span>
-      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 15, color: '#00E5A0', lineHeight: 1.2 }}>
+          ~{avgKcal} kcal avg/day
+        </span>
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#888888', lineHeight: 1.2 }}>
+          {avgProtein}g protein · {filledCount} / 21 meals
+        </span>
+        {showDetail && proteinTarget !== null && (
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: onTarget ? '#00E5A0' : '#888888', lineHeight: 1.2, marginTop: 1 }}>
+            {onTarget ? '✓ On target' : `${underBy}g under target`}
+          </span>
+        )}
+      </div>
+
       {repeatConfirm ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>Copy plan to next week?</span>
           <button
             onClick={onConfirmRepeat}
@@ -471,6 +554,7 @@ function BottomBar({ avgKcal, avgProtein, repeatConfirm, onRepeat, onConfirmRepe
             fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
           Repeat Week
@@ -482,7 +566,15 @@ function BottomBar({ avgKcal, avgProtein, repeatConfirm, onRepeat, onConfirmRepe
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function MealPlanner({ user, authToken, savedRecipes, onClose }) {
+export default function MealPlanner({
+  user,
+  authToken,
+  savedRecipes,
+  onClose,
+  onOpenCook     = null,   // Part 1: "Open the kitchen →" link
+  initialOpenSlot = null,  // Part 2: { day, meal } — auto-opens picker on load
+  profile        = null,   // Part 4: for protein target computation
+}) {
   const [weekStart,     setWeekStart]     = useState(() => getMondayOf(new Date()))
   const [plan,          setPlan]          = useState(null)
   const [hasGrid,       setHasGrid]       = useState(false)
@@ -491,14 +583,21 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
   const [search,        setSearch]        = useState('')
   const [filterChip,    setFilterChip]    = useState('all')
   const [repeatConfirm, setRepeatConfirm] = useState(false)
-  const saveTimerRef = useRef(null)
+  const [hintDismissed, setHintDismissed] = useState(() => {
+    try { return localStorage.getItem('remi_planner_hint_dismissed') === '1' } catch { return false }
+  })
 
+  const saveTimerRef     = useRef(null)
+  const openedInitialRef = useRef(false)  // fires initialOpenSlot only once per mount
+
+  // ── Load plan for current week ──────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false
     async function load() {
       setLoading(true)
       setHasGrid(false)
       setPlan(null)
+      openedInitialRef.current = false
       if (!authToken) { setLoading(false); return }
       try {
         const r = await fetch(`/api/meal-plans?week_start=${weekStart}`, {
@@ -517,6 +616,15 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
     return () => { cancelled = true }
   }, [weekStart, authToken])
 
+  // Part 2: open picker immediately after plan loads if initialOpenSlot provided
+  useEffect(() => {
+    if (!loading && hasGrid && initialOpenSlot && !openedInitialRef.current) {
+      openedInitialRef.current = true
+      setPicker(initialOpenSlot)
+    }
+  }, [loading, hasGrid, initialOpenSlot])
+
+  // ── Debounced save ──────────────────────────────────────────────────────────
   const debouncedSave = useCallback((newPlan, ws) => {
     clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
@@ -574,6 +682,12 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
     setRepeatConfirm(false)
   }
 
+  function dismissHint() {
+    try { localStorage.setItem('remi_planner_hint_dismissed', '1') } catch {}
+    setHintDismissed(true)
+  }
+
+  // ── Derived macro data ──────────────────────────────────────────────────────
   const macros = useMemo(() => {
     if (!plan) return null
     let totalKcal = 0, totalProtein = 0, filled = 0
@@ -581,15 +695,21 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
       SLOTS.forEach(slot => {
         const dish = day[slot]
         if (dish) {
-          totalKcal   += dish.macros?.kcal    || 0
+          totalKcal    += dish.macros?.kcal    || 0
           totalProtein += dish.macros?.protein || 0
           filled++
         }
       })
     })
     if (filled === 0) return null
-    return { avgKcal: Math.round(totalKcal / 7), avgProtein: Math.round(totalProtein / 7) }
+    return {
+      avgKcal:     Math.round(totalKcal    / 7),
+      avgProtein:  Math.round(totalProtein / 7),
+      filledCount: filled,
+    }
   }, [plan])
+
+  const proteinTarget = useMemo(() => computeProteinTarget(profile), [profile])
 
   const filteredDishes = useMemo(() => {
     if (!savedRecipes?.length) return []
@@ -604,8 +724,13 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
     })
   }, [savedRecipes, search, filterChip])
 
+  const savedCount = savedRecipes?.length ?? 0
+  const showHint   = hasGrid && !hintDismissed && savedCount < 3
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: '#0D0D0D', zIndex: 900, display: 'flex', flexDirection: 'column' }}>
+      <style>{MP_CSS}</style>
 
       {/* ── Header ── */}
       <div style={{
@@ -625,6 +750,7 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
+
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: '#F0F0F0', margin: '0 0 2px', letterSpacing: '0.06em' }}>
             MEAL PLANNER
@@ -651,11 +777,12 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
             </button>
           </div>
         </div>
+
         <div />
       </div>
 
-      {/* ── Body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 12px', paddingBottom: macros ? 80 : 24 }}>
+      {/* ── Scrollable body ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 12px', paddingBottom: macros ? 110 : 24 }}>
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888' }}>Loading…</span>
@@ -664,15 +791,29 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
           <TemplatePicker onSelect={handleTemplateSelect} onScratch={handleTemplateSelect} />
         ) : (
           <div>
+            {/* Part 1: empty-state hint banner above grid */}
+            {showHint && (
+              <HintBanner
+                savedCount={savedCount}
+                onOpenCook={onOpenCook}
+                onDismiss={dismissHint}
+              />
+            )}
+
             {/* Column headers */}
             <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 1fr 1fr', gap: 8, marginBottom: 6 }}>
               <div />
               {SLOTS.map(s => (
-                <span key={s} style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', textAlign: 'center' }}>
+                <span
+                  key={s}
+                  style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', textAlign: 'center' }}
+                >
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </span>
               ))}
             </div>
+
+            {/* Day rows — Part 5: avgKcal passed for per-day colour signal */}
             {DAYS.map(d => (
               <DayRow
                 key={d.key}
@@ -681,17 +822,20 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
                 onSlotClick={(day, slot) => setPicker({ day, slot })}
                 onSlotRemove={handleSlotRemove}
                 onTrainingToggle={handleTrainingToggle}
+                avgKcal={macros?.avgKcal ?? 0}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Bottom bar ── */}
+      {/* ── Bottom bar (Part 4) ── */}
       {macros && (
         <BottomBar
           avgKcal={macros.avgKcal}
           avgProtein={macros.avgProtein}
+          filledCount={macros.filledCount}
+          proteinTarget={proteinTarget}
           repeatConfirm={repeatConfirm}
           onRepeat={() => setRepeatConfirm(true)}
           onConfirmRepeat={handleRepeatWeek}
@@ -699,7 +843,7 @@ export default function MealPlanner({ user, authToken, savedRecipes, onClose }) 
         />
       )}
 
-      {/* ── Dish picker ── */}
+      {/* ── Dish picker sheet ── */}
       {picker && (
         <DishPickerSheet
           dishes={filteredDishes}
