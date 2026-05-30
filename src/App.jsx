@@ -2160,10 +2160,13 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
           <h1 className="splash-el splash-el-2" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.5rem, 11vw, 3rem)', color: '#00E5A0', letterSpacing: '-0.01em', margin: '12px 0 0', lineHeight: 1.05 }}>
             {firstName}
           </h1>
-          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, fontWeight: 400, color: '#F0F0F0', margin: '20px 0 0', lineHeight: 1.5 }}>
-            They've set up Remi for you. Let's get you started.
+          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, fontWeight: 400, color: '#888888', margin: '20px 0 0', lineHeight: 1.5 }}>
+            {referralCoachName} has set up Remi for you.
           </p>
-          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 300, color: '#888888', lineHeight: 1.6, margin: '28px 0 0' }}>
+          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#666666', margin: '10px 0 0', lineHeight: 1.5, textAlign: 'center' }}>
+            Used by fighters, coaches, and home cooks across Australia.
+          </p>
+          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 300, color: '#888888', lineHeight: 1.6, margin: '18px 0 0' }}>
             Eat like a chef. Train like an athlete.<br />Live like both.
           </p>
         </div>
@@ -2659,23 +2662,301 @@ function CookbookView({ savedRecipes, onBack, onOpenRecipe, onAddToDayPlan, onSt
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-// Coach referral card — Phase 1. Surfaces the coach's own referral link, live client count,
-// and the hard seat cap (20). Live count comes from the profile state (hydrated on session
-// restore). PHASE 2: replace the seat cap copy with billing status + monthly credit total.
-function CoachCard({ slug, clientCount, seatCap }) {
+function CoachRosterView({ slug, onBack }) {
+  const [clients,      setClients]      = useState(null)
+  const [error,        setError]        = useState(null)
+  const [notes,        setNotes]        = useState({})
+  const [notesLoading, setNotesLoading] = useState({})
+  const tokenRef = useRef(null)
+
+  // Roster fetch
+  useEffect(() => {
+    const token = (() => {
+      try { return JSON.parse(localStorage.getItem('supabase.auth.token') || 'null')?.access_token ?? null } catch { return null }
+    })()
+    tokenRef.current = token
+    if (!token || !slug) return
+    fetch('/api/coach-roster', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body:    JSON.stringify({ coachSlug: slug }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.clients) setClients(data.clients)
+        else setError(data?.error || 'Failed to load roster')
+      })
+      .catch(() => setError('Failed to load roster'))
+  }, [slug])
+
+  // Sequential note fetch — runs after roster loads
+  useEffect(() => {
+    if (!Array.isArray(clients) || clients.length === 0) return
+    let cancelled = false
+    const today = new Date().toISOString().slice(0, 10)
+
+    async function run() {
+      for (const c of clients) {
+        if (cancelled) break
+        const cacheKey = `remi_coach_note_${c.id}`
+        try {
+          const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null')
+          if (cached?.date === today && cached?.note) {
+            setNotes(prev => ({ ...prev, [c.id]: cached.note }))
+            continue
+          }
+        } catch {}
+
+        setNotesLoading(prev => ({ ...prev, [c.id]: true }))
+        try {
+          const res  = await fetch('/api/coach-note', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ clientId: c.id, clientName: c.name, sport: c.sport, goal: c.goal }),
+          })
+          const data = await res.json()
+          const note = data?.note ?? null
+          if (!cancelled) {
+            setNotes(prev => ({ ...prev, [c.id]: note }))
+            if (note) {
+              try { localStorage.setItem(cacheKey, JSON.stringify({ note, date: today })) } catch {}
+            }
+          }
+        } catch {
+          if (!cancelled) setNotes(prev => ({ ...prev, [c.id]: null }))
+        }
+        if (!cancelled) setNotesLoading(prev => ({ ...prev, [c.id]: false }))
+      }
+    }
+
+    run()
+    return () => { cancelled = true }
+  }, [clients])
+
+  function initials(name) {
+    const parts = (name || '').trim().split(/\s+/).filter(Boolean)
+    if (parts.length === 0) return '?'
+    if (parts.length === 1) return parts[0][0].toUpperCase()
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  }
+
+  function formatJoined(iso) {
+    if (!iso) return ''
+    const d   = new Date(iso)
+    const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]
+    return `Joined ${d.getDate()} ${mon}`
+  }
+
+  function formatLogDate(iso) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const now = new Date()
+    const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000)
+    if (diffDays === 0) {
+      const h = d.getHours()
+      const m = d.getMinutes()
+      const ampm = h >= 12 ? 'pm' : 'am'
+      const h12 = h % 12 || 12
+      return `Today ${h12}:${m < 10 ? '0' + m : m}${ampm}`
+    }
+    return `${diffDays}d ago`
+  }
+
+  function isNew(iso) {
+    return !!iso && (Date.now() - new Date(iso).getTime()) < 7 * 24 * 60 * 60 * 1000
+  }
+
+  return (
+    <div className="animate-fade-in" style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', paddingBottom: 40 }}>
+      <style>{`
+        @media (min-width: 768px) { .roster-card { display: none !important; } .roster-table { display: table !important; } }
+        @media (max-width: 767px)  { .roster-table { display: none !important; } }
+        .roster-skeleton { background: linear-gradient(90deg,#1A1A1A 25%,#222 50%,#1A1A1A 75%); background-size: 200% 100%; animation: rsk 1.4s infinite; border-radius: 6px; }
+        @keyframes rsk { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes note-pulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
+        .note-skeleton { background-color: #1A1A1A; border-radius: 8px; animation: note-pulse 1.4s ease infinite; }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 12, minHeight: 64 }}>
+        <button
+          onClick={onBack}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44 }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: '#F0F0F0', margin: 0, lineHeight: 1 }}>
+            Your Roster
+          </h1>
+          {clients !== null && (
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '4px 0 0' }}>
+              {clients.length} {clients.length === 1 ? 'client' : 'clients'}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 16px' }}>
+        {/* Initial loading skeletons */}
+        {clients === null && !error && [0,1,2].map(i => (
+          <div key={i} style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 12, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="roster-skeleton" style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="roster-skeleton" style={{ height: 14, width: '55%' }} />
+              <div className="roster-skeleton" style={{ height: 11, width: '35%' }} />
+            </div>
+            <div className="roster-skeleton" style={{ height: 11, width: 72 }} />
+          </div>
+        ))}
+
+        {/* Error */}
+        {error && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', textAlign: 'center', marginTop: 40 }}>{error}</p>
+        )}
+
+        {/* Empty state */}
+        {clients !== null && clients.length === 0 && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', textAlign: 'center', marginTop: 60, lineHeight: 1.6 }}>
+            No clients yet. Share your link and build your roster.
+          </p>
+        )}
+
+        {/* Mobile cards */}
+        {clients !== null && clients.length > 0 && clients.map(c => {
+          const note        = notes[c.id] ?? null
+          const noteLoading = notesLoading[c.id] ?? false
+          const hasNote     = !!note
+          return (
+            <div key={c.id} className="roster-card" style={{ position: 'relative', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 12, marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: '50%', backgroundColor: isNew(c.created_at) ? '#00E5A0' : '#888888' }} />
+              <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#00E5A0', color: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14, flexShrink: 0 }}>
+                {initials(c.name)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 15, color: '#F0F0F0', margin: 0, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.name || '—'}
+                </p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '3px 0 0', letterSpacing: '0.06em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {[c.sport, c.goal].filter(Boolean).join(' · ') || '—'}
+                </p>
+                {/* Note skeleton */}
+                {noteLoading && (
+                  <div className="note-skeleton" style={{ height: 12, width: '80%', marginTop: 8 }} />
+                )}
+                {/* Note line */}
+                <div style={{ maxHeight: hasNote ? 80 : 0, overflow: 'hidden', transition: 'max-height 200ms ease' }}>
+                  {hasNote && (
+                    <div style={{ borderLeft: '4px solid #00E5A0', paddingLeft: 8, marginTop: 8 }}>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0, lineHeight: 1.5 }}>
+                        {note}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {/* Cook log */}
+                {c.latestLog && (
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#00E5A0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.latestLog.client_name} cooked {c.latestLog.dish_name}
+                    </span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', flexShrink: 0 }}>
+                      {formatLogDate(c.latestLog.created_at)}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0, flexShrink: 0, paddingRight: 16, paddingTop: 2 }}>
+                {formatJoined(c.created_at)}
+              </p>
+            </div>
+          )
+        })}
+
+        {/* Desktop table */}
+        {clients !== null && clients.length > 0 && (
+          <table className="roster-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 6px' }}>
+            <thead>
+              <tr>
+                {['Client','Sport / Goal',"Remi's Note",'Joined','Status'].map(h => (
+                  <th key={h} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'left', padding: '0 12px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {clients.map(c => {
+                const note        = notes[c.id] ?? null
+                const noteLoading = notesLoading[c.id] ?? false
+                return (
+                  <tr key={c.id}>
+                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', borderRadius: '8px 0 0 8px', border: '1px solid rgba(255,255,255,0.08)', borderRight: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#00E5A0', color: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
+                          {initials(c.name)}
+                        </div>
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, color: '#F0F0F0' }}>{c.name || '—'}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        {[c.sport, c.goal].filter(Boolean).join(' · ') || '—'}
+                      </span>
+                    </td>
+                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none', maxWidth: 280 }}>
+                      {noteLoading && (
+                        <div className="note-skeleton" style={{ height: 12, width: '80%' }} />
+                      )}
+                      {note && (
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#F0F0F0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {note}
+                        </span>
+                      )}
+                      {!noteLoading && !note && !c.latestLog && (
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#444' }}>—</span>
+                      )}
+                      {c.latestLog && (
+                        <div style={{ marginTop: note ? 6 : 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#00E5A0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.latestLog.dish_name}
+                          </span>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', flexShrink: 0 }}>
+                            {formatLogDate(c.latestLog.created_at)}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888' }}>{formatJoined(c.created_at)}</span>
+                    </td>
+                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', borderRadius: '0 8px 8px 0', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: isNew(c.created_at) ? '#00E5A0' : '#888888' }} />
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CoachCard({ slug, clientCount, seatCap, onViewRoster }) {
   const [copied, setCopied] = useState(false)
-  const url = `https://myremi.io/join/${slug}`
+  const url   = `https://myremi.io/join/${slug}`
+  const count = clientCount ?? 0
 
   function handleCopy() {
     try {
       navigator.clipboard.writeText(url).then(() => {
         setCopied(true)
-        setTimeout(() => setCopied(false), 1800)
+        setTimeout(() => setCopied(false), 1500)
       })
     } catch {}
   }
-
-  const atCap = (clientCount ?? 0) >= seatCap
 
   return (
     <div style={{
@@ -2686,15 +2967,14 @@ function CoachCard({ slug, clientCount, seatCap }) {
       marginBottom: 24,
       display: 'flex', flexDirection: 'column', gap: 18,
     }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
           Coach
         </p>
-        {atCap && (
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#FF4D4D', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Roster full
-          </span>
-        )}
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#00E5A0', letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid #00E5A0', borderRadius: 20, padding: '3px 10px' }}>
+          Founding Coach
+        </span>
       </div>
 
       {/* Referral link */}
@@ -2717,7 +2997,7 @@ function CoachCard({ slug, clientCount, seatCap }) {
               flexShrink: 0, height: 38, padding: '0 14px', borderRadius: 8, border: 'none',
               backgroundColor: '#00E5A0', color: '#0D0D0D',
               fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
-              cursor: 'pointer', touchAction: 'manipulation',
+              cursor: 'pointer', touchAction: 'manipulation', transition: 'opacity 200ms ease',
             }}
           >
             {copied ? 'Copied' : 'Copy'}
@@ -2725,29 +3005,38 @@ function CoachCard({ slug, clientCount, seatCap }) {
         </div>
       </div>
 
-      {/* Active clients + seat cap */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '14px 16px' }}>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>
-            Active clients
-          </p>
-          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#00E5A0', margin: 0, lineHeight: 1 }}>
-            {clientCount ?? 0}
-          </p>
+      {/* Three stat boxes */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 14px' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>Active</p>
+          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#00E5A0', margin: 0, lineHeight: 1 }}>{count}</p>
         </div>
-        <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '14px 16px' }}>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>
-            Seat cap
-          </p>
-          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#F0F0F0', margin: 0, lineHeight: 1 }}>
-            {seatCap}
-          </p>
+        <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 14px' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>Seats Left</p>
+          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#F0F0F0', margin: 0, lineHeight: 1 }}>{Math.max(0, seatCap - count)}</p>
+        </div>
+        <div style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 14px' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>Est. Credit</p>
+          <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#C9A84C', margin: 0, lineHeight: 1 }}>${count}/mo</p>
         </div>
       </div>
 
       <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', lineHeight: 1.5, margin: 0 }}>
         Every client you bring earns you $1/month. Build your roster.
       </p>
+
+      {/* View Roster */}
+      <button
+        onClick={onViewRoster}
+        style={{
+          width: '100%', height: 48, borderRadius: 8,
+          backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)',
+          color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
+          cursor: 'pointer', touchAction: 'manipulation', transition: 'opacity 200ms ease',
+        }}
+      >
+        View Roster →
+      </button>
     </div>
   )
 }
@@ -2814,7 +3103,145 @@ const DASHBOARD_STYLES = `
   }
 `
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {} }) {
+function CoachStrip({ referredBy, savedRecipes, onLetKnow }) {
+  const [coachName, setCoachName] = useState(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem('remi_coach_name') || 'null')
+      if (c?.slug === referredBy) return c.name
+    } catch {}
+    return null
+  })
+
+  useEffect(() => {
+    if (!referredBy || coachName) return
+    fetch('/api/referral', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ action: 'validate', slug: referredBy }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const name = data?.full || data?.coachName || null
+        if (name) {
+          setCoachName(name)
+          try { localStorage.setItem('remi_coach_name', JSON.stringify({ name, slug: referredBy })) } catch {}
+        }
+      })
+      .catch(() => {})
+  }, [referredBy])
+
+  if (!referredBy || !coachName) return null
+
+  const firstName    = coachName.split(' ')[0] || coachName
+  const latestDish   = savedRecipes?.length > 0 ? savedRecipes[savedRecipes.length - 1]?.name : null
+
+  return (
+    <div style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0 }} />
+        <div>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 2px' }}>Your Coach</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, color: '#F0F0F0', margin: 0 }}>{coachName}</p>
+        </div>
+      </div>
+      {latestDish && (
+        <button
+          onClick={() => onLetKnow(latestDish)}
+          style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', cursor: 'pointer', padding: '4px 0', minHeight: 44, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}
+        >
+          Let {firstName} know →
+        </button>
+      )}
+    </div>
+  )
+}
+
+function CoachLogToast({ toast, onSend, onDismiss }) {
+  const [opacity, setOpacity] = useState(0)
+  const firstName = (toast.coachName || 'your coach').split(' ')[0]
+
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setOpacity(1))
+    return () => cancelAnimationFrame(t)
+  }, [])
+
+  useEffect(() => {
+    if (toast.fadingOut) {
+      const t = setTimeout(onDismiss, 200)
+      return () => clearTimeout(t)
+    }
+  }, [toast.fadingOut])
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 80, left: 16, right: 16,
+      zIndex: 999, boxSizing: 'border-box',
+      backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 8, padding: '12px 16px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+      opacity: toast.fadingOut ? 0 : opacity,
+      transition: 'opacity 200ms ease',
+    }}>
+      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#F0F0F0', margin: 0, flex: 1 }}>
+        Let {firstName} know what you cooked?
+      </p>
+      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        <button onClick={onSend} style={{ height: 32, padding: '0 14px', borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          Send
+        </button>
+        <button onClick={onDismiss} style={{ height: 32, padding: '0 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#888888', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 13, cursor: 'pointer' }}>
+          Skip
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CoachPitchScreen({ onViewRoster, onDashboard }) {
+  const FEATURES = [
+    { num: '01', label: 'Watch their fuelling, daily' },
+    { num: '02', label: 'Your link, your roster' },
+    { num: '03', label: 'Founding pricing, locked for life' },
+  ]
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 24px' }}>
+          For Coaches
+        </p>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 40, lineHeight: 1.1, margin: 0 }}>
+          <span style={{ color: '#F0F0F0', display: 'block' }}>Your training.</span>
+          <span style={{ color: '#00E5A0', display: 'block' }}>Our kitchen.</span>
+        </h1>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, fontSize: 16, color: '#888888', margin: '16px 0 0', lineHeight: 1.6 }}>
+          Remi handles the fuelling so you can focus on the training.
+        </p>
+        <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {FEATURES.map(({ num, label }) => (
+            <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#00E5A0', flexShrink: 0 }}>{num}</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#F0F0F0' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onViewRoster}
+          style={{ marginTop: 40, width: '100%', height: 56, borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+        >
+          Take me to my roster →
+        </button>
+        <button
+          onClick={onDashboard}
+          style={{ display: 'block', width: '100%', marginTop: 16, background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', textAlign: 'center', padding: '8px 0' }}
+        >
+          Go to dashboard
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {}, onViewRoster = () => {}, onLetCoachKnow = () => {} }) {
 
   const [dashToast,      setDashToast]      = useState(null)
   const [dayPlanModal,   setDayPlanModal]   = useState(null)
@@ -3264,7 +3691,12 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
               {/* Coach card */}
               {isCoach && profile?.referralSlug && (
-                <CoachCard slug={profile.referralSlug} clientCount={profile.clientCount ?? 0} seatCap={20} />
+                <CoachCard slug={profile.referralSlug} clientCount={profile.clientCount ?? 0} seatCap={20} onViewRoster={onViewRoster} />
+              )}
+
+              {/* Coach strip — shown to referred clients only */}
+              {!isCoach && profile?.referredBy && (
+                <CoachStrip referredBy={profile.referredBy} savedRecipes={savedRecipes} onLetKnow={onLetCoachKnow} />
               )}
 
               {/* Quick Start + sign out */}
@@ -5702,6 +6134,8 @@ export default function App() {
   const [targetMeal,         setTargetMeal]         = useState(null)
   const [dayPlanSlotSheet,   setDayPlanSlotSheet]   = useState(null)
   const [appToast,           setAppToast]           = useState(null)
+  const [coachLogToast,      setCoachLogToast]      = useState(null)
+  const coachLogTimerRef = useRef(null)
 
   // Derived role flags — isPro unlocks all Pro-gated features
   const isPro = isAdmin || isCoach
@@ -5824,6 +6258,16 @@ export default function App() {
         const session = { access_token: accessToken, refresh_token: refreshToken, user: data.user }
         localStorage.setItem('supabase.auth.token', JSON.stringify(session))
         applySession(session, data.role)
+
+        const userId = data.user.id
+        if (localStorage.getItem('lhc_stats_user_id') !== userId) {
+          ;['lhc_stats', 'lhc_streak', 'lhc_sessions', 'lhc_greeting', 'remi_coach_name'].forEach(k => localStorage.removeItem(k))
+          Object.keys(localStorage).filter(k => k.startsWith('lhc_corner_tips')).forEach(k => localStorage.removeItem(k))
+          localStorage.setItem('lhc_stats_user_id', userId)
+          setSessions([])
+          setStreak({ count: 0, lastDate: null })
+          setStats({ totalRecipes: 0, totalCalSaved: 0 })
+        }
 
         const premium = data.isPremium === true
         localStorage.setItem('remi_premium', premium ? 'true' : 'false')
@@ -5958,6 +6402,16 @@ export default function App() {
       .then(data => {
         if (data.user) {
           applySession({ ...stored, user: data.user }, data.role)
+
+          const userId = data.user.id
+          if (localStorage.getItem('lhc_stats_user_id') !== userId) {
+            ;['lhc_stats', 'lhc_streak', 'lhc_sessions', 'lhc_greeting', 'remi_coach_name'].forEach(k => localStorage.removeItem(k))
+            Object.keys(localStorage).filter(k => k.startsWith('lhc_corner_tips')).forEach(k => localStorage.removeItem(k))
+            localStorage.setItem('lhc_stats_user_id', userId)
+            setSessions([])
+            setStreak({ count: 0, lastDate: null })
+            setStats({ totalRecipes: 0, totalCalSaved: 0 })
+          }
 
           const premium = data.isPremium === true
           localStorage.setItem('remi_premium', premium ? 'true' : 'false')
@@ -6435,6 +6889,59 @@ export default function App() {
     setTimeout(() => setAppToast(null), 2400)
   }
 
+  function showCoachLogToast(toast) {
+    clearTimeout(coachLogTimerRef.current)
+    setCoachLogToast({ ...toast, fadingOut: false })
+    coachLogTimerRef.current = setTimeout(() => {
+      setCoachLogToast(prev => prev ? { ...prev, fadingOut: true } : null)
+      coachLogTimerRef.current = setTimeout(() => {
+        if (toast?.dishName) {
+          try {
+            const notified = JSON.parse(localStorage.getItem('remi_notified_dishes') || '[]')
+            if (!notified.includes(toast.dishName)) {
+              notified.push(toast.dishName)
+              localStorage.setItem('remi_notified_dishes', JSON.stringify(notified.slice(-50)))
+            }
+          } catch {}
+        }
+        setCoachLogToast(null)
+      }, 200)
+    }, 7800)
+  }
+
+  function handleCoachLogSend() {
+    if (!coachLogToast) return
+    const { coachSlug, dishName, clientName, sport, goal } = coachLogToast
+    try {
+      const notified = JSON.parse(localStorage.getItem('remi_notified_dishes') || '[]')
+      if (!notified.includes(dishName)) {
+        notified.push(dishName)
+        localStorage.setItem('remi_notified_dishes', JSON.stringify(notified.slice(-50)))
+      }
+    } catch {}
+    fetch('/api/coach-note', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ action: 'client_log', coachSlug, clientName, dishName, sport, goal }),
+    }).catch(() => {})
+    clearTimeout(coachLogTimerRef.current)
+    setCoachLogToast(null)
+  }
+
+  function dismissCoachLogToast() {
+    if (coachLogToast?.dishName) {
+      try {
+        const notified = JSON.parse(localStorage.getItem('remi_notified_dishes') || '[]')
+        if (!notified.includes(coachLogToast.dishName)) {
+          notified.push(coachLogToast.dishName)
+          localStorage.setItem('remi_notified_dishes', JSON.stringify(notified.slice(-50)))
+        }
+      } catch {}
+    }
+    clearTimeout(coachLogTimerRef.current)
+    setCoachLogToast(null)
+  }
+
   function handleResetProfile() {
     posthog.capture('profile_reset')
     // Wipe all persisted data
@@ -6585,6 +7092,23 @@ export default function App() {
       if (r.ok) {
         const { id } = await r.json()
         setSavedRecipes(prev => prev.map(rec => rec._id === tempId ? { ...rec, _id: id } : rec))
+        if (profile?.referredBy) {
+          try {
+            const notified = JSON.parse(localStorage.getItem('remi_notified_dishes') || '[]')
+            if (!notified.includes(dish.name)) {
+              const cached = JSON.parse(localStorage.getItem('remi_coach_name') || 'null')
+              const coachName = (cached?.slug === profile.referredBy ? cached?.name : null) || 'your coach'
+              showCoachLogToast({
+                coachName,
+                coachSlug:  profile.referredBy,
+                dishName:   dish.name,
+                clientName: profile.name,
+                sport:      profile.sport || profile.primarySport || '',
+                goal:       Array.isArray(profile.goals) ? profile.goals[0] : (profile.goal || ''),
+              })
+            }
+          } catch {}
+        }
       } else {
         setSavedRecipes(prev => prev.filter(rec => rec._id !== tempId))
       }
@@ -6807,6 +7331,12 @@ export default function App() {
           onDayPlanUpdated={() => setDayPlanVersion(v => v + 1)}
           onOpenCookbook={() => setView('cookbook')}
           onAddManualSavedRecipe={dish => handleSaveRecipe(dish, null, null)}
+          onViewRoster={() => setView('coach-roster')}
+          onLetCoachKnow={dishName => {
+            const c = (() => { try { return JSON.parse(localStorage.getItem('remi_coach_name') || 'null') } catch { return null } })()
+            const coachName = (c?.slug === profile?.referredBy ? c?.name : null) || 'your coach'
+            showCoachLogToast({ coachName, coachSlug: profile?.referredBy, dishName, clientName: profile?.name, sport: profile?.sport || profile?.primarySport || '', goal: Array.isArray(profile?.goals) ? profile?.goals[0] : (profile?.goal || '') })
+          }}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
@@ -6889,6 +7419,7 @@ export default function App() {
             {appToast}
           </div>
         )}
+        {coachLogToast && <CoachLogToast toast={coachLogToast} onSend={handleCoachLogSend} onDismiss={dismissCoachLogToast} />}
       </>
     )
   }
@@ -6896,6 +7427,27 @@ export default function App() {
   // ── View: Admin panel ────────────────────────────────────────────────────────
   if (view === 'admin-panel' && isAdmin) {
     return <AdminPanel onBack={() => setView('dashboard')} />
+  }
+
+  // ── View: Coach roster ───────────────────────────────────────────────────────
+  if (view === 'coach-roster' && isCoach) {
+    return <CoachRosterView slug={profile?.referralSlug} onBack={() => setView('dashboard')} />
+  }
+
+  // ── View: Coach Pitch (first login for new coaches with a slug) ──────────────
+  if (view === 'welcome-back' && welcomeBackData && isCoach && profile?.referralSlug && !localStorage.getItem('remi_coach_pitch_seen')) {
+    return (
+      <CoachPitchScreen
+        onViewRoster={() => {
+          localStorage.setItem('remi_coach_pitch_seen', 'true')
+          setView('coach-roster')
+        }}
+        onDashboard={() => {
+          localStorage.setItem('remi_coach_pitch_seen', 'true')
+          setView('dashboard')
+        }}
+      />
+    )
   }
 
   // ── View: Welcome Back ───────────────────────────────────────────────────────
@@ -7029,6 +7581,7 @@ export default function App() {
             {appToast}
           </div>
         )}
+        {coachLogToast && <CoachLogToast toast={coachLogToast} onSend={handleCoachLogSend} onDismiss={dismissCoachLogToast} />}
       </>
     )
   }
@@ -7158,6 +7711,7 @@ export default function App() {
             {appToast}
           </div>
         )}
+        {coachLogToast && <CoachLogToast toast={coachLogToast} onSend={handleCoachLogSend} onDismiss={dismissCoachLogToast} />}
       </>
     )
   }
@@ -7269,6 +7823,7 @@ export default function App() {
             {appToast}
           </div>
         )}
+        {coachLogToast && <CoachLogToast toast={coachLogToast} onSend={handleCoachLogSend} onDismiss={dismissCoachLogToast} />}
       </>
     )
   }
