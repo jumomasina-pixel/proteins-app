@@ -1,5 +1,5 @@
 import posthog from 'posthog-js'
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import remiLogoUrl from './assets/remi-logo.svg'
 
 posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
@@ -1755,8 +1755,8 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
       {/* ── Hero image — own row, full width, text never on top ── */}
       {heroImg ? (
         <>
-          <div className="relative w-full overflow-hidden" style={{ height: '55vh' }}>
-            <img src={heroImg} alt={dish.name} className="w-full h-full object-cover" />
+          <div className="relative w-full overflow-hidden" style={{ height: '260px', maxHeight: '260px' }}>
+            <img src={heroImg} alt={dish.name} className="w-full h-full object-cover" style={{ maxHeight: '260px', objectFit: 'cover' }} />
             <button
               onClick={onBack}
               style={{
@@ -2104,6 +2104,29 @@ const SPLASH_STYLES = `
 `
 
 function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped = false }) {
+  const [showReferralInput, setShowReferralInput] = useState(false)
+  const [referralCode, setReferralCode] = useState('')
+  const referralSectionRef = useRef(null)
+
+  useEffect(() => {
+    if (!showReferralInput) return
+    function handleOut(e) {
+      if (referralSectionRef.current && !referralSectionRef.current.contains(e.target)) {
+        setShowReferralInput(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOut)
+    document.addEventListener('touchstart', handleOut)
+    return () => { document.removeEventListener('mousedown', handleOut); document.removeEventListener('touchstart', handleOut) }
+  }, [showReferralInput])
+
+  function handleApplyReferral() {
+    const code = referralCode.trim()
+    if (code) { try { localStorage.setItem('lhc_referral_code', code) } catch {} }
+    setShowReferralInput(false)
+    onGetStarted()
+  }
+
   // Invited state — a personal invite from a real human is the highest-trust entry point
   // in the app, so the coach's name is the hero of the screen. Brand recedes, the
   // invitation leads. Capped roster falls through to the default layout below.
@@ -2209,6 +2232,50 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
         >
           Get started
         </button>
+
+        {/* Coach / PT referral code entry */}
+        <div ref={referralSectionRef} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {!showReferralInput ? (
+            <button
+              onClick={() => setShowReferralInput(true)}
+              style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0, marginTop: 16, textAlign: 'center', lineHeight: 1.5 }}
+            >
+              Joining via your coach or PT? Enter their code.
+            </button>
+          ) : (
+            <div style={{ marginTop: 16, width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <button
+                  onClick={() => setShowReferralInput(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                </button>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888' }}>Enter your code</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={e => setReferralCode(e.target.value)}
+                  placeholder="Coach referral code"
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && handleApplyReferral()}
+                  style={{ flex: 1, height: 44, padding: '0 12px', borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontSize: 16, outline: 'none', boxSizing: 'border-box' }}
+                />
+                <button
+                  onClick={handleApplyReferral}
+                  style={{ height: 44, padding: '0 20px', borderRadius: 8, backgroundColor: '#00E5A0', color: '#0D0D0D', border: 'none', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={onGetStarted}
           style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
@@ -5524,7 +5591,7 @@ export default function App() {
   const [stats,          setStats]          = useState(() => {
     try { const s = localStorage.getItem('lhc_stats'); return s ? JSON.parse(s) : { totalRecipes: 0, totalCalSaved: 0 } } catch { return { totalRecipes: 0, totalCalSaved: 0 } }
   })
-  const [view,           setView]           = useState(isRecovery ? 'set-password' : 'loading')
+  const [view,          _setView]           = useState(isRecovery ? 'set-password' : 'loading')
   const [selectedDish,   setSelectedDish]   = useState(null)
   const [viewingDish,    setViewingDish]    = useState(null)
   const [viewingDishImg, setViewingDishImg] = useState(null)
@@ -5596,15 +5663,51 @@ export default function App() {
     setCookedConfirmation("No worries — what are we making today?")
   }
 
-  const scrollRef      = useRef(null)
-  const abortRef       = useRef(null)
+  const scrollRef        = useRef(null)
+  const abortRef         = useRef(null)
   // Synchronous re-entrancy guard for submitMessage. React state (streaming) is
   // async; if a second send fires before React has applied setStreaming(true),
   // both calls see streaming===false AND stale profile.trainingPhilosophy,
   // both push messages, both fire fetch. This ref blocks the second call deterministically.
-  const sendingRef     = useRef(false)
-  const inputRef       = useRef(null)
-  const sessionDataRef = useRef({ proteins: [], cuisine: '', time: '' })
+  const sendingRef       = useRef(false)
+  const inputRef         = useRef(null)
+  const sessionDataRef   = useRef({ proteins: [], cuisine: '', time: '' })
+  const viewContainerRef = useRef(null)
+  const firstViewRef     = useRef(true)
+
+  // ── View transition system ─────────────────────────────────────────────────
+  // Inject keyframe CSS once on mount so the classes work across all views.
+  useEffect(() => {
+    const s = document.createElement('style')
+    s.id = '__vt-styles'
+    s.textContent = [
+      '.view-exit{opacity:0;transition:opacity 80ms ease-in}',
+      '.view-enter{animation:__vEnter 200ms ease-out both}',
+      '@keyframes __vEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}',
+    ].join('')
+    document.head.appendChild(s)
+    return () => s.remove()
+  }, [])
+
+  // Apply .view-enter to the incoming container before paint to avoid flash.
+  useLayoutEffect(() => {
+    if (firstViewRef.current) { firstViewRef.current = false; return }
+    const el = viewContainerRef.current || document.getElementById('root')
+    if (!el) return
+    el.classList.remove('view-exit')
+    void el.offsetWidth // force reflow so animation restart is clean
+    el.classList.add('view-enter')
+    const t = setTimeout(() => el.classList.remove('view-enter'), 200)
+    return () => clearTimeout(t)
+  }, [view])
+
+  function setView(newView) {
+    const el = viewContainerRef.current
+      || (viewContainerRef.current = document.getElementById('root'))
+    if (!el) { _setView(newView); return }
+    el.classList.add('view-exit')
+    setTimeout(() => { _setView(newView) }, 80)
+  }
 
   // ── Supabase auth helpers ──────────────────────────────────────────────────
 
