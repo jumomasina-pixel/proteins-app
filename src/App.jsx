@@ -2164,7 +2164,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
             They've set up Remi for you. Let's get you started.
           </p>
           <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 300, color: '#888888', lineHeight: 1.6, margin: '28px 0 0' }}>
-            Eat like a chef. Train like an athlete. Live like both.
+            Eat like a chef. Train like an athlete.<br />Live like both.
           </p>
         </div>
 
@@ -2215,7 +2215,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
       {/* Middle: tagline */}
       <div className="splash-el splash-el-2" style={{ textAlign: 'center', maxWidth: 320 }}>
         <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, fontSize: 16, color: '#888888', lineHeight: 1.65, margin: 0 }}>
-          Eat like a chef. Train like an athlete. Live like both.
+          Eat like a chef. Train like an athlete.<br />Live like both.
         </p>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', margin: '8px 0 0', textAlign: 'center' }}>
           Used by fighters, coaches, and home cooks across Australia.
