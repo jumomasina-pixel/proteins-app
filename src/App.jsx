@@ -5699,6 +5699,11 @@ export default function App() {
       .catch(() => setView('splash'))
   }
 
+  // Warm-up ping — fires once on mount to keep the /api/meals function warm
+  useEffect(() => {
+    fetch('/api/meals').catch(() => {})
+  }, [])
+
   // ── Validate referral slug (if any) — runs once, fires the splash line ───────
   useEffect(() => {
     let slug

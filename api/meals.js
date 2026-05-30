@@ -153,6 +153,14 @@ If the dish is inherently indulgent — carbonara, butter chicken, whatever — 
 `
 
 export default async function handler(req, res) {
+  const t0 = Date.now()
+  console.log(`[meals] handler start`)
+
+  if (req.method === 'GET') {
+    res.status(200).json({ status: 'warm' })
+    return
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -191,18 +199,24 @@ export default async function handler(req, res) {
   res.setHeader('Connection', 'keep-alive')
 
   try {
-    const stream = client.messages.stream({
+    console.log(`[meals] anthropic call start — ${Date.now() - t0}ms since handler`)
+  const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: messages.map(({ role, content }) => ({ role, content })),
     })
 
+    let firstChunk = true
     for await (const event of stream) {
       if (
         event.type === 'content_block_delta' &&
         event.delta.type === 'text_delta'
       ) {
+        if (firstChunk) {
+          console.log(`[meals] first chunk — ${Date.now() - t0}ms since handler`)
+          firstChunk = false
+        }
         res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
       }
     }
