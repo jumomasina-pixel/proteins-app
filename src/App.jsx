@@ -1,7 +1,6 @@
 import posthog from 'posthog-js'
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import remiLogoUrl from './assets/remi-logo.svg'
-import MealPlanner from './components/MealPlanner'
 import ClientDetail from './components/ClientDetail'
 
 posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
@@ -7458,7 +7457,6 @@ export default function App() {
           onOpenCookbook={() => setView('cookbook')}
           onAddManualSavedRecipe={dish => handleSaveRecipe(dish, null, null)}
           onViewRoster={() => setView('coach-roster')}
-          onOpenMealPlanner={() => setView('planner')}
           onLetCoachKnow={dishName => {
             const c = (() => { try { return JSON.parse(localStorage.getItem('remi_coach_name') || 'null') } catch { return null } })()
             const coachName = (c?.slug === profile?.referredBy ? c?.name : null) || 'your coach'
@@ -7548,18 +7546,6 @@ export default function App() {
         )}
         {coachLogToast && <CoachLogToast toast={coachLogToast} onSend={handleCoachLogSend} onDismiss={dismissCoachLogToast} />}
       </>
-    )
-  }
-
-  // ── View: Meal Planner ───────────────────────────────────────────────────────
-  if (view === 'planner') {
-    return (
-      <MealPlanner
-        user={null}
-        authToken={getAccessToken()}
-        savedRecipes={savedRecipes}
-        onClose={() => setView('dashboard')}
-      />
     )
   }
 
