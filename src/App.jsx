@@ -970,6 +970,12 @@ const CHAT_STYLES = `
     z-index: 0;
     animation: handoffGlow 1400ms ease-out both;
   }
+
+  @keyframes presencePulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+  .presence-dot-pulse { animation: presencePulse 2.5s ease-in-out infinite; }
 `
 
 // ── Skeleton card (warm palette) ──────────────────────────────────────────────
@@ -1192,7 +1198,7 @@ function HandoffCard({ dish, onOpen, delay = 0 }) {
             </p>
           )}
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0' }}>
-            {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
+            {m.calories} kcal&nbsp;&nbsp;·&nbsp;&nbsp;{m.protein}g protein&nbsp;&nbsp;·&nbsp;&nbsp;{m.carbs}g carbs&nbsp;&nbsp;·&nbsp;&nbsp;{m.fat}g fat
           </div>
           <div
             style={{
@@ -1299,7 +1305,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
         </div>
 
         {expanded && (
-          <>
+          <div style={{ maxHeight: 180, overflowY: 'auto' }}>
             <p style={labelStyle}>Proteins</p>
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               {PROTEIN_CARDS.map(card => (
@@ -1343,7 +1349,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
               )}
               {somethingElseBtn}
             </div>
-          </>
+          </div>
         )}
       </div>
     )
@@ -1485,7 +1491,7 @@ function DishCard({ dish, onClick, onImageResolved }) {
 
         {/* Macro strip */}
         <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0' }}>
-          {m.calories} kcal · {m.protein}P / {m.carbs}C / {m.fat}F
+          {m.calories} kcal&nbsp;&nbsp;·&nbsp;&nbsp;{m.protein}g protein&nbsp;&nbsp;·&nbsp;&nbsp;{m.carbs}g carbs&nbsp;&nbsp;·&nbsp;&nbsp;{m.fat}g fat
         </div>
 
         {/* Cook time + difficulty */}
@@ -1716,6 +1722,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
 
   return (
     <div className="animate-fade-in min-h-screen pb-44 sm:pb-28" style={{ backgroundColor: '#0D0D0D' }}>
+      <style>{`@keyframes microLineFadeIn{from{opacity:0}to{opacity:1}}`}</style>
       <PaperTexture />
 
       {/* Dashboard back nav */}
@@ -1855,11 +1862,9 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
             </svg>
           </button>
         </div>
-        {isChef && (
-          <p style={{ color: '#888888', fontSize: 13, fontFamily: 'Inter, sans-serif', textAlign: 'center', marginTop: 8, fontStyle: 'normal' }}>
-            No judgment. Enjoy every bite.
-          </p>
-        )}
+        <p key={mode} style={{ color: '#888888', fontSize: 14, fontFamily: 'Inter, sans-serif', fontStyle: 'normal', margin: 0, animation: 'microLineFadeIn 200ms ease-out both' }}>
+          {isChef ? "Earned. Here's the version you want tonight." : "This is the one that counts."}
+        </p>
 
         {/* ── CHEF MODE ── */}
         {isChef && (
@@ -2212,6 +2217,9 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
         <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, fontSize: 16, color: '#888888', lineHeight: 1.65, margin: 0 }}>
           Eat like a chef. Train like an athlete. Live like both.
         </p>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', margin: '8px 0 0', textAlign: 'center' }}>
+          Used by fighters, coaches, and home cooks across Australia.
+        </p>
       </div>
 
       {/* Bottom: CTA */}
@@ -2280,7 +2288,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
           onClick={onGetStarted}
           style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
         >
-          Already have an account? Sign in
+          Already have an account?{' '}<span style={{ color: '#F0F0F0' }}>Sign in</span>
         </button>
       </div>
     </div>
@@ -3081,6 +3089,32 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                       {fuelTip || "Train tomorrow — your carbs are low. Add rice or sourdough to dinner tonight and you'll wake up fuelled."}
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* STATS HIERARCHY */}
+              <div style={{ ...cardBase, padding: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  {[
+                    { label: 'Streak',         value: String(streakCount) },
+                    { label: 'Recipes cooked', value: String(stats?.totalRecipes || 0) },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ textAlign: 'center', backgroundColor: '#111111', borderRadius: 8, padding: '14px 8px' }}>
+                      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 32, fontWeight: 700, color: '#F0F0F0', margin: '0 0 4px', lineHeight: 1 }}>{value}</p>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    { label: 'Calories saved', value: String(stats?.totalCalSaved || 0) },
+                    { label: 'Money saved',    value: `$${(stats?.totalRecipes || 0) * 15}` },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ textAlign: 'center', backgroundColor: '#111111', borderRadius: 8, padding: '10px 8px' }}>
+                      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#00E5A0', margin: '0 0 3px', lineHeight: 1 }}>{value}</p>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -7425,7 +7459,7 @@ export default function App() {
                 Remi
               </h1>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 4 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
+                <span className="presence-dot-pulse" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
                 <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888' }}>In the kitchen</span>
               </div>
               {!isPremium && (
