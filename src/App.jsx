@@ -1,6 +1,8 @@
 import posthog from 'posthog-js'
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import remiLogoUrl from './assets/remi-logo.svg'
+import MealPlanner from './components/MealPlanner'
+import ClientDetail from './components/ClientDetail'
 
 posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
   api_host: 'https://us.i.posthog.com',
@@ -2662,12 +2664,19 @@ function CookbookView({ savedRecipes, onBack, onOpenRecipe, onAddToDayPlan, onSt
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-function CoachRosterView({ slug, onBack }) {
-  const [clients,      setClients]      = useState(null)
-  const [error,        setError]        = useState(null)
-  const [notes,        setNotes]        = useState({})
-  const [notesLoading, setNotesLoading] = useState({})
+function CoachRosterView({ slug, onBack, onSelectClient = () => {} }) {
+  const [clients,       setClients]       = useState(null)
+  const [error,         setError]         = useState(null)
+  const [notes,         setNotes]         = useState({})
+  const [notesLoading,  setNotesLoading]  = useState({})
+  const [expandedNotes, setExpandedNotes] = useState({})
+  const [hoveredRow,    setHoveredRow]    = useState(null)
   const tokenRef = useRef(null)
+
+  function toggleNote(id, e) {
+    if (e) e.stopPropagation()
+    setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }))
+  }
 
   // Roster fetch
   useEffect(() => {
@@ -2829,8 +2838,16 @@ function CoachRosterView({ slug, onBack }) {
           const note        = notes[c.id] ?? null
           const noteLoading = notesLoading[c.id] ?? false
           const hasNote     = !!note
+          const noteExpanded = expandedNotes[c.id] ?? false
+          const noteLong     = hasNote && note.length > 120
+          const noteDisplay  = noteLong && !noteExpanded ? note.slice(0, 120) + '…' : note
           return (
-            <div key={c.id} className="roster-card" style={{ position: 'relative', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 12, marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div
+              key={c.id}
+              className="roster-card"
+              onClick={() => onSelectClient({ ...c, remiNote: note })}
+              style={{ position: 'relative', backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 12, marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}
+            >
               <div style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: '50%', backgroundColor: isNew(c.created_at) ? '#00E5A0' : '#888888' }} />
               <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#00E5A0', color: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14, flexShrink: 0 }}>
                 {initials(c.name)}
@@ -2846,16 +2863,22 @@ function CoachRosterView({ slug, onBack }) {
                 {noteLoading && (
                   <div className="note-skeleton" style={{ height: 12, width: '80%', marginTop: 8 }} />
                 )}
-                {/* Note line */}
-                <div style={{ maxHeight: hasNote ? 80 : 0, overflow: 'hidden', transition: 'max-height 200ms ease' }}>
-                  {hasNote && (
-                    <div style={{ borderLeft: '4px solid #00E5A0', paddingLeft: 8, marginTop: 8 }}>
-                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0, lineHeight: 1.5 }}>
-                        {note}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {/* Note with Show more */}
+                {hasNote && (
+                  <div style={{ borderLeft: '4px solid #00E5A0', paddingLeft: 8, marginTop: 8 }}>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: noteExpanded ? '#F0F0F0' : '#888888', margin: 0, lineHeight: 1.5 }}>
+                      {noteDisplay}
+                    </p>
+                    {noteLong && (
+                      <button
+                        onClick={e => toggleNote(c.id, e)}
+                        style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#00E5A0', cursor: 'pointer', padding: '4px 0 0', display: 'block' }}
+                      >
+                        {noteExpanded ? 'Show less' : 'Show more'}
+                      </button>
+                    )}
+                  </div>
+                )}
                 {/* Cook log */}
                 {c.latestLog && (
                   <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
@@ -2887,11 +2910,22 @@ function CoachRosterView({ slug, onBack }) {
             </thead>
             <tbody>
               {clients.map(c => {
-                const note        = notes[c.id] ?? null
-                const noteLoading = notesLoading[c.id] ?? false
+                const note         = notes[c.id] ?? null
+                const noteLoading  = notesLoading[c.id] ?? false
+                const noteExpanded = expandedNotes[c.id] ?? false
+                const noteLong     = !!note && note.length > 120
+                const noteDisplay  = noteLong && !noteExpanded ? note.slice(0, 120) + '…' : note
+                const isHovered    = hoveredRow === c.id
+                const rowBg        = isHovered ? '#222222' : '#1A1A1A'
                 return (
-                  <tr key={c.id}>
-                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', borderRadius: '8px 0 0 8px', border: '1px solid rgba(255,255,255,0.08)', borderRight: 'none' }}>
+                  <tr
+                    key={c.id}
+                    onClick={() => onSelectClient({ ...c, remiNote: note })}
+                    onMouseEnter={() => setHoveredRow(c.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td style={{ padding: 12, backgroundColor: rowBg, borderRadius: '8px 0 0 8px', border: '1px solid rgba(255,255,255,0.08)', borderRight: 'none', transition: 'background-color 200ms ease' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#00E5A0', color: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
                           {initials(c.name)}
@@ -2899,19 +2933,29 @@ function CoachRosterView({ slug, onBack }) {
                         <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, color: '#F0F0F0' }}>{c.name || '—'}</span>
                       </div>
                     </td>
-                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none' }}>
+                    <td style={{ padding: 12, backgroundColor: rowBg, border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none', transition: 'background-color 200ms ease' }}>
                       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                         {[c.sport, c.goal].filter(Boolean).join(' · ') || '—'}
                       </span>
                     </td>
-                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none', maxWidth: 280 }}>
+                    <td style={{ padding: 12, backgroundColor: rowBg, border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none', maxWidth: 280, transition: 'background-color 200ms ease' }}>
                       {noteLoading && (
                         <div className="note-skeleton" style={{ height: 12, width: '80%' }} />
                       )}
                       {note && (
-                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#F0F0F0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {note}
-                        </span>
+                        <div>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: noteExpanded ? '#F0F0F0' : '#888888' }}>
+                            {noteDisplay}
+                          </span>
+                          {noteLong && (
+                            <button
+                              onClick={e => toggleNote(c.id, e)}
+                              style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#00E5A0', cursor: 'pointer', marginLeft: 6, padding: 0 }}
+                            >
+                              {noteExpanded ? 'Show less' : 'Show more'}
+                            </button>
+                          )}
+                        </div>
                       )}
                       {!noteLoading && !note && !c.latestLog && (
                         <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#444' }}>—</span>
@@ -2927,10 +2971,10 @@ function CoachRosterView({ slug, onBack }) {
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none' }}>
+                    <td style={{ padding: 12, backgroundColor: rowBg, border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', borderRight: 'none', transition: 'background-color 200ms ease' }}>
                       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888' }}>{formatJoined(c.created_at)}</span>
                     </td>
-                    <td style={{ padding: 12, backgroundColor: '#1A1A1A', borderRadius: '0 8px 8px 0', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none' }}>
+                    <td style={{ padding: 12, backgroundColor: rowBg, borderRadius: '0 8px 8px 0', border: '1px solid rgba(255,255,255,0.08)', borderLeft: 'none', transition: 'background-color 200ms ease' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: isNew(c.created_at) ? '#00E5A0' : '#888888' }} />
                     </td>
                   </tr>
@@ -3241,11 +3285,12 @@ function CoachPitchScreen({ onViewRoster, onDashboard }) {
   )
 }
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {}, onViewRoster = () => {}, onLetCoachKnow = () => {} }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, isFighter = false, isProUser = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {}, onViewRoster = () => {}, onLetCoachKnow = () => {}, onOpenMealPlanner = () => {} }) {
 
-  const [dashToast,      setDashToast]      = useState(null)
-  const [dayPlanModal,   setDayPlanModal]   = useState(null)
+  const [dashToast,        setDashToast]        = useState(null)
+  const [dayPlanModal,     setDayPlanModal]     = useState(null)
   const [savedRecipesDrawer, setSavedRecipesDrawer] = useState(false)
+  const [plannerGateMsg,   setPlannerGateMsg]   = useState(false)
   // Log meal modal state
   const [logMealOpen,  setLogMealOpen]  = useState(false)
   const [logName,      setLogName]      = useState('')
@@ -3254,11 +3299,20 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
   const [logCarbs,     setLogCarbs]     = useState('')
   const [logFat,       setLogFat]       = useState('')
   const [logSlot,      setLogSlot]      = useState('dinner')
-  const dayPlanRef = useRef(null)
+  const dayPlanRef        = useRef(null)
+  const plannerGateTimer  = useRef(null)
+
+  const isPro = isAdmin || isCoach || isFighter || isProUser
 
   function showDashToast(msg) {
     setDashToast(msg)
     setTimeout(() => setDashToast(null), 2500)
+  }
+
+  function showPlannerGate() {
+    setPlannerGateMsg(true)
+    clearTimeout(plannerGateTimer.current)
+    plannerGateTimer.current = setTimeout(() => setPlannerGateMsg(false), 3000)
   }
 
   const todayISO = new Date().toISOString().slice(0, 10)
@@ -3558,6 +3612,70 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* ── MEAL PLANNER CARD ── */}
+              <div style={{ position: 'relative' }}>
+                <div
+                  onClick={isPro ? onOpenMealPlanner : showPlannerGate}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: '#1A1A1A',
+                    borderLeft: '4px solid #00E5A0',
+                    borderTop: '0.5px solid rgba(255,255,255,0.08)',
+                    borderRight: '0.5px solid rgba(255,255,255,0.08)',
+                    borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+                    borderRadius: 8,
+                    padding: 16,
+                    cursor: 'pointer',
+                    opacity: isPro ? 1 : 0.5,
+                    userSelect: 'none',
+                    position: 'relative',
+                  }}
+                >
+                  <div>
+                    <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: '#F0F0F0', margin: '0 0 4px' }}>
+                      This Week
+                    </p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0, lineHeight: 1.4 }}>
+                      Map your meals. Build your protocol.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {!isPro && (
+                      <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                        <svg viewBox="0 0 18 14" width="13" height="10" fill="#C9A84C">
+                          <path d="M9 0L11.5 5L18 3.5L15 10H3L0 3.5L6.5 5L9 0Z"/>
+                          <rect x="3" y="11" width="12" height="2.5" rx="1"/>
+                        </svg>
+                      </div>
+                    )}
+                    <button
+                      onClick={e => { e.stopPropagation(); isPro ? onOpenMealPlanner() : showPlannerGate() }}
+                      style={{
+                        height: 44,
+                        padding: '0 20px',
+                        borderRadius: 8,
+                        border: 'none',
+                        backgroundColor: '#00E5A0',
+                        color: '#0D0D0D',
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 600,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Open
+                    </button>
+                  </div>
+                </div>
+                {plannerGateMsg && (
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#C9A84C', margin: '6px 0 0', paddingLeft: 4 }}>
+                    Meal Planner is a Pro feature. Upgrade from your profile.
+                  </p>
+                )}
               </div>
 
               {/* B. DAY PLAN */}
@@ -6104,6 +6222,8 @@ export default function App() {
   const [error,               setError]               = useState(null)
   const [isAdmin,             setIsAdmin]             = useState(() => localStorage.getItem('remi_role') === 'admin')
   const [isCoach,             setIsCoach]             = useState(() => localStorage.getItem('remi_role') === 'coach')
+  const [isFighter,           setIsFighter]           = useState(() => localStorage.getItem('remi_role') === 'fighter')
+  const [isProUser,           setIsProUser]           = useState(() => localStorage.getItem('remi_role') === 'pro')
   const [genCount,            setGenCount]            = useState(() => {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7)
@@ -6135,10 +6255,12 @@ export default function App() {
   const [dayPlanSlotSheet,   setDayPlanSlotSheet]   = useState(null)
   const [appToast,           setAppToast]           = useState(null)
   const [coachLogToast,      setCoachLogToast]      = useState(null)
+  const [selectedClient,     setSelectedClient]     = useState(null)
   const coachLogTimerRef = useRef(null)
 
   // Derived role flags — isPro unlocks all Pro-gated features
-  const isPro = isAdmin || isCoach
+  // Coaches, fighters, and pro-tier users all get full Pro access.
+  const isPro = isAdmin || isCoach || isFighter || isProUser
 
   // Premium gate — synced from Supabase on auth; can also be set via localStorage in console
   const [isPremium, setIsPremium] = useState(() => localStorage.getItem('remi_premium') === 'true')
@@ -6222,6 +6344,8 @@ export default function App() {
     localStorage.setItem('remi_role', role)
     setIsAdmin(role === 'admin')
     setIsCoach(role === 'coach')
+    setIsFighter(role === 'fighter')
+    setIsProUser(role === 'pro')
   }
 
   // ── Session detection on mount ─────────────────────────────────────────────
@@ -7322,6 +7446,8 @@ export default function App() {
           onViewSaved={() => { setSavedBackTo('dashboard'); setView('saved') }}
           isAdmin={isAdmin}
           isCoach={isCoach}
+          isFighter={isFighter}
+          isProUser={isProUser}
           onAdminPanel={() => setView('admin-panel')}
           onSignOut={handleSignOut}
           isPremium={isPremium}
@@ -7332,6 +7458,7 @@ export default function App() {
           onOpenCookbook={() => setView('cookbook')}
           onAddManualSavedRecipe={dish => handleSaveRecipe(dish, null, null)}
           onViewRoster={() => setView('coach-roster')}
+          onOpenMealPlanner={() => setView('planner')}
           onLetCoachKnow={dishName => {
             const c = (() => { try { return JSON.parse(localStorage.getItem('remi_coach_name') || 'null') } catch { return null } })()
             const coachName = (c?.slug === profile?.referredBy ? c?.name : null) || 'your coach'
@@ -7424,6 +7551,18 @@ export default function App() {
     )
   }
 
+  // ── View: Meal Planner ───────────────────────────────────────────────────────
+  if (view === 'planner') {
+    return (
+      <MealPlanner
+        user={null}
+        authToken={getAccessToken()}
+        savedRecipes={savedRecipes}
+        onClose={() => setView('dashboard')}
+      />
+    )
+  }
+
   // ── View: Admin panel ────────────────────────────────────────────────────────
   if (view === 'admin-panel' && isAdmin) {
     return <AdminPanel onBack={() => setView('dashboard')} />
@@ -7431,7 +7570,23 @@ export default function App() {
 
   // ── View: Coach roster ───────────────────────────────────────────────────────
   if (view === 'coach-roster' && isCoach) {
-    return <CoachRosterView slug={profile?.referralSlug} onBack={() => setView('dashboard')} />
+    return (
+      <CoachRosterView
+        slug={profile?.referralSlug}
+        onBack={() => setView('dashboard')}
+        onSelectClient={client => { setSelectedClient(client); setView('clientDetail') }}
+      />
+    )
+  }
+
+  if (view === 'clientDetail' && selectedClient) {
+    return (
+      <ClientDetail
+        selectedClient={selectedClient}
+        onClose={() => setView('coach-roster')}
+        authToken={getAccessToken()}
+      />
+    )
   }
 
   // ── View: Coach Pitch (first login for new coaches with a slug) ──────────────

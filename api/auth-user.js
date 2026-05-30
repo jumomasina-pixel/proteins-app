@@ -104,6 +104,27 @@ export default async function handler(req, res) {
           dbRowExists = true
           if (row.role) dbRole = row.role
           isPremium = row.is_premium === true
+          // Compute live active client count — only profiles referred by this coach
+          // that are NOT coaches themselves (never counts the coach's own account).
+          let liveClientCount = row.client_count ?? 0
+          if (row.role === 'coach' && row.referral_slug) {
+            try {
+              const countRes = await fetch(
+                `${supabaseUrl}/rest/v1/profiles?referred_by=eq.${encodeURIComponent(row.referral_slug)}&role=neq.coach&select=id`,
+                {
+                  headers: {
+                    'apikey':        serviceRoleKey || supabaseKey,
+                    'Authorization': `Bearer ${serviceRoleKey || supabaseKey}`,
+                  },
+                }
+              )
+              if (countRes.ok) {
+                const countRows = await countRes.json()
+                if (Array.isArray(countRows)) liveClientCount = countRows.length
+              }
+            } catch {}
+          }
+
           if (row.name) dbProfile = {
             name:               row.name,
             sport:              row.sport || null,
@@ -112,7 +133,7 @@ export default async function handler(req, res) {
             trainingPhilosophy: row.training_philosophy ?? null,
             referralSlug:       row.referral_slug ?? null,
             referredBy:         row.referred_by ?? null,
-            clientCount:        row.client_count ?? 0,
+            clientCount:        liveClientCount,
           }
         }
       }
