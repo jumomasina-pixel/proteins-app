@@ -2224,14 +2224,19 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
 
 function ChefLoader() {
   return (
-    <div className="flex items-center gap-3.5">
-      {[0, 1, 2].map(i => (
-        <span
-          key={i}
-          className="mint-dot"
-          style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }}
-        />
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <div className="flex items-center gap-3.5">
+        {[0, 1, 2].map(i => (
+          <span
+            key={i}
+            className="mint-dot"
+            style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }}
+          />
+        ))}
+      </div>
+      <p style={{ margin: 0, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        Remi is plating · about 6 seconds
+      </p>
     </div>
   )
 }
