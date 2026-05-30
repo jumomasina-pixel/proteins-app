@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   // ── POST — upsert profile on onboarding completion ────────────────────────────
   if (req.method === 'POST') {
-    const { name, sport, goal, training_philosophy, referred_by } = req.body || {}
+    const { name, sport, goal, training_philosophy, referred_by, role } = req.body || {}
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     const upsertPayload = {
@@ -44,6 +44,11 @@ export default async function handler(req, res) {
     // prior referral attribution back to null on a re-save.
     if (typeof referred_by === 'string' && referred_by.trim()) {
       upsertPayload.referred_by = referred_by.trim()
+    }
+    // Only set role on new signups (free or pt_referred). Never let the client
+    // escalate an existing role to pro/coach/fighter — those are set manually via Supabase.
+    if (typeof role === 'string' && ['free', 'pt_referred'].includes(role)) {
+      upsertPayload.role = role
     }
     console.log('[auth-user] Upsert payload:', upsertPayload)
 

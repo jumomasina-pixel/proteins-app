@@ -419,6 +419,27 @@ function formatRecipe(dish) {
   return lines.filter(l => l !== false && l !== null && l !== undefined).join('\n')
 }
 
+// ── Tier helper — single source of truth for all role-based feature gates ────
+// Call getUserTier(user) anywhere you need to gate a feature. Never compare
+// role strings directly outside this function.
+function getUserTier(user) {
+  const role = user?.role || 'free'
+  return {
+    role,
+    isFree:       role === 'free',
+    isPtReferred: role === 'pt_referred',
+    isDirect:     role === 'direct',
+    isPro:        role === 'pro' || role === 'fighter' || role === 'coach' || role === 'admin',
+    isCoach:      role === 'coach',
+    isFighter:    role === 'fighter',
+    // Feature gates
+    canUsePlanner:  ['pro', 'fighter', 'coach', 'admin'].includes(role),
+    canUseIntel:    ['pro', 'fighter', 'coach', 'admin'].includes(role),
+    unlimitedSaves: ['direct', 'pro', 'fighter', 'coach', 'admin'].includes(role),
+    savesCap:       role === 'pt_referred' ? 20 : role === 'free' ? 5 : null,
+  }
+}
+
 // Detect what quick-reply type to show next based on AI message text
 function detectQuickReplyType(text) {
   const lower = text.toLowerCase()
@@ -2381,7 +2402,7 @@ function SavedDishCard({ dish, onOpen, onRemove }) {
 
 // ── Saved recipes view ────────────────────────────────────────────────────────
 
-function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
+function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose, savesCap = null }) {
   return (
     <div className="animate-fade-in min-h-screen px-4 py-10 sm:py-14 relative" style={{ backgroundColor: '#0D0D0D' }}>
       <PaperTexture />
@@ -2390,10 +2411,17 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose }) {
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#F0F0F0' }}>My Recipes</h1>
             <p className="text-sm mt-1.5" style={{ color: '#888888' }}>
-              {savedRecipes.length > 0
-                ? `${savedRecipes.length} saved recipe${savedRecipes.length !== 1 ? 's' : ''}`
-                : 'Your bookmarked recipes live here'}
+              {savesCap !== null
+                ? `${savedRecipes.length} / ${savesCap} saved`
+                : savedRecipes.length > 0
+                  ? `${savedRecipes.length} saved recipe${savedRecipes.length !== 1 ? 's' : ''}`
+                  : 'Your bookmarked recipes live here'}
             </p>
+            {savesCap !== null && savedRecipes.length >= savesCap && (
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '4px 0 0' }}>
+                Saved recipe limit reached. Upgrade to Pro.
+              </p>
+            )}
           </div>
           <button onClick={onClose}
             className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200 mt-1.5"
@@ -3284,7 +3312,7 @@ function CoachPitchScreen({ onViewRoster, onDashboard }) {
   )
 }
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, isFighter = false, isProUser = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {}, onViewRoster = () => {}, onLetCoachKnow = () => {}, onOpenMealPlanner = () => {} }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, isFighter = false, isProUser = false, isDirect = false, onAdminPanel, onSignOut, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {}, onViewRoster = () => {}, onLetCoachKnow = () => {}, onOpenMealPlanner = () => {} }) {
 
   const [dashToast,        setDashToast]        = useState(null)
   const [dayPlanModal,     setDayPlanModal]     = useState(null)
@@ -3302,6 +3330,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
   const plannerGateTimer  = useRef(null)
 
   const isPro = isAdmin || isCoach || isFighter || isProUser
+  const canViewHistory = isPro || isDirect
 
   function showDashToast(msg) {
     setDashToast(msg)
@@ -3549,10 +3578,10 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
                 <button className="dash-action"
                   onClick={() => {
-                    if (isPremium) {
+                    if (isPro) {
                       dayPlanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                     } else {
-                      showDashToast('Day planning is a Premium feature — coming soon.')
+                      showDashToast('Day planning is a Pro feature — coming soon.')
                     }
                   }}
                   style={{ gridColumn: '1 / -1', backgroundColor: '#0D2B1E', border: '0.5px solid #00E5A0', borderRadius: 10, padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -3561,8 +3590,8 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Day Plan</span>
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>View today's plan</span>
                   </div>
-                  {!isPremium && (
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>PREMIUM</span>
+                  {!isPro && (
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>PRO</span>
                   )}
                 </button>
               </div>
@@ -3681,10 +3710,10 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               <div ref={dayPlanRef} style={{ ...cardBase, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <p style={{ ...secLabel, margin: 0 }}>Day Plan</p>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PREMIUM</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PRO</span>
                 </div>
 
-                {isPremium ? (
+                {isPro ? (
                   <>
                     {(() => {
                       const planned   = ['breakfast','lunch','dinner'].reduce((sum, k) => sum + (dayPlan?.[k]?.kcal || 0), 0)
@@ -3742,10 +3771,15 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               {/* C. BOTTOM ROW */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
 
-                {/* Recent meals */}
+                {/* Recent meals — gated: direct + pro tiers only */}
                 <div style={{ ...cardBase, padding: 16 }}>
                   <p style={{ ...secLabel, marginBottom: 12 }}>Recent Meals</p>
-                  {recentMeals.length > 0 ? (
+                  {!canViewHistory ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <svg viewBox="0 0 18 14" width="13" height="10" fill="#C9A84C"><path d="M9 0L11.5 5L18 3.5L15 10H3L0 3.5L6.5 5L9 0Z"/><rect x="3" y="11" width="12" height="2.5" rx="1"/></svg>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>Pro feature — session history is unlocked with Pro.</span>
+                    </div>
+                  ) : recentMeals.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       {recentMeals.map((meal, i) => (
                         <div key={i}>
@@ -4187,7 +4221,7 @@ function NumericKeypad({ value, onChange }) {
   )
 }
 
-function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
+function Onboarding({ onComplete, onBack, onAlreadyOnboarded, existingProfile = null, userRole = 'free' }) {
   const [step,              setStep]          = useState(1)
   const [name,              setName]          = useState('')
   const [weight,            setWeight]        = useState('')
@@ -4353,6 +4387,52 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 40px' }}>
+
+        {/* Profile tier badge — shown only when editing an existing profile */}
+        {existingProfile?.name && (() => {
+          const t = getUserTier({ role: userRole })
+          const BADGE_STYLES = {
+            free:        { bg: '#1A1A1A', color: '#888888', border: 'rgba(255,255,255,0.08)' },
+            pt_referred: { bg: '#1A1A1A', color: '#888888', border: 'rgba(255,255,255,0.08)' },
+            direct:      { bg: '#1A1A1A', color: '#F0F0F0', border: 'rgba(255,255,255,0.08)' },
+            pro:         { bg: '#00E5A0', color: '#0D0D0D', border: '#00E5A0' },
+            coach:       { bg: '#0D0D0D', color: '#00E5A0', border: '#00E5A0' },
+            fighter:     { bg: '#0D0D0D', color: '#00E5A0', border: '#00E5A0' },
+            admin:       { bg: '#00E5A0', color: '#0D0D0D', border: '#00E5A0' },
+          }
+          const TIER_DESC = {
+            free:        '5 saved recipes · Recipe generation',
+            pt_referred: '20 saved recipes · Recipe generation',
+            direct:      'Unlimited saves · Full dashboard',
+            pro:         'Meal Planner · Intel Hub · Full access',
+            coach:       'Full Pro access · Roster · Client plans',
+            fighter:     'Full Pro access · Weight cut mode',
+            admin:       'Full Pro access · Admin panel',
+          }
+          const bs    = BADGE_STYLES[t.role] || BADGE_STYLES.free
+          const desc  = TIER_DESC[t.role]    || TIER_DESC.free
+          const label = t.role === 'pt_referred' ? 'PT REFERRED' : t.role.toUpperCase()
+          return (
+            <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '0.5px solid rgba(255,255,255,0.08)' }}>
+              <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#F0F0F0', margin: '0 0 10px' }}>
+                {existingProfile.name.split(' ')[0]}
+              </p>
+              <span style={{
+                display: 'inline-block',
+                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 11,
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                padding: '4px 10px', borderRadius: 4,
+                backgroundColor: bs.bg, color: bs.color,
+                border: `1px solid ${bs.border}`,
+              }}>
+                {label}
+              </span>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '8px 0 0' }}>
+                {desc}
+              </p>
+            </div>
+          )
+        })()}
 
         {/* Header: back chevron left + step counter centred */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', marginBottom: 44 }}>
@@ -6220,9 +6300,7 @@ export default function App() {
   const [checkedIngredients,  setCheckedIngredients]  = useState(new Set())
   const [error,               setError]               = useState(null)
   const [isAdmin,             setIsAdmin]             = useState(() => localStorage.getItem('remi_role') === 'admin')
-  const [isCoach,             setIsCoach]             = useState(() => localStorage.getItem('remi_role') === 'coach')
-  const [isFighter,           setIsFighter]           = useState(() => localStorage.getItem('remi_role') === 'fighter')
-  const [isProUser,           setIsProUser]           = useState(() => localStorage.getItem('remi_role') === 'pro')
+  const [userRole,            setUserRole]            = useState(() => localStorage.getItem('remi_role') || 'free')
   const [genCount,            setGenCount]            = useState(() => {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7)
@@ -6257,12 +6335,12 @@ export default function App() {
   const [selectedClient,     setSelectedClient]     = useState(null)
   const coachLogTimerRef = useRef(null)
 
-  // Derived role flags — isPro unlocks all Pro-gated features
-  // Coaches, fighters, and pro-tier users all get full Pro access.
-  const isPro = isAdmin || isCoach || isFighter || isProUser
-
-  // Premium gate — synced from Supabase on auth; can also be set via localStorage in console
-  const [isPremium, setIsPremium] = useState(() => localStorage.getItem('remi_premium') === 'true')
+  // Tier helper — single source of truth for all role-based feature gates
+  const tier     = getUserTier({ role: isAdmin ? 'admin' : userRole })
+  const isCoach  = tier.isCoach
+  const isFighter = tier.isFighter
+  const isProUser = tier.isPro
+  const isPro    = tier.isPro
 
   // Did You Cook — find the most recent session that is 12–48h old
   const didYouCookSession = useMemo(() => {
@@ -6342,9 +6420,7 @@ export default function App() {
     const role = ADMIN_EMAILS.includes(email) ? 'admin' : (dbRole || 'free')
     localStorage.setItem('remi_role', role)
     setIsAdmin(role === 'admin')
-    setIsCoach(role === 'coach')
-    setIsFighter(role === 'fighter')
-    setIsProUser(role === 'pro')
+    setUserRole(role)
   }
 
   // ── Session detection on mount ─────────────────────────────────────────────
@@ -6391,10 +6467,6 @@ export default function App() {
           setStreak({ count: 0, lastDate: null })
           setStats({ totalRecipes: 0, totalCalSaved: 0 })
         }
-
-        const premium = data.isPremium === true
-        localStorage.setItem('remi_premium', premium ? 'true' : 'false')
-        setIsPremium(premium)
 
         // Source 1: localStorage profile
         let currentProfile = loadProfileOrEvict()
@@ -6536,10 +6608,6 @@ export default function App() {
             setStats({ totalRecipes: 0, totalCalSaved: 0 })
           }
 
-          const premium = data.isPremium === true
-          localStorage.setItem('remi_premium', premium ? 'true' : 'false')
-          setIsPremium(premium)
-
           let currentProfile = loadProfileOrEvict()
           const localName = (currentProfile?.name || '').trim()
           const dbName = (data.dbProfile?.name || '').trim()
@@ -6595,7 +6663,7 @@ export default function App() {
           localStorage.removeItem('supabase.auth.token')
           localStorage.removeItem('remi_role')
           setIsAdmin(false)
-          setIsCoach(false)
+          setUserRole('free')
           setView('splash')
         }
       })
@@ -6644,7 +6712,7 @@ export default function App() {
     if (!text.trim() || streaming) return
 
     // ── Free-tier generation cap (20 / month) ─────────────────────────────────
-    if (!isPremium) {
+    if (!tier.isPro) {
       const currentMonth = new Date().toISOString().slice(0, 7)
       let capCount = 0
       try {
@@ -7113,7 +7181,7 @@ export default function App() {
     // 2. Reset all React state — no reload, no stale screen
     setProfile(null)
     setIsAdmin(false)
-    setIsCoach(false)
+    setUserRole('free')
     setMessages(SEED)
     setDishes(null)
     setDishImages([])
@@ -7185,6 +7253,11 @@ export default function App() {
   }
 
   async function handleSaveRecipe(dish, imgUrl, imgCredit) {
+    // Enforce saves cap for capped tiers
+    if (tier.savesCap !== null && savedRecipes.length >= tier.savesCap) {
+      showAppToast(`Saved recipe limit reached. Upgrade to Pro.`)
+      return
+    }
     const isFirst = !localStorage.getItem('remi_first_recipe_saved')
     const tempId  = `temp_${Date.now()}`
     const entry   = { ...dish, _id: tempId, _savedAt: Date.now(), _imgUrl: imgUrl ?? null, _imgCredit: imgCredit ?? null }
@@ -7337,6 +7410,8 @@ export default function App() {
     return (
       <>
         <Onboarding
+          existingProfile={profile}
+          userRole={userRole}
           onBack={() => setView(profile ? 'dashboard' : 'splash')}
           onAlreadyOnboarded={() => {
             const currentProfile = loadProfileOrEvict()
@@ -7367,6 +7442,7 @@ export default function App() {
               sport:                saved.primarySport || '',
               goal:                 saved.goal || '',
               training_philosophy:  null,
+              role:                 referralSlugForWrite ? 'pt_referred' : 'free',
               ...(referralSlugForWrite ? { referred_by: referralSlugForWrite } : {}),
             }
             console.log('Onboarding complete, writing profile:', profileData)
@@ -7447,9 +7523,9 @@ export default function App() {
           isCoach={isCoach}
           isFighter={isFighter}
           isProUser={isProUser}
+          isDirect={tier.isDirect}
           onAdminPanel={() => setView('admin-panel')}
           onSignOut={handleSignOut}
-          isPremium={isPremium}
           dayPlanVersion={dayPlanVersion}
           onOpenCookWithPrompt={handleOpenCookWithPrompt}
           onLogSavedRecipe={handleLogSavedRecipe}
@@ -7466,7 +7542,7 @@ export default function App() {
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
           else setView(v)
-        }} isPro={isPro} />
+        }} isPro={tier.canUseIntel} />
         {dayPlanSlotSheet && (() => {
           const SLOTS = ['breakfast', 'lunch', 'dinner']
           const cap   = s => s.charAt(0).toUpperCase() + s.slice(1)
@@ -7620,12 +7696,12 @@ export default function App() {
   if (view === 'intel') {
     return (
       <>
-        <IntelView isPro={isPro} onProClick={() => setShowProModal(true)} />
+        <IntelView isPro={tier.canUseIntel} onProClick={() => setShowProModal(true)} />
         <BottomNav activeView="intel" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('intel'); setView('saved') }
           else if (v === 'chat') handleReset()
           else setView(v)
-        }} isPro={isPro} />
+        }} isPro={tier.canUseIntel} />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
@@ -7650,7 +7726,7 @@ export default function App() {
         <BottomNav activeView="saved" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('cookbook'); setView('saved') }
           else setView(v)
-        }} isPro={isPro} />
+        }} isPro={tier.canUseIntel} />
         {dayPlanSlotSheet && (() => {
           const SLOTS = ['breakfast', 'lunch', 'dinner']
           const cap   = s => s.charAt(0).toUpperCase() + s.slice(1)
@@ -7733,6 +7809,7 @@ export default function App() {
       <>
         <SavedRecipesView
           savedRecipes={savedRecipes}
+          savesCap={tier.savesCap}
           onClose={() => setView(savedBackTo)}
           onRemove={handleRemoveRecipe}
           onOpen={recipe => {
@@ -7745,7 +7822,7 @@ export default function App() {
           if (v === 'saved') return
           setSavedBackTo('saved')
           setView(v)
-        }} isPro={isPro} />
+        }} isPro={tier.canUseIntel} />
       </>
     )
   }
@@ -7774,7 +7851,7 @@ export default function App() {
         <BottomNav activeView="chat" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('reveal'); setView('saved') }
           else setView(v)
-        }} isPro={isPro} />
+        }} isPro={tier.canUseIntel} />
         {dayPlanSlotSheet && (() => {
           const SLOTS = ['breakfast', 'lunch', 'dinner']
           const cap   = s => s.charAt(0).toUpperCase() + s.slice(1)
@@ -8146,7 +8223,7 @@ export default function App() {
           if (v === 'saved') { setSavedBackTo('cards'); setView('saved') }
           else if (v === 'chat') handleReset()
           else setView(v)
-        }} isPro={isPro} />
+        }} isPro={tier.canUseIntel} />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       </>
     )
@@ -8198,7 +8275,7 @@ export default function App() {
                 <span className="presence-dot-pulse" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
                 <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888' }}>In the kitchen</span>
               </div>
-              {!isPremium && (
+              {!tier.isPro && (
                 <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 13, color: '#888888', margin: '3px 0 0', lineHeight: 1 }}>
                   {genCount} / 20 generations this month
                 </p>
@@ -8387,7 +8464,7 @@ export default function App() {
       <BottomNav activeView="chat" onNavigate={v => {
         if (v === 'saved') { setSavedBackTo('chat'); setView('saved') }
         else setView(v)
-      }} isPro={isPro} />
+      }} isPro={tier.canUseIntel} />
       {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
       {showGenCapModal && <GenCapModal onClose={() => setShowGenCapModal(false)} />}
     </>
