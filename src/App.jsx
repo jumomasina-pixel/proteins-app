@@ -2,6 +2,7 @@ import posthog from 'posthog-js'
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import remiLogoUrl from './assets/remi-logo.svg'
 import ClientDetail from './components/ClientDetail'
+import MealPlanner from './components/MealPlanner'
 
 posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
   api_host: 'https://us.i.posthog.com',
@@ -3312,12 +3313,13 @@ function CoachPitchScreen({ onViewRoster, onDashboard }) {
   )
 }
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, isFighter = false, isProUser = false, isDirect = false, onAdminPanel, onSignOut, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {}, onViewRoster = () => {}, onLetCoachKnow = () => {}, onOpenMealPlanner = () => {} }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, isFighter = false, isProUser = false, isDirect = false, onAdminPanel, onSignOut, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {}, onViewRoster = () => {}, onLetCoachKnow = () => {}, onOpenMealPlanner = () => {}, authToken = null }) {
 
   const [dashToast,        setDashToast]        = useState(null)
   const [dayPlanModal,     setDayPlanModal]     = useState(null)
   const [savedRecipesDrawer, setSavedRecipesDrawer] = useState(false)
   const [plannerGateMsg,   setPlannerGateMsg]   = useState(false)
+  const [dashboardPlan,    setDashboardPlan]    = useState(undefined)
   // Log meal modal state
   const [logMealOpen,  setLogMealOpen]  = useState(false)
   const [logName,      setLogName]      = useState('')
@@ -3370,6 +3372,24 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
     } catch { return null }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayPlanVersion])
+
+  // Load this week's meal plan for the Day Plan card
+  useEffect(() => {
+    if (!isPro || !authToken) { setDashboardPlan(null); return }
+    const monday = (() => {
+      const d = new Date()
+      const day = d.getDay()
+      d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
+      return d.toISOString().slice(0, 10)
+    })()
+    let cancelled = false
+    fetch(`/api/meal-plans?week_start=${monday}`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setDashboardPlan(data.plan ?? null) })
+      .catch(() => { if (!cancelled) setDashboardPlan(null) })
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro, authToken])
 
   const dailyCalTarget = profile?.dailyCalTarget || getDailyCalTarget(profile)
 
@@ -3708,62 +3728,70 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
 
               {/* B. DAY PLAN */}
               <div ref={dayPlanRef} style={{ ...cardBase, padding: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <p style={{ ...secLabel, margin: 0 }}>Day Plan</p>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PRO</span>
+                  {isPro ? (
+                    <button
+                      onClick={onOpenMealPlanner}
+                      style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#00E5A0', cursor: 'pointer', padding: 0 }}
+                    >
+                      View Week
+                    </button>
+                  ) : (
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PRO</span>
+                  )}
                 </div>
 
-                {isPro ? (
-                  <>
-                    {(() => {
-                      const planned   = ['breakfast','lunch','dinner'].reduce((sum, k) => sum + (dayPlan?.[k]?.kcal || 0), 0)
-                      const remaining = Math.max(0, dailyCalTarget - planned)
-                      const pct       = Math.min((planned / dailyCalTarget) * 100, 100)
-                      return (
-                        <div style={{ marginBottom: 16 }}>
-                          <div style={{ height: 6, backgroundColor: '#2A2A2A', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
-                            <div style={{ height: '100%', backgroundColor: '#00E5A0', borderRadius: 3, width: `${pct}%`, transition: 'width 0.5s ease' }} />
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#999999' }}>
-                              <span style={{ color: '#E8E8E8', fontWeight: 600 }}>{remaining}</span> kcal remaining
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })()}
-                    <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                {isPro ? (() => {
+                  const weekdayToKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+                  const todayKey = weekdayToKey[new Date().getDay()]
+                  const todaySlots = dashboardPlan?.[todayKey]
+                  if (dashboardPlan === undefined) {
+                    return <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0 }}>Loading…</p>
+                  }
+                  if (!dashboardPlan) {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0, flex: 1 }}>No plan this week.</p>
+                        <button
+                          onClick={onOpenMealPlanner}
+                          style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#00E5A0', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
+                        >
+                          Build your week →
+                        </button>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
                       {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => {
-                        const meal = dayPlan?.[key]
+                        const slot = todaySlots?.[key]
                         return (
-                          <div key={key}
-                            onClick={!meal ? () => setDayPlanModal({ mealKey: key, mealLabel: label }) : undefined}
-                            style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 12, minHeight: 90, cursor: meal ? 'default' : 'pointer', transition: 'border-color 200ms ease' }}>
-                            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
-                            {meal ? (
-                              <>
-                                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#E8E8E8', lineHeight: 1.4, margin: '0 0 4px' }}>{meal.name}</p>
-                                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#00E5A0', fontWeight: 700, margin: 0 }}>{meal.kcal} kcal</p>
-                              </>
+                          <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.10em', textTransform: 'uppercase', flexShrink: 0 }}>{label}</span>
+                            {slot ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
+                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#F0F0F0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot.title}</span>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#00E5A0', flexShrink: 0 }}>{slot.macros?.kcal} kcal</span>
+                              </div>
                             ) : (
-                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#444444' }}>+ Plan {key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888' }}>—</span>
                             )}
                           </div>
                         )
                       })}
                     </div>
-                  </>
-                ) : (
-                  <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-                    {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => (
-                      <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 12, minHeight: 90 }}>
-                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>{label}</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 15 }}>🔒</span>
+                  )
+                })() : (
+                  <div style={{ opacity: 0.5 }}>
+                    <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                      {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => (
+                        <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 12, minHeight: 56 }}>
+                          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
                           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>Unlock with Pro</span>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -7533,6 +7561,8 @@ export default function App() {
           onOpenCookbook={() => setView('cookbook')}
           onAddManualSavedRecipe={dish => handleSaveRecipe(dish, null, null)}
           onViewRoster={() => setView('coach-roster')}
+          onOpenMealPlanner={() => setView('planner')}
+          authToken={getAccessToken()}
           onLetCoachKnow={dishName => {
             const c = (() => { try { return JSON.parse(localStorage.getItem('remi_coach_name') || 'null') } catch { return null } })()
             const coachName = (c?.slug === profile?.referredBy ? c?.name : null) || 'your coach'
@@ -7622,6 +7652,18 @@ export default function App() {
         )}
         {coachLogToast && <CoachLogToast toast={coachLogToast} onSend={handleCoachLogSend} onDismiss={dismissCoachLogToast} />}
       </>
+    )
+  }
+
+  // ── View: Meal Planner ───────────────────────────────────────────────────────
+  if (view === 'planner' && tier.canUsePlanner) {
+    return (
+      <MealPlanner
+        user={{ role: isAdmin ? 'admin' : userRole }}
+        authToken={getAccessToken()}
+        savedRecipes={savedRecipes}
+        onClose={() => setView('dashboard')}
+      />
     )
   }
 
