@@ -6563,14 +6563,6 @@ export default function App() {
     setSavedRecipes(prev => [...prev.filter(r => r.name !== dish.name), entry])
     posthog.capture('recipe_saved', { dish_name: dish.name, cuisine: dish.chef?.cuisine })
 
-    // Open slot-picker sheet so user assigns to the correct meal slot
-    setDayPlanSlotSheet({
-      dish,
-      imgUrl: imgUrl ?? null,
-      imgCredit: imgCredit ?? null,
-      selected: targetMeal ?? 'dinner',
-    })
-
     if (isFirst) {
       localStorage.setItem('remi_first_recipe_saved', 'true')
       setMessages(prev => [...prev, {
@@ -6842,6 +6834,9 @@ export default function App() {
               localStorage.setItem('remi_day_plan', JSON.stringify(plan))
               setDayPlanVersion(v => v + 1)
             } catch {}
+            if (!isRecipeSaved(dayPlanSlotSheet.dish.name)) {
+              handleSaveRecipe(dayPlanSlotSheet.dish, dayPlanSlotSheet.imgUrl, dayPlanSlotSheet.imgCredit)
+            }
             setDayPlanSlotSheet(null)
             setTargetMeal(null)
             showAppToast(`Logged to ${cap(slot)}`)
@@ -6985,6 +6980,9 @@ export default function App() {
               localStorage.setItem('remi_day_plan', JSON.stringify(plan))
               setDayPlanVersion(v => v + 1)
             } catch {}
+            if (!isRecipeSaved(dayPlanSlotSheet.dish.name)) {
+              handleSaveRecipe(dayPlanSlotSheet.dish, dayPlanSlotSheet.imgUrl, dayPlanSlotSheet.imgCredit)
+            }
             setDayPlanSlotSheet(null)
             setTargetMeal(null)
             showAppToast(`Logged to ${cap(slot)}`)
@@ -7105,6 +7103,9 @@ export default function App() {
               localStorage.setItem('remi_day_plan', JSON.stringify(plan))
               setDayPlanVersion(v => v + 1)
             } catch {}
+            if (!isRecipeSaved(dayPlanSlotSheet.dish.name)) {
+              handleSaveRecipe(dayPlanSlotSheet.dish, dayPlanSlotSheet.imgUrl, dayPlanSlotSheet.imgCredit)
+            }
             setDayPlanSlotSheet(null)
             setTargetMeal(null)
             showAppToast(`Logged to ${cap(slot)}`)
@@ -7211,6 +7212,9 @@ export default function App() {
               localStorage.setItem('remi_day_plan', JSON.stringify(plan))
               setDayPlanVersion(v => v + 1)
             } catch {}
+            if (!isRecipeSaved(dayPlanSlotSheet.dish.name)) {
+              handleSaveRecipe(dayPlanSlotSheet.dish, dayPlanSlotSheet.imgUrl, dayPlanSlotSheet.imgCredit)
+            }
             setDayPlanSlotSheet(null)
             setTargetMeal(null)
             showAppToast(`Logged to ${cap(slot)}`)
