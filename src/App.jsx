@@ -2217,7 +2217,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
         <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, fontSize: 16, color: '#888888', lineHeight: 1.65, margin: 0 }}>
           Eat like a chef. Train like an athlete.<br />Live like both.
         </p>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', margin: '8px 0 0', textAlign: 'center' }}>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', margin: '8px 0 0', textAlign: 'center', whiteSpace: 'nowrap' }}>
           Used by fighters, coaches, and home cooks across Australia.
         </p>
       </div>
