@@ -16,7 +16,7 @@ const PROFILE_VERSION = 7
 
 const ADMIN_EMAILS = ['jumomasina@gmail.com']
 
-const LS_KEYS = ['remi_profile', 'lhc_profile', 'lhc_saved_recipes', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
+const LS_KEYS = ['remi_profile', 'lhc_profile', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
 
 function loadProfileOrEvict() {
   try {
@@ -2732,7 +2732,7 @@ const DASHBOARD_STYLES = `
   }
 `
 
-function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {} }) {
+function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, onOpenRecipe, onOpenSessionDish, onQuickStart, onEditProfile, onViewSaved, isAdmin = false, isCoach = false, onAdminPanel, onSignOut, isPremium = false, dayPlanVersion = 0, onOpenCookWithPrompt = () => {}, onLogSavedRecipe = () => {}, onDayPlanUpdated = () => {}, onOpenCookbook = () => {}, onAddManualSavedRecipe = () => {} }) {
 
   const [dashToast,      setDashToast]      = useState(null)
   const [dayPlanModal,   setDayPlanModal]   = useState(null)
@@ -3255,19 +3255,14 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   }
                   localStorage.setItem('remi_day_plan', JSON.stringify(plan))
                   // Optionally append to saved recipes if not already present
-                  try {
-                    const saved = JSON.parse(localStorage.getItem('lhc_saved_recipes') || '[]')
-                    const alreadySaved = saved.some(r => r.name?.toLowerCase() === logName.trim().toLowerCase())
-                    if (!alreadySaved) {
-                      saved.push({
-                        _id: `manual_${Date.now()}`,
-                        name: logName.trim(),
-                        dietician: { macros: { calories: logKcal, protein: logProtein || '—', carbs: logCarbs || '—', fat: logFat || '—' }, cookSteps: [], whatChanges: [] },
-                        chef: { cuisine: '', flavour: '', steps: [], calories: '' },
-                      })
-                      localStorage.setItem('lhc_saved_recipes', JSON.stringify(saved))
-                    }
-                  } catch {}
+                  const alreadySaved = savedRecipes.some(r => r.name?.toLowerCase() === logName.trim().toLowerCase())
+                  if (!alreadySaved) {
+                    onAddManualSavedRecipe({
+                      name: logName.trim(),
+                      dietician: { macros: { calories: logKcal, protein: logProtein || '—', carbs: logCarbs || '—', fat: logFat || '—' }, cookSteps: [], whatChanges: [] },
+                      chef: { cuisine: '', flavour: '', steps: [], calories: '' },
+                    })
+                  }
                   onDayPlanUpdated()
                 } catch {}
                 const slotLabel = logSlot.charAt(0).toUpperCase() + logSlot.slice(1)
@@ -5519,11 +5514,7 @@ export default function App() {
     const hasSession = !!localStorage.getItem('supabase.auth.token')
     return hasSession ? loadProfileOrEvict() : null
   })
-  const [savedRecipes,   setSavedRecipes]   = useState(() => {
-    // loadProfileOrEvict() already cleared storage if version mismatched,
-    // so a missing key here just means a genuine empty list.
-    try { const s = localStorage.getItem('lhc_saved_recipes'); return s ? JSON.parse(s) : [] } catch { return [] }
-  })
+  const [savedRecipes,   setSavedRecipes]   = useState([])
   const [sessions,       setSessions]       = useState(() => {
     try { const s = localStorage.getItem('lhc_sessions'); return s ? JSON.parse(s) : [] } catch { return [] }
   })
@@ -5633,8 +5624,25 @@ export default function App() {
   //   • AuthScreen.onAuthSuccess — direct password sign-in / sign-up
   //   • useEffect hash callback  — password-reset link that lands with a token in the URL
 
+  function getAccessToken() {
+    try { return JSON.parse(localStorage.getItem('supabase.auth.token') || 'null')?.access_token ?? null } catch { return null }
+  }
+
+  async function loadSavedRecipes(token) {
+    if (!token) return
+    try {
+      const r = await fetch('/api/saved-recipes', { headers: { Authorization: `Bearer ${token}` } })
+      if (!r.ok) return
+      const rows = await r.json()
+      setSavedRecipes(rows.map(row => ({ ...row.recipe_data, _id: row.id, _savedAt: new Date(row.saved_at).getTime() })))
+    } catch {
+      // Non-fatal — saved recipes simply stay empty until next load
+    }
+  }
+
   function processAuthResult(accessToken, refreshToken = '') {
     if (!accessToken) { setView('splash'); return }
+    loadSavedRecipes(accessToken)
     fetch('/api/auth-user', { headers: { Authorization: `Bearer ${accessToken}` } })
       .then(r => r.json())
       .then(data => {
@@ -5771,6 +5779,7 @@ export default function App() {
     const token = stored?.access_token
     if (!token) { setView('splash'); return }
 
+    loadSavedRecipes(token)
     fetch('/api/auth-user', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
@@ -6372,14 +6381,13 @@ export default function App() {
     })
   }
 
-  function handleSaveRecipe(dish, imgUrl, imgCredit) {
+  async function handleSaveRecipe(dish, imgUrl, imgCredit) {
     const isFirst = !localStorage.getItem('remi_first_recipe_saved')
-    const entry = { ...dish, _id: `${dish.name}_${Date.now()}`, _savedAt: Date.now(), _imgUrl: imgUrl ?? null, _imgCredit: imgCredit ?? null }
-    setSavedRecipes(prev => {
-      const next = [...prev.filter(r => r.name !== dish.name), entry]
-      localStorage.setItem('lhc_saved_recipes', JSON.stringify(next))
-      return next
-    })
+    const tempId  = `temp_${Date.now()}`
+    const entry   = { ...dish, _id: tempId, _savedAt: Date.now(), _imgUrl: imgUrl ?? null, _imgCredit: imgCredit ?? null }
+
+    // Optimistic — add immediately so the UI feels instant
+    setSavedRecipes(prev => [...prev.filter(r => r.name !== dish.name), entry])
     posthog.capture('recipe_saved', { dish_name: dish.name, cuisine: dish.chef?.cuisine })
 
     // Open slot-picker sheet so user assigns to the correct meal slot
@@ -6399,15 +6407,54 @@ export default function App() {
         dashboardPrompt: true,
       }])
     }
+
+    // Persist to Supabase — swap temp id for the real UUID on success, rollback on error
+    const token = getAccessToken()
+    if (!token) return
+    try {
+      const r = await fetch('/api/saved-recipes', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ recipe_data: entry }),
+      })
+      if (r.ok) {
+        const { id } = await r.json()
+        setSavedRecipes(prev => prev.map(rec => rec._id === tempId ? { ...rec, _id: id } : rec))
+      } else {
+        setSavedRecipes(prev => prev.filter(rec => rec._id !== tempId))
+      }
+    } catch {
+      setSavedRecipes(prev => prev.filter(rec => rec._id !== tempId))
+    }
   }
 
-  function handleRemoveRecipe(nameOrId) {
-    setSavedRecipes(prev => {
-      const next = prev.filter(r => r._id !== nameOrId && r.name !== nameOrId)
-      localStorage.setItem('lhc_saved_recipes', JSON.stringify(next))
-      return next
-    })
+  async function handleRemoveRecipe(nameOrId) {
+    // Capture the recipe before removing so we can rollback if the API call fails
+    const recipe    = savedRecipes.find(r => r._id === nameOrId || r.name === nameOrId)
+    const supabaseId = recipe?._id
+
+    // Optimistic removal
+    setSavedRecipes(prev => prev.filter(r => r._id !== nameOrId && r.name !== nameOrId))
     posthog.capture('recipe_removed', { name_or_id: nameOrId })
+
+    // Skip the API call for temp ids (save still in flight) or if no id found
+    if (!supabaseId || supabaseId.startsWith('temp_')) return
+
+    const token = getAccessToken()
+    if (!token) return
+    try {
+      const r = await fetch('/api/saved-recipes', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ id: supabaseId }),
+      })
+      if (!r.ok && recipe) {
+        // Rollback — re-insert at end of list
+        setSavedRecipes(prev => [...prev, recipe])
+      }
+    } catch {
+      if (recipe) setSavedRecipes(prev => [...prev, recipe])
+    }
   }
 
   function isRecipeSaved(dishName) {
@@ -6594,6 +6641,7 @@ export default function App() {
           onLogSavedRecipe={handleLogSavedRecipe}
           onDayPlanUpdated={() => setDayPlanVersion(v => v + 1)}
           onOpenCookbook={() => setView('cookbook')}
+          onAddManualSavedRecipe={dish => handleSaveRecipe(dish, null, null)}
         />
         <BottomNav activeView="dashboard" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('dashboard'); setView('saved') }
