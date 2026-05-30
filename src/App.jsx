@@ -2097,10 +2097,10 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
 
 const SPLASH_STYLES = `
   @keyframes splash-fade {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  .splash-el   { animation: splash-fade 400ms ease both; }
+  .splash-el   { animation: splash-fade 400ms ease-out both; }
   .splash-el-0 { animation-delay: 0ms; }
   .splash-el-1 { animation-delay: 150ms; }
   .splash-el-2 { animation-delay: 300ms; }
@@ -2205,7 +2205,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 48, color: '#F0F0F0', letterSpacing: '0.01em', margin: 0, lineHeight: 1 }}>
             Remi
           </h1>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#666666', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12 }}>
             Personal Chef · Nutritionist · Guide
           </p>
         </div>
@@ -2779,6 +2779,13 @@ function getDailyCalTarget(profile) {
 }
 
 const DASHBOARD_STYLES = `
+  @keyframes ringGoalPulse {
+    from { stroke: #00E5A0; }
+    50%  { stroke: rgba(0,229,160,0.5); }
+    to   { stroke: #00E5A0; }
+  }
+  .ring-goal-pulse { animation: ringGoalPulse 150ms ease-out 1 both; }
+
   .dash-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -2928,6 +2935,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
   const filledSlots  = ['breakfast','lunch','dinner'].filter(k => !!dayPlan?.[k]?.name).length
   const adherencePct = Math.round((filledSlots / 3) * 100)
   const streakCount  = streak?.count || 0
+  const isGoalHit    = dailyCalTarget > 0 && todayMacros.cals >= dailyCalTarget
 
   const avgProtein = useMemo(() => {
     const weekISOs = new Set(weekData.filter(d => !d.isFuture).map(d => d.iso))
@@ -3002,18 +3010,25 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     <svg width="88" height="88" viewBox="0 0 88 88" style={{ display: 'block', transform: 'rotate(-90deg)' }}>
                       <circle cx="44" cy="44" r={ringR} fill="none" stroke="#2A2A2A" strokeWidth="7" />
                       <circle cx="44" cy="44" r={ringR} fill="none" stroke="#00E5A0" strokeWidth="7" strokeLinecap="round"
+                        className={isGoalHit ? 'ring-goal-pulse' : ''}
                         strokeDasharray={ringCirc}
                         strokeDashoffset={todayMacros.cals === 0 ? ringCirc : ringOffset}
                         style={{ transition: 'stroke-dashoffset 0.6s ease' }}
                       />
                     </svg>
                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, pointerEvents: 'none' }}>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#E8E8E8', lineHeight: 1 }}>
-                        {todayMacros.cals}
-                      </span>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#888888', lineHeight: 1 }}>
-                        of {dailyCalTarget}
-                      </span>
+                      {isGoalHit ? (
+                        <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, color: '#F0F0F0', lineHeight: 1, textAlign: 'center' }}>Goal hit.</span>
+                      ) : (
+                        <>
+                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: '#E8E8E8', lineHeight: 1 }}>
+                            {todayMacros.cals}
+                          </span>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#888888', lineHeight: 1 }}>
+                            of {dailyCalTarget}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -3493,6 +3508,17 @@ const ONBOARDING_STYLES = `
   }
   .ob-step { animation: ob-fade-up 0.28s ease both; }
 
+  @keyframes obProgressPulse {
+    from { background-color: #00E5A0; opacity: 1; }
+    50%  { background-color: rgba(0,229,160,0.5); opacity: 1; }
+    to   { background-color: #00E5A0; opacity: 0; }
+  }
+  .ob-progress-pulse {
+    position: absolute; top: 0; left: 0; height: 100%;
+    border-radius: 0 2px 2px 0; pointer-events: none;
+    animation: obProgressPulse 150ms ease-out 1 forwards;
+  }
+
   @keyframes remi-scale-in {
     0%   { opacity: 0; transform: scale(0.55); }
     65%  { transform: scale(1.07); }
@@ -3774,6 +3800,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded }) {
       {/* Mint progress line — fixed top */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#1A1A1A', zIndex: 100 }}>
         <div style={{ height: '100%', width: `${(visibleIndex / visibleTotal) * 100}%`, backgroundColor: '#00E5A0', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', borderRadius: '0 2px 2px 0' }} />
+        <div key={step} className="ob-progress-pulse" style={{ width: `${(visibleIndex / visibleTotal) * 100}%` }} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 480, width: '100%', margin: '0 auto', padding: '60px 24px 40px' }}>
@@ -5327,9 +5354,18 @@ const REVEAL_STYLES = `
     animation: revealGlow 1400ms ease-out both;
   }
   .reveal-foot   { animation: revealFade 400ms ease 600ms both; }
+
+  @keyframes card1Ring {
+    0%   { box-shadow: 0 0 0 1px rgba(0,229,160,0); }
+    24%  { box-shadow: 0 0 0 1px rgba(0,229,160,0); }
+    30%  { box-shadow: 0 0 0 1px rgba(0,229,160,0.2); }
+    84%  { box-shadow: 0 0 0 1px rgba(0,229,160,0.2); }
+    100% { box-shadow: 0 0 0 1px rgba(0,229,160,0); }
+  }
+  .reveal-card-highlight { animation: card1Ring 2.5s ease-out 1 both; }
 `
 
-function RevealCard({ dish, onOpen, delay = 0, onAddToDayPlan = null }) {
+function RevealCard({ dish, onOpen, delay = 0, onAddToDayPlan = null, isFirst = false }) {
   const m = dish?.dietician?.macros || {}
   const cuisine = dish?.chef?.cuisine
   const hook    = dish?.dietician?.note || dish?.chef?.flavour || ''
@@ -5346,7 +5382,7 @@ function RevealCard({ dish, onOpen, delay = 0, onAddToDayPlan = null }) {
       {/* Bloom-then-settle mint glow — behind the card container ONLY, never behind text */}
       <div className="reveal-glow" aria-hidden style={{ animationDelay: `${delay}ms` }} />
       <div
-        className="reveal-card"
+        className={`reveal-card${isFirst ? ' reveal-card-highlight' : ''}`}
         role="button"
         tabIndex={0}
         onClick={open}
@@ -5486,7 +5522,7 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToD
           }}
         >
           {(dishes || []).map((dish, i) => (
-            <RevealCard key={i} dish={dish} delay={i * 150} onOpen={onOpenDish} onAddToDayPlan={onAddToDayPlan} />
+            <RevealCard key={i} dish={dish} delay={i * 150} onOpen={onOpenDish} onAddToDayPlan={onAddToDayPlan} isFirst={i === 0} />
           ))}
         </div>
       </div>
