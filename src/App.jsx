@@ -5461,6 +5461,73 @@ function AuthScreen({ onBack, onAuthSuccess }) {
 
 // ── Welcome Back screen ────────────────────────────────────────────────────────
 
+// ── Did You Cook? card — shown on welcome-back screen for pending recipes ────
+function DidYouCookCard({ dishes: initialDishes, onCookedIt, onCookingTonight, onSkipped }) {
+  const [localDishes]              = useState(() => initialDishes)
+  const [fadingIds,   setFadingIds]   = useState(new Set())
+  const [resolvedIds, setResolvedIds] = useState(new Set())
+  const [cardFading,  setCardFading]  = useState(false)
+  const [cardGone,    setCardGone]    = useState(false)
+
+  function resolve(dish, action) {
+    setFadingIds(prev => new Set([...prev, dish.id]))
+    const willBeAllDone = resolvedIds.size + 1 >= localDishes.length
+    setTimeout(() => {
+      if (action === 'cooked')   onCookedIt(dish)
+      else if (action === 'tonight') onCookingTonight(dish)
+      else                       onSkipped(dish)
+      setResolvedIds(prev => new Set([...prev, dish.id]))
+      if (willBeAllDone) {
+        setTimeout(() => {
+          setCardFading(true)
+          setTimeout(() => setCardGone(true), 200)
+        }, 50)
+      }
+    }, 200)
+  }
+
+  if (cardGone) return null
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 360,
+      backgroundColor: '#1A1A1A',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 10,
+      padding: 16,
+      marginTop: 24,
+      opacity: cardFading ? 0 : 1,
+      transition: 'opacity 200ms ease',
+    }}>
+      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px' }}>
+        DID YOU COOK?
+      </p>
+      {localDishes.map(dish => {
+        if (resolvedIds.has(dish.id)) return null
+        const isFading = fadingIds.has(dish.id)
+        return (
+          <div key={dish.id} style={{ marginBottom: 12, opacity: isFading ? 0 : 1, transition: 'opacity 200ms ease' }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500, color: '#F0F0F0', margin: '0 0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {dish.title}
+            </p>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button onClick={() => resolve(dish, 'cooked')} style={{ backgroundColor: '#00E5A0', color: '#0D0D0D', border: 'none', borderRadius: 6, padding: '6px 14px', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation' }}>
+                Cooked it
+              </button>
+              <button onClick={() => resolve(dish, 'tonight')} style={{ backgroundColor: '#1A1A1A', color: '#F0F0F0', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 14px', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation' }}>
+                Cooking tonight
+              </button>
+              <button onClick={() => resolve(dish, 'skip')} style={{ background: 'none', border: 'none', color: '#888888', borderRadius: 6, padding: '6px 14px', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation' }}>
+                Skipped it
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 const WELCOME_BACK_STYLES = `
   .remi-pill {
     background: transparent;
@@ -5481,7 +5548,7 @@ const WELCOME_BACK_STYLES = `
   }
 `
 
-function WelcomeBackScreen({ name, lastSignInAt, onKitchen, onDashboard }) {
+function WelcomeBackScreen({ name, lastSignInAt, onKitchen, onDashboard, pendingDishes = [], onCookedIt, onCookingTonight, onSkipped }) {
   function getGreeting() {
     if (name === 'there') return "Back in the kitchen. Where do you want to start?"
     if (!lastSignInAt) return `Been a while, ${name}. No judgment. Let's get back on it.`
@@ -5520,6 +5587,14 @@ function WelcomeBackScreen({ name, lastSignInAt, onKitchen, onDashboard }) {
       }}>
         {getGreeting()}
       </p>
+      {pendingDishes.length > 0 && (
+        <DidYouCookCard
+          dishes={pendingDishes}
+          onCookedIt={onCookedIt}
+          onCookingTonight={onCookingTonight}
+          onSkipped={onSkipped}
+        />
+      )}
       <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
         <button className="remi-pill" onClick={onKitchen}>Head to the Kitchen</button>
         <button className="remi-pill" onClick={onDashboard}>Refine my Approach</button>
@@ -6743,6 +6818,9 @@ export default function App() {
   const [profileNudgeShown,  setProfileNudgeShown]  = useState(() => {
     try { return localStorage.getItem('remi_profile_nudge_shown') === 'true' } catch { return false }
   })
+  const [pendingCookCheck,   setPendingCookCheck]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem('remi_pending_cook_check') || '[]') } catch { return [] }
+  })
   const [selectedClient,     setSelectedClient]     = useState(null)
   const coachLogTimerRef = useRef(null)
 
@@ -6775,6 +6853,46 @@ export default function App() {
 
   function handleCookedNo() {
     setCookedConfirmation("No worries — what are we making today?")
+  }
+
+  function confirmCookedDish(pendingItem) {
+    updateStreak()
+    const calSaved = Math.max(0, 850 - (pendingItem.kcal || 0))
+    setStats(prev => {
+      const next = {
+        totalRecipes:    (prev?.totalRecipes    ?? 0) + 1,
+        totalCalSaved:   (prev?.totalCalSaved   ?? 0) + calSaved,
+        totalMoneySaved: (prev?.totalMoneySaved ?? 0) + 14,
+      }
+      localStorage.setItem('lhc_stats', JSON.stringify(next))
+      return next
+    })
+    setPendingCookCheck(prev => {
+      const updated = prev.filter(p => p.id !== pendingItem.id)
+      localStorage.setItem('remi_pending_cook_check', JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  function cookingTonightDish(pendingItem) {
+    try {
+      const tonight = JSON.parse(localStorage.getItem('remi_cooking_tonight') || '[]')
+      const updated = [...tonight.filter(i => i.id !== pendingItem.id), pendingItem]
+      localStorage.setItem('remi_cooking_tonight', JSON.stringify(updated))
+    } catch {}
+    setPendingCookCheck(prev => {
+      const updated = prev.filter(p => p.id !== pendingItem.id)
+      localStorage.setItem('remi_pending_cook_check', JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  function skipDish(pendingItem) {
+    setPendingCookCheck(prev => {
+      const updated = prev.filter(p => p.id !== pendingItem.id)
+      localStorage.setItem('remi_pending_cook_check', JSON.stringify(updated))
+      return updated
+    })
   }
 
   const scrollRef        = useRef(null)
@@ -6938,6 +7056,25 @@ export default function App() {
   // Warm-up ping — fires once on mount to keep the /api/meals function warm
   useEffect(() => {
     fetch('/api/meals').catch(() => {})
+  }, [])
+
+  // Re-queue any "Cooking tonight" items from last session into pending cook check
+  useEffect(() => {
+    try {
+      const tonight = JSON.parse(localStorage.getItem('remi_cooking_tonight') || '[]')
+      if (tonight.length === 0) return
+      setPendingCookCheck(prev => {
+        const requeued = tonight.map(item => ({
+          ...item,
+          title: `Last night — ${item.title}`,
+          savedAt: Date.now(),
+        }))
+        const updated = [...prev, ...requeued].slice(-3)
+        localStorage.setItem('remi_pending_cook_check', JSON.stringify(updated))
+        return updated
+      })
+      localStorage.removeItem('remi_cooking_tonight')
+    } catch {}
   }, [])
 
   // ── Validate referral slug (if any) — runs once, fires the splash line ───────
@@ -7525,8 +7662,10 @@ export default function App() {
     setView('chat')
   }
 
-  function handleAddToDayPlan(dish) {
-    setDayPlanSlotSheet({ dish, imgUrl: dish._imgUrl ?? null, imgCredit: dish._imgCredit ?? null, selected: 'breakfast' })
+  function handleAddToDayPlan(_dish) {
+    const today = new Date().toISOString().slice(0, 10)
+    setPlannerInitialSlot({ day: today, meal: null })
+    setView('planner')
   }
 
   function handleLogSavedRecipe(dish) {
@@ -7676,10 +7815,6 @@ export default function App() {
       localStorage.setItem('lhc_sessions', JSON.stringify(next))
       return next
     })
-    // Update streak
-    updateStreak()
-    // Update stats
-    updateStats(parsedDishes || [])
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
   }
 
@@ -7723,6 +7858,17 @@ export default function App() {
     // Optimistic — add immediately so the UI feels instant
     setSavedRecipes(prev => [...prev.filter(r => r.name !== dish.name), entry])
     posthog.capture('recipe_saved', { dish_name: dish.name, cuisine: dish.chef?.cuisine })
+
+    // Queue for Did You Cook check-in — stats only update on explicit cook confirmation
+    try {
+      const kcal = parseInt(String(dish.dietician?.macros?.calories || dish.macros?.calories || '0').replace(',', '')) || 0
+      const pendingEntry = { id: tempId, title: dish.name, kcal, savedAt: Date.now() }
+      setPendingCookCheck(prev => {
+        const updated = [...prev.filter(p => p.title !== dish.name), pendingEntry].slice(-3)
+        localStorage.setItem('remi_pending_cook_check', JSON.stringify(updated))
+        return updated
+      })
+    } catch {}
 
     if (isFirst) {
       localStorage.setItem('remi_first_recipe_saved', 'true')
@@ -8195,12 +8341,23 @@ export default function App() {
 
   // ── View: Welcome Back ───────────────────────────────────────────────────────
   if (view === 'welcome-back' && welcomeBackData) {
+    const TWO_HOURS = 2 * 60 * 60 * 1000
+    const duePending = pendingCookCheck.filter(d => Date.now() - d.savedAt > TWO_HOURS)
+    function clearPendingAndGo(action) {
+      try { localStorage.removeItem('remi_pending_cook_check') } catch {}
+      setPendingCookCheck([])
+      action()
+    }
     return (
       <WelcomeBackScreen
         name={welcomeBackData.name}
         lastSignInAt={welcomeBackData.lastSignInAt}
-        onKitchen={handleReset}
-        onDashboard={() => setView('dashboard')}
+        pendingDishes={duePending}
+        onCookedIt={confirmCookedDish}
+        onCookingTonight={cookingTonightDish}
+        onSkipped={skipDish}
+        onKitchen={() => clearPendingAndGo(handleReset)}
+        onDashboard={() => clearPendingAndGo(() => setView('dashboard'))}
       />
     )
   }
