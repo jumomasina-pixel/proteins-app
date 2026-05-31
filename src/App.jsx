@@ -923,7 +923,7 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors duration-200"
-            style={{ color: active ? '#00E5A0' : '#888888' }}
+            style={{ color: active ? '#00E5A0' : '#888888', touchAction: 'manipulation' }}
             aria-label={item.label}
           >
             <div style={{ position: 'relative', display: 'inline-flex' }}>
@@ -1299,7 +1299,7 @@ function FridgeTray({
         </span>
         <button
           onClick={onToggleExpand}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, ...headerLabelStyle }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 12px', minHeight: 44, ...headerLabelStyle }}
         >
           {trayExpanded ? 'COLLAPSE' : 'EXPAND'}
         </button>
@@ -1448,7 +1448,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
           </span>
           <button
             onClick={() => setExpanded(e => !e)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#888888', fontFamily: 'Inter, sans-serif', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 500 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, minHeight: 44, color: '#888888', fontFamily: 'Inter, sans-serif', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 500 }}
             aria-expanded={expanded}
           >
             {expanded ? 'Collapse' : 'Expand'}
@@ -1456,7 +1456,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
         </div>
 
         {expanded && (
-          <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+          <div style={{ maxHeight: 180, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <p style={labelStyle}>Proteins</p>
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               {PROTEIN_CARDS.map(card => (
@@ -1941,7 +1941,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
           </div>
         </>
       ) : (
-        <div className="relative w-full overflow-hidden" style={{ height: '55vh', backgroundColor: '#1A1A1A' }}>
+        <div className="relative w-full overflow-hidden" style={{ height: '55dvh', backgroundColor: '#1A1A1A' }}>
           <button
             onClick={onBack}
             style={{
@@ -2192,7 +2192,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
       <div className="fixed bottom-0 inset-x-0 z-50 bg-[rgba(13,13,13,0.97)] border-t border-[rgba(255,255,255,0.08)] backdrop-blur-sm sm:static sm:inset-auto sm:bg-transparent sm:border-0 sm:backdrop-blur-none sm:max-w-2xl sm:mx-auto sm:mt-8 sm:px-4">
         {/* Divider (mobile only — desktop uses mt-8 spacing above) */}
         <div className="sm:hidden h-px mx-4 mt-0" style={{ backgroundColor: '#2A2A2A' }} />
-        <div className="p-4 space-y-2.5">
+        <div className="p-4 space-y-2.5" style={{ paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}>
           {/* Save button */}
           <button
             onClick={handleBookmark}
@@ -2550,7 +2550,7 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose, savesCap = 
             )}
           </div>
           <button onClick={onClose}
-            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200 mt-1.5"
+            className="shrink-0 text-xs font-medium px-3 py-3 rounded-lg transition-colors duration-200 mt-1.5"
             style={{ color: '#888888', border: '1px solid rgba(255,255,255,0.08)' }}>
             ← Back
           </button>
@@ -3375,7 +3375,7 @@ function CoachLogToast({ toast, onSend, onDismiss }) {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 80, left: 16, right: 16,
+      position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', left: 16, right: 16,
       zIndex: 999, boxSizing: 'border-box',
       backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 8, padding: '12px 16px',
@@ -3387,10 +3387,10 @@ function CoachLogToast({ toast, onSend, onDismiss }) {
         Let {firstName} know what you cooked?
       </p>
       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-        <button onClick={onSend} style={{ height: 32, padding: '0 14px', borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+        <button onClick={onSend} style={{ height: 44, padding: '0 14px', borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
           Send
         </button>
-        <button onClick={onDismiss} style={{ height: 32, padding: '0 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#888888', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 13, cursor: 'pointer' }}>
+        <button onClick={onDismiss} style={{ height: 44, padding: '0 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#1A1A1A', color: '#888888', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 13, cursor: 'pointer' }}>
           Skip
         </button>
       </div>
@@ -4074,7 +4074,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   value={val}
                   onChange={e => set(e.target.value)}
                   placeholder={label}
-                  style={{ height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0D0D0D', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontSize: 13, padding: '0 10px', boxSizing: 'border-box', outline: 'none', width: '100%' }}
+                  style={{ height: 44, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0D0D0D', color: '#F0F0F0', fontFamily: 'Inter, sans-serif', fontSize: 16, padding: '0 10px', boxSizing: 'border-box', outline: 'none', width: '100%' }}
                 />
               ))}
             </div>
@@ -4155,7 +4155,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                 Saved Recipes
               </p>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0', WebkitOverflowScrolling: 'touch' }}>
               {savedRecipes.length === 0 ? (
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', padding: '24px 20px', textAlign: 'center', margin: 0 }}>
                   Nothing saved yet.
@@ -4175,7 +4175,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     </div>
                     <button
                       onClick={() => { setSavedRecipesDrawer(false); onLogSavedRecipe(recipe) }}
-                      style={{ flexShrink: 0, height: 32, padding: '0 14px', borderRadius: 16, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                      style={{ flexShrink: 0, height: 44, padding: '0 14px', borderRadius: 16, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                       Log this
                     </button>
                   </div>
@@ -5436,21 +5436,21 @@ function AuthScreen({ onBack, onAuthSuccess }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
           {mode === 'signin' && (
             <>
-              <button onClick={() => switchMode('forgot')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+              <button onClick={() => switchMode('forgot')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
                 Forgot password?
               </button>
-              <button onClick={() => switchMode('signup')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+              <button onClick={() => switchMode('signup')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
                 New here?{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Create an account</span>
               </button>
             </>
           )}
           {mode === 'signup' && (
-            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
               Already have one.{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Sign in.</span>
             </button>
           )}
           {mode === 'forgot' && (
-            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
+            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
               ← Back to sign in
             </button>
           )}
