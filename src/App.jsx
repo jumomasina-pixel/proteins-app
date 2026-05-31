@@ -661,6 +661,8 @@ const TIME_CARDS = [
 const PANTRY_CARDS = [
   { value: 'garlic',          label: 'Garlic'          },
   { value: 'onion',           label: 'Onion'           },
+  { value: 'ginger',          label: 'Ginger'          },
+  { value: 'chilli',          label: 'Chilli'          },
   { value: 'rice',            label: 'Rice'            },
   { value: 'pasta',           label: 'Pasta'           },
   { value: 'tinned tomatoes', label: 'Tinned tomatoes' },
@@ -671,7 +673,11 @@ const PANTRY_CARDS = [
   { value: 'sweet potato',    label: 'Sweet potato'    },
   { value: 'lemon',           label: 'Lemon'           },
   { value: 'soy sauce',       label: 'Soy sauce'       },
-  { value: 'chilli',          label: 'Chilli'          },
+  { value: 'fish sauce',      label: 'Fish sauce'      },
+  { value: 'olive oil',       label: 'Olive oil'       },
+  { value: 'cumin',           label: 'Cumin'           },
+  { value: 'paprika',         label: 'Paprika'         },
+  { value: 'sriracha',        label: 'Sriracha'        },
 ]
 
 // ── Dynamic chip architecture ─────────────────────────────────────────────────
