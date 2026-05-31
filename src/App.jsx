@@ -4158,7 +4158,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
               {savedRecipes.length === 0 ? (
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', padding: '24px 20px', textAlign: 'center', margin: 0 }}>
-                  No saved recipes yet.
+                  Nothing saved yet.
                 </p>
               ) : (
                 savedRecipes.map((recipe, i) => (
@@ -5919,7 +5919,7 @@ function AdminPanel({ onBack }) {
               whiteSpace: 'nowrap', transition: 'opacity 150ms ease',
             }}
           >
-            {loading && !user ? 'Looking…' : 'Look up user'}
+            {loading && !user ? 'Searching.' : 'Look up user'}
           </button>
         </div>
 
@@ -5975,7 +5975,7 @@ function AdminPanel({ onBack }) {
                 transition: 'all 150ms ease',
               }}
             >
-              {loading ? 'Updating…' : selectedRole === user.role ? 'No change' : 'Update role'}
+              {loading ? 'Updating.' : selectedRole === user.role ? 'No change' : 'Update role'}
             </button>
 
             {status === 'success' && (
@@ -6055,7 +6055,7 @@ function AdminPanel({ onBack }) {
                     transition: 'all 150ms ease',
                   }}
                 >
-                  {resetLoading ? 'Resetting…' : 'Reset this user'}
+                  {resetLoading ? 'Resetting.' : 'Reset this user'}
                 </button>
               )
             })()}
@@ -6753,7 +6753,7 @@ function ProfileEditView({ profile, userRole, onSave, savedRecipes = [], savesCa
           border: 'none', cursor: saving ? 'default' : 'pointer',
           touchAction: 'manipulation',
         }}>
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Saving.' : 'Save Changes'}
         </button>
       </div>
     </div>
