@@ -1128,7 +1128,19 @@ function ChatBubble({ role, content, isStreaming, isOpening }) {
 }
 
 // Cooking state — three mint dots + in-character line + plating sub-line. No spinner.
+const COOKING_MESSAGES = [
+  { main: 'Reading your fridge.', sub: 'REMI IS THINKING · JUST A MOMENT' },
+  { main: 'Building three dishes.', sub: 'WORKING THROUGH THE OPTIONS · BEAR WITH IT' },
+  { main: 'Plating up.', sub: 'ALMOST THERE · UP TO A MINUTE TOTAL' },
+]
+
 function CookingState() {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % COOKING_MESSAGES.length), 18000)
+    return () => clearInterval(t)
+  }, [])
+  const msg = COOKING_MESSAGES[idx]
   return (
     <div style={{ display: 'inline-block', maxWidth: '85%' }}>
       <div
@@ -1149,11 +1161,11 @@ function CookingState() {
             />
           ))}
           <span style={{ marginLeft: 4, fontFamily: 'Inter, sans-serif', fontSize: 15, fontStyle: 'normal', color: '#F0F0F0' }}>
-            Tasting it through.
+            {msg.main}
           </span>
         </div>
         <p style={{ margin: 0, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          Remi is plating · about 6 seconds
+          {msg.sub}
         </p>
       </div>
     </div>
@@ -2465,6 +2477,12 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
 // ── Loading screen ────────────────────────────────────────────────────────────
 
 function ChefLoader() {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % COOKING_MESSAGES.length), 18000)
+    return () => clearInterval(t)
+  }, [])
+  const msg = COOKING_MESSAGES[idx]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <div className="flex items-center gap-3.5">
@@ -2476,8 +2494,11 @@ function ChefLoader() {
           />
         ))}
       </div>
+      <p style={{ margin: 0, fontFamily: 'Inter, sans-serif', fontSize: 15, color: '#F0F0F0' }}>
+        {msg.main}
+      </p>
       <p style={{ margin: 0, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-        Remi is plating · about 6 seconds
+        {msg.sub}
       </p>
     </div>
   )
