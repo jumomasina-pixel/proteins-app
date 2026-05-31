@@ -1745,7 +1745,7 @@ function ShareCardModal({ dish, imgUrl, onClose }) {
             className="w-full py-3.5 rounded-xl text-sm font-semibold"
             style={{ backgroundColor: '#1A1A1A', color: '#444', border: '1px solid rgba(255,255,255,0.08)', cursor: 'not-allowed' }}
           >
-            Export card — coming next session
+            Export — coming soon
           </button>
           <button
             onClick={onClose}
@@ -2311,11 +2311,8 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
           <h1 className="splash-el splash-el-2" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.5rem, 11vw, 3rem)', color: '#00E5A0', letterSpacing: '-0.01em', margin: '12px 0 0', lineHeight: 1.05 }}>
             {firstName}
           </h1>
-          <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, fontWeight: 400, color: '#888888', margin: '20px 0 0', lineHeight: 1.5 }}>
-            {referralCoachName} has set up Remi for you.
-          </p>
           <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#666666', margin: '10px 0 0', lineHeight: 1.5, textAlign: 'center' }}>
-            Used by fighters, coaches, and home cooks across Australia.
+            Fighters. Coaches. Home cooks. All eating properly.
           </p>
           <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 300, color: '#888888', lineHeight: 1.6, margin: '18px 0 0' }}>
             Eat like a chef. Train like an athlete.<br />Live like both.
@@ -2334,7 +2331,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
             onClick={onGetStarted}
             style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
           >
-            Already have an account? Sign in
+            Already have one. Sign in.
           </button>
         </div>
       </div>
@@ -2372,7 +2369,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
           Eat like a chef. Train like an athlete.<br />Live like both.
         </p>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', margin: '8px auto 0', textAlign: 'center', maxWidth: 420, width: '100%' }}>
-          Used by fighters, coaches, and home cooks across Australia.
+          Fighters. Coaches. Home cooks. All eating properly.
         </p>
       </div>
 
@@ -2402,7 +2399,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
               onClick={() => setShowReferralInput(true)}
               style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0, marginTop: 16, textAlign: 'center', lineHeight: 1.5 }}
             >
-              Joining via your coach or PT? Enter their code.
+              Have a coach code? Enter it here.
             </button>
           ) : (
             <div style={{ marginTop: 16, width: '100%' }}>
@@ -2442,7 +2439,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
           onClick={onGetStarted}
           style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '4px 0' }}
         >
-          Already have an account?{' '}<span style={{ color: '#F0F0F0' }}>Sign in</span>
+          Already have one.{' '}<span style={{ color: '#F0F0F0' }}>Sign in.</span>
         </button>
       </div>
     </div>
@@ -2544,11 +2541,11 @@ function SavedRecipesView({ savedRecipes, onOpen, onRemove, onClose, savesCap = 
                 ? `${savedRecipes.length} / ${savesCap} saved`
                 : savedRecipes.length > 0
                   ? `${savedRecipes.length} saved recipe${savedRecipes.length !== 1 ? 's' : ''}`
-                  : 'Your bookmarked recipes live here'}
+                  : 'Recipes worth keeping.'}
             </p>
             {savesCap !== null && savedRecipes.length >= savesCap && (
               <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '4px 0 0' }}>
-                Saved recipe limit reached. Upgrade to Pro.
+                Recipe limit hit. Upgrade to keep saving.
               </p>
             )}
           </div>
@@ -2793,12 +2790,12 @@ function CookbookView({ savedRecipes, onBack, onOpenRecipe, onAddToDayPlan, onSt
         {savedRecipes.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', textAlign: 'center', gap: 20 }}>
             <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', margin: 0, maxWidth: 280, lineHeight: 1.6 }}>
-              No saved recipes yet. Start cooking to build your cookbook.
+              Nothing saved yet. Cook something worth keeping.
             </p>
             <button
               onClick={onStartCooking}
               style={{ height: 48, padding: '0 28px', borderRadius: 8, border: 'none', backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
-              Start cooking →
+              Open your fridge →
             </button>
           </div>
         ) : (
@@ -2985,7 +2982,7 @@ function CoachRosterView({ slug, onBack, onSelectClient = () => {} }) {
         {/* Empty state */}
         {clients !== null && clients.length === 0 && (
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', textAlign: 'center', marginTop: 60, lineHeight: 1.6 }}>
-            No clients yet. Share your link and build your roster.
+            No clients yet. Share your link.
           </p>
         )}
 
@@ -3222,7 +3219,7 @@ function CoachCard({ slug, clientCount, seatCap, onViewRoster }) {
       </div>
 
       <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', lineHeight: 1.5, margin: 0 }}>
-        Every client you bring earns you $1/month. Build your roster.
+        Every client earns you $1/month.
       </p>
 
       {/* View Roster */}
@@ -3403,9 +3400,9 @@ function CoachLogToast({ toast, onSend, onDismiss }) {
 
 function CoachPitchScreen({ onViewRoster, onDashboard }) {
   const FEATURES = [
-    { num: '01', label: 'Watch their fuelling, daily' },
+    { num: '01', label: 'See what they\'re eating. Every day.' },
     { num: '02', label: 'Your link, your roster' },
-    { num: '03', label: 'Founding pricing, locked for life' },
+    { num: '03', label: 'Founding price. Locked forever.' },
   ]
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', boxSizing: 'border-box' }}>
@@ -3659,7 +3656,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   )}
                 </div>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#CCCCCC', lineHeight: 1.6, margin: 0 }}>
-                  {greetingLine || "Good to have you back. Let's eat well tonight."}
+                  {greetingLine || "Back. Let's eat properly tonight."}
                 </p>
               </div>
 
@@ -3718,14 +3715,14 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   style={{ ...cardBase, border: '0.5px solid rgba(255,255,255,0.08)', padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <i className="ti ti-flame" style={{ fontSize: 18, color: '#00E5A0' }} />
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Cook</span>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>Generate dinner</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>Open your fridge</span>
                 </button>
 
                 <button className="dash-action" onClick={() => setLogMealOpen(true)}
                   style={{ ...cardBase, border: '0.5px solid rgba(255,255,255,0.08)', padding: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <i className="ti ti-pencil" style={{ fontSize: 18, color: '#00E5A0' }} />
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Log meal</span>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>Manual entry</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>What you ate</span>
                 </button>
 
                 <button className="dash-action"
@@ -3740,7 +3737,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   <i className="ti ti-calendar" style={{ fontSize: 18, color: '#00E5A0', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#E8E8E8', display: 'block' }}>Day Plan</span>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>View today's plan</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888', display: 'block' }}>Today's meals</span>
                   </div>
                   {!isPro && (
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>PRO</span>
@@ -3884,7 +3881,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   if (!dashboardPlan) {
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0, flex: 1 }}>No plan this week.</p>
+                        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: 0, flex: 1 }}>No plan this week. Build one.</p>
                         <button
                           onClick={onOpenMealPlanner}
                           style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#00E5A0', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
@@ -3941,7 +3938,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                   {!canViewHistory ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <svg viewBox="0 0 18 14" width="13" height="10" fill="#C9A84C"><path d="M9 0L11.5 5L18 3.5L15 10H3L0 3.5L6.5 5L9 0Z"/><rect x="3" y="11" width="12" height="2.5" rx="1"/></svg>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>Pro feature — session history is unlocked with Pro.</span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>Session history is a Pro feature.</span>
                     </div>
                   ) : recentMeals.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -3957,7 +3954,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                       ))}
                     </div>
                   ) : (
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>No meals cooked yet.</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: 0 }}>Nothing logged yet.</p>
                   )}
                 </div>
 
@@ -4899,7 +4896,7 @@ function ProfileComplete({ profile, onEnter }) {
           Remi is ready.
         </h2>
         <p className="remi-word-up" style={{ fontSize: '0.9375rem', color: '#888', fontFamily: "Inter, sans-serif", lineHeight: 1.6, marginBottom: 48, animationDelay: '0.42s' }}>
-          Built around you. Let's get to work.
+          Now we cook.
         </p>
         <button
           onClick={onEnter}
@@ -4958,7 +4955,7 @@ function GenCapModal({ onClose }) {
           THAT'S YOUR 20 FOR THE MONTH
         </p>
         <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 16, color: '#F0F0F0', margin: '0 0 8px', lineHeight: 1.5 }}>
-          You've hit the free limit. Upgrade to keep cooking with Remi.
+          That's your 20. Upgrade to keep cooking.
         </p>
         <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 14, color: '#888888', margin: '0 0 28px' }}>
           Resets {resetLabel}
@@ -4984,7 +4981,7 @@ function GenCapModal({ onClose }) {
             padding: '8px 0',
           }}
         >
-          Maybe later
+          Not now
         </button>
       </div>
     </div>
@@ -5449,7 +5446,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
           )}
           {mode === 'signup' && (
             <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: 0 }}>
-              Already have an account?{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Sign in</span>
+              Already have one.{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Sign in.</span>
             </button>
           )}
           {mode === 'forgot' && (
@@ -5478,7 +5475,7 @@ function OrientationScreen({ name, onBegin }) {
   const lines = [
     { num: '01', text: "I'll ask you eight questions. Your sport, your goals, what's in your kitchen." },
     { num: '02', text: "Every answer makes what I cook for you more precise." },
-    { num: '03', text: "This takes about two minutes. Do it once — I remember everything." },
+    { num: '03', text: "Two minutes. Do it once." },
   ]
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 32px' }}>
@@ -7910,7 +7907,7 @@ export default function App() {
   async function handleSaveRecipe(dish, imgUrl, imgCredit) {
     // Enforce saves cap for capped tiers
     if (tier.savesCap !== null && savedRecipes.length >= tier.savesCap) {
-      showAppToast(`Saved recipe limit reached. Upgrade to Pro.`)
+      showAppToast(`Recipe limit hit. Upgrade to keep saving.`)
       return
     }
     const isFirst = !localStorage.getItem('remi_first_recipe_saved')
@@ -8852,8 +8849,8 @@ export default function App() {
                   <div className="flex items-center gap-3">
                     <span style={{ fontSize: '1.25rem' }}>🔒</span>
                     <div className="flex-1">
-                      <p style={{ color: '#C9A84C', fontWeight: 600, fontSize: '0.875rem' }}>Kitchen's closed for today</p>
-                      <p style={{ color: '#888888', fontSize: '0.75rem', marginTop: 2 }}>You've used all 3 free sessions. Come back tomorrow or upgrade.</p>
+                      <p style={{ color: '#C9A84C', fontWeight: 600, fontSize: '0.875rem' }}>That's your 3 for today.</p>
+                      <p style={{ color: '#888888', fontSize: '0.75rem', marginTop: 2 }}>Come back tomorrow, or upgrade.</p>
                     </div>
                     <button onClick={() => setShowProModal(true)} style={{ color: '#C9A84C', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Go Pro →</button>
                   </div>
@@ -9220,7 +9217,7 @@ export default function App() {
                     if (!streaming && (input.trim() || allSelectedIngredients.size > 0)) submitMessage(input)
                   }
                 }}
-                placeholder="Type here..."
+                placeholder="What's in your fridge?"
                 rows={1}
                 disabled={streaming}
                 className="flex-1 focus:outline-none disabled:opacity-50 leading-snug"
