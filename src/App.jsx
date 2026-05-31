@@ -4385,9 +4385,10 @@ function NumericKeypad({ value, onChange }) {
   )
 }
 
-function Onboarding({ onComplete, onBack, onAlreadyOnboarded, existingProfile = null, userRole = 'free' }) {
-  const [step,              setStep]          = useState(1)
-  const [name,              setName]          = useState('')
+function Onboarding({ onComplete, onBack, onAlreadyOnboarded, existingProfile = null, userRole = 'free', signupName = '' }) {
+  const hasPrefilledName = !!signupName
+  const [step,              setStep]          = useState(hasPrefilledName ? 2 : 1)
+  const [name,              setName]          = useState(signupName)
   const [weight,            setWeight]        = useState('')
   const [goals,             setGoals]         = useState([])
   const [targetWeight,      setTargetWeight]  = useState('')
@@ -4406,8 +4407,10 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded, existingProfile = 
   const isFightGoal    = sportGoal === 'A fight or competition'
 
   // Visible-step model: counter + progress bar derive from this single source.
+  // Step 1 (name) is omitted when signupName was pre-filled.
   // Step 4 (target weight) is hidden when goals are Maintain-only.
-  const visibleSteps  = isMaintainOnly ? [1, 2, 3, 5, 6, 7, 8, 9] : [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  const baseSteps    = hasPrefilledName ? [2, 3, 4, 5, 6, 7, 8, 9] : [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  const visibleSteps = isMaintainOnly ? baseSteps.filter(s => s !== 4) : baseSteps
   const visibleIndex  = visibleSteps.indexOf(step) + 1
   const visibleTotal  = visibleSteps.length
   const isFinalStep   = step === visibleSteps[visibleSteps.length - 1]
@@ -4450,6 +4453,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded, existingProfile = 
 
   function retreatStep() {
     if (step === 1) { onBack(); return }
+    if (hasPrefilledName && step === 2) { onBack(); return }
     if (step === 5 && isMaintainOnly) return setStep(3)
     setStep(s => s - 1)
   }
@@ -5275,7 +5279,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Sign up failed.'); return }
-      onAuthSuccess(data.access_token, data.refresh_token)
+      onAuthSuccess(data.access_token, data.refresh_token, name.trim())
     } catch {
       setError('Something went wrong. Try again.')
     } finally {
@@ -5454,6 +5458,58 @@ function AuthScreen({ onBack, onAuthSuccess }) {
             </button>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Orientation screen (shown once to new signup users before onboarding) ─────
+
+const ORIENTATION_STYLES = `
+  @keyframes orient-fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .orient-in { animation: orient-fade-up 400ms ease both; }
+`
+
+function OrientationScreen({ name, onBegin }) {
+  const displayName = (name || '').trim() || 'there'
+  const lines = [
+    { num: '01', text: "I'll ask you eight questions. Your sport, your goals, what's in your kitchen." },
+    { num: '02', text: "Every answer makes what I cook for you more precise." },
+    { num: '03', text: "This takes about two minutes. Do it once — I remember everything." },
+  ]
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 32px' }}>
+      <style>{ORIENTATION_STYLES}</style>
+      <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column' }}>
+        <img src={remiLogoUrl} alt="Remi" style={{ width: 48, height: 48, display: 'block' }} />
+        <h1 className="orient-in" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 36, color: '#F0F0F0', margin: '24px 0 0', lineHeight: 1.1, animationDelay: '0ms' }}>
+          Good to meet you, {displayName}.
+        </h1>
+        <p className="orient-in" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, fontSize: 18, color: '#888888', margin: '8px 0 0', animationDelay: '50ms' }}>
+          Here's how this works.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 40 }}>
+          {lines.map((line, i) => (
+            <div key={line.num} className="orient-in" style={{ display: 'flex', gap: 16, animationDelay: `${200 + i * 300}ms` }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#00E5A0', flexShrink: 0, lineHeight: 1.6 }}>
+                {line.num}
+              </span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 16, color: '#F0F0F0', lineHeight: 1.6 }}>
+                {line.text}
+              </span>
+            </div>
+          ))}
+        </div>
+        <button
+          className="orient-in"
+          onClick={onBegin}
+          style={{ width: '100%', height: 56, marginTop: 48, backgroundColor: '#00E5A0', color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, border: 'none', borderRadius: 8, cursor: 'pointer', touchAction: 'manipulation', animationDelay: '1700ms' }}
+        >
+          Let's begin
+        </button>
       </div>
     </div>
   )
@@ -6822,6 +6878,7 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('remi_pending_cook_check') || '[]') } catch { return [] }
   })
   const [selectedClient,     setSelectedClient]     = useState(null)
+  const [signupName,         setSignupName]         = useState('')
   const coachLogTimerRef = useRef(null)
 
   // Tier helper — single source of truth for all role-based feature gates
@@ -6975,7 +7032,7 @@ export default function App() {
     }
   }
 
-  function processAuthResult(accessToken, refreshToken = '') {
+  function processAuthResult(accessToken, refreshToken = '', signupNameArg = '') {
     if (!accessToken) { setView('splash'); return }
     loadSavedRecipes(accessToken)
     fetch('/api/auth-user', { headers: { Authorization: `Bearer ${accessToken}` } })
@@ -7047,7 +7104,12 @@ export default function App() {
           setView('welcome-back')
         } else {
           setProfile(null)
-          setView('onboarding')
+          setSignupName(signupNameArg || '')
+          if (!localStorage.getItem('remi_orientation_shown')) {
+            setView('orientation')
+          } else {
+            setView('onboarding')
+          }
         }
       })
       .catch(() => setView('splash'))
@@ -8011,11 +8073,25 @@ export default function App() {
     return <AuthScreen onBack={() => setView('splash')} onAuthSuccess={processAuthResult} />
   }
 
+  // ── View: Orientation (new signup users — shown once, before onboarding) ─────
+  if (view === 'orientation') {
+    return (
+      <OrientationScreen
+        name={signupName}
+        onBegin={() => {
+          localStorage.setItem('remi_orientation_shown', 'true')
+          setView('onboarding')
+        }}
+      />
+    )
+  }
+
   // ── View: Onboarding (new users — 3 steps) ───────────────────────────────────
   if (view === 'onboarding') {
     return (
       <>
         <Onboarding
+          signupName={signupName}
           existingProfile={profile}
           userRole={userRole}
           onBack={() => setView(profile ? 'dashboard' : 'splash')}
