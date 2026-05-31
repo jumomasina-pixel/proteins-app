@@ -6511,7 +6511,7 @@ function ProfileEditView({ profile, userRole, onSave, savedRecipes = [], savesCa
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: '#F0F0F0', margin: 0, letterSpacing: '0.04em' }}>PROFILE</h1>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 24px 140px', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 28, paddingLeft: 24, paddingRight: 24, paddingBottom: 'calc(140px + env(safe-area-inset-bottom))', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
 
         {/* Tier badge */}
         <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '0.5px solid rgba(255,255,255,0.08)' }}>
@@ -6615,7 +6615,7 @@ function ProfileEditView({ profile, userRole, onSave, savedRecipes = [], savesCa
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         padding: '12px 24px',
-        paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+        paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
         backgroundColor: '#0D0D0D', borderTop: '1px solid rgba(255,255,255,0.08)',
       }}>
         <button onClick={handleSave} disabled={saving} style={{
@@ -7991,6 +7991,19 @@ export default function App() {
             </button>
           </div>
         )}
+        {/* Desktop profile access — hidden on mobile (BottomNav profile tab handles mobile) */}
+        <button
+          className="hidden lg:flex items-center gap-2"
+          onClick={() => setView('profile')}
+          style={{ position: 'fixed', top: 16, right: 20, zIndex: 100, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#888888' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#F0F0F0' }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#888888' }}
+        >
+          {(profile?.name || '').split(' ')[0]}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+        </button>
         <Dashboard
           profile={profile}
           savedRecipes={savedRecipes}
@@ -8224,6 +8237,19 @@ export default function App() {
   if (view === 'profile') {
     return (
       <>
+        {/* Desktop back nav — hidden on mobile (BottomNav handles mobile) */}
+        <button
+          className="hidden lg:flex items-center gap-1"
+          onClick={() => setView('dashboard')}
+          style={{ position: 'fixed', top: 16, left: 20, zIndex: 100, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#888888' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#F0F0F0' }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#888888' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Dashboard
+        </button>
         <ProfileEditView
           profile={profile}
           userRole={isAdmin ? 'admin' : userRole}
