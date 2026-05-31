@@ -7202,7 +7202,8 @@ export default function App() {
 
   async function submitMessage(text) {
     if (sendingRef.current) return                // synchronous re-entrancy guard
-    if (!text.trim() || streaming) return
+    const _chipCount = Object.values(allSelectedIngredients).flat().length
+    if ((!text.trim() && _chipCount === 0) || streaming) return
 
     // ── Free-tier generation cap (20 / month) ─────────────────────────────────
     if (!tier.isPro) {
