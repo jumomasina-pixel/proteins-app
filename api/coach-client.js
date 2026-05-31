@@ -59,9 +59,33 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to fetch client recipes' })
   }
   const rows = await r.json()
-  return res.status(200).json(rows.map(row => ({
-    id:          row.id,
-    recipe_data: row.recipe_data,
-    saved_at:    row.saved_at,
-  })))
+
+  const profileR = await fetch(
+    `${supabaseUrl}/rest/v1/profiles?id=eq.${clientId}&select=name,weight,target_weight,training_frequency,foods_to_avoid,sport,goal,role`,
+    { headers: serviceHeaders }
+  )
+  let clientProfile = null
+  if (profileR.ok) {
+    const profileRows = await profileR.json()
+    if (Array.isArray(profileRows) && profileRows.length > 0) {
+      const p = profileRows[0]
+      clientProfile = {
+        weight:            p.weight            || null,
+        targetWeight:      p.target_weight     || null,
+        trainingFrequency: p.training_frequency || null,
+        foodsToAvoid:      p.foods_to_avoid    || null,
+        sport:             p.sport             || null,
+        goal:              p.goal              || null,
+      }
+    }
+  }
+
+  return res.status(200).json({
+    savedRecipes: rows.map(row => ({
+      id:          row.id,
+      recipe_data: row.recipe_data,
+      saved_at:    row.saved_at,
+    })),
+    clientProfile,
+  })
 }

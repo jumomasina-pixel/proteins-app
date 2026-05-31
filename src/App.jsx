@@ -3230,7 +3230,10 @@ function CoachStrip({ referredBy, savedRecipes, onLetKnow }) {
 
 function CoachLogToast({ toast, onSend, onDismiss }) {
   const [opacity, setOpacity] = useState(0)
-  const firstName = (toast.coachName || 'your coach').split(' ')[0]
+  const rawName = toast.coachName
+    || (toast.coachSlug ? toast.coachSlug.charAt(0).toUpperCase() + toast.coachSlug.slice(1) : null)
+    || 'your coach'
+  const firstName = rawName.split(' ')[0]
 
   useEffect(() => {
     const t = requestAnimationFrame(() => setOpacity(1))
@@ -6262,9 +6265,9 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToD
 
 // ── Profile edit view ────────────────────────────────────────────────────────
 
-function ProfileEditView({ profile, userRole, onSave }) {
+function ProfileEditView({ profile, userRole, onSave, savedRecipes = [], savesCap = null }) {
   const [name,              setName]             = useState(profile?.name || '')
-  const [weight,            setWeight]           = useState(profile?.weight != null ? String(profile.weight) : '')
+  const [weight,            setWeight]           = useState(() => { const w = profile?.weight ?? profile?.currentWeight; return w != null ? String(w) : '' })
   const [goals,             setGoals]            = useState(() => {
     if (Array.isArray(profile?.goals) && profile.goals.length > 0) return profile.goals
     if (profile?.goal) return [profile.goal]
@@ -6290,10 +6293,12 @@ function ProfileEditView({ profile, userRole, onSave }) {
   async function handleSave() {
     if (saving) return
     setSaving(true)
+    const resolvedWeight = weight !== '' ? Number(weight) : (profile?.weight ?? profile?.currentWeight ?? null)
     const updated = {
       ...profile,
       name:              name.trim() || profile?.name || '',
-      weight:            weight !== '' ? Number(weight) : (profile?.weight ?? null),
+      weight:            resolvedWeight,
+      currentWeight:     resolvedWeight,
       goals,
       targetWeight:      isMaintainOnly ? null : (targetWeight !== '' ? Number(targetWeight) : (profile?.targetWeight ?? null)),
       trainingFrequency,
@@ -6384,6 +6389,15 @@ function ProfileEditView({ profile, userRole, onSave }) {
             {label}
           </span>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '8px 0 0' }}>{desc}</p>
+          {savesCap !== null && (
+            <p style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 13,
+              color: savedRecipes.length >= savesCap ? '#FF4D4D' : '#888888',
+              margin: '6px 0 0',
+            }}>
+              {savedRecipes.length} / {savesCap} saved
+            </p>
+          )}
         </div>
 
         {/* Name */}
@@ -6985,6 +6999,22 @@ export default function App() {
         return
       }
     }
+
+    // ── Saves cap gate ────────────────────────────────────────────────────────
+    const atCap = tier.savesCap !== null && savedRecipes.length >= tier.savesCap
+    if (atCap) {
+      const userMsg = { id: Date.now(), role: 'user', content: text.trim() }
+      const capMsg = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: `You've got ${savedRecipes.length} saved recipe${savedRecipes.length !== 1 ? 's' : ''} — that's your limit on this plan. Upgrade to Pro and I'll keep cooking.`,
+        savesCapReached: true,
+      }
+      setMessages(prev => [...prev, userMsg, capMsg])
+      setInput('')
+      return
+    }
+
     sendingRef.current = true
     const trimmed = text.trim()
 
@@ -7551,7 +7581,9 @@ export default function App() {
             const notified = JSON.parse(localStorage.getItem('remi_notified_dishes') || '[]')
             if (!notified.includes(dish.name)) {
               const cached = JSON.parse(localStorage.getItem('remi_coach_name') || 'null')
-              const coachName = (cached?.slug === profile.referredBy ? cached?.name : null) || 'your coach'
+              const coachName = (cached?.slug === profile.referredBy ? cached?.name : null)
+                || localStorage.getItem('remi_referral_coach_name')
+                || null
               showCoachLogToast({
                 coachName,
                 coachSlug:  profile.referredBy,
@@ -7795,7 +7827,9 @@ export default function App() {
           authToken={getAccessToken()}
           onLetCoachKnow={dishName => {
             const c = (() => { try { return JSON.parse(localStorage.getItem('remi_coach_name') || 'null') } catch { return null } })()
-            const coachName = (c?.slug === profile?.referredBy ? c?.name : null) || 'your coach'
+            const coachName = (c?.slug === profile?.referredBy ? c?.name : null)
+              || (() => { try { return localStorage.getItem('remi_referral_coach_name') } catch { return null } })()
+              || null
             showCoachLogToast({ coachName, coachSlug: profile?.referredBy, dishName, clientName: profile?.name, sport: profile?.sport || profile?.primarySport || '', goal: Array.isArray(profile?.goals) ? profile?.goals[0] : (profile?.goal || '') })
           }}
         />
@@ -7990,6 +8024,8 @@ export default function App() {
           profile={profile}
           userRole={isAdmin ? 'admin' : userRole}
           onSave={updated => setProfile(updated)}
+          savedRecipes={savedRecipes}
+          savesCap={tier.savesCap}
         />
         <BottomNav activeView="profile" onNavigate={v => {
           if (v === 'saved') { setSavedBackTo('profile'); setView('saved') }
@@ -8604,6 +8640,20 @@ export default function App() {
                       }}
                     >
                       View the recipes →
+                    </button>
+                  </div>
+                )}
+                {msg.savesCapReached && (
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      onClick={() => setView('profile')}
+                      style={{
+                        background: 'none', border: 'none', padding: '4px 0',
+                        color: '#00E5A0', cursor: 'pointer',
+                        fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600,
+                      }}
+                    >
+                      Upgrade to Pro →
                     </button>
                   </div>
                 )}

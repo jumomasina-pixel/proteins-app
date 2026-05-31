@@ -23,6 +23,7 @@ const MONO_VALUE_STYLE = {
 
 export default function ClientDetail({ selectedClient: c, onClose, authToken }) {
   const [savedRecipes, setSavedRecipes] = useState([])
+  const [clientProfile, setClientProfile] = useState(null)
   const [recipesLoading, setRecipesLoading] = useState(true)
   const [showAll, setShowAll] = useState(false)
 
@@ -31,8 +32,15 @@ export default function ClientDetail({ selectedClient: c, onClose, authToken }) 
     fetch(`/api/coach-client?clientId=${c.id}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     })
-      .then(r => r.ok ? r.json() : [])
-      .then(rows => setSavedRecipes(Array.isArray(rows) ? rows : []))
+      .then(r => r.ok ? r.json() : {})
+      .then(data => {
+        if (data && !Array.isArray(data)) {
+          setSavedRecipes(Array.isArray(data.savedRecipes) ? data.savedRecipes : [])
+          setClientProfile(data.clientProfile || null)
+        } else {
+          setSavedRecipes(Array.isArray(data) ? data : [])
+        }
+      })
       .catch(() => setSavedRecipes([]))
       .finally(() => setRecipesLoading(false))
   }, [c?.id, authToken])
@@ -47,10 +55,10 @@ export default function ClientDetail({ selectedClient: c, onClose, authToken }) 
   const firstName = (c?.name || '').split(' ')[0] || c?.name || '—'
 
   const stats = [
-    { label: 'Weight', value: '—', mono: true },
-    { label: 'Target', value: '—', mono: true },
-    { label: 'Trains', value: '—', mono: false },
-    { label: 'Allergies', value: '—', mono: false },
+    { label: 'Weight',    value: clientProfile?.weight            ? `${clientProfile.weight}kg`       : '—', mono: true  },
+    { label: 'Target',    value: clientProfile?.targetWeight      ? `${clientProfile.targetWeight}kg`  : '—', mono: true  },
+    { label: 'Trains',    value: clientProfile?.trainingFrequency || '—',                                     mono: false },
+    { label: 'Allergies', value: clientProfile?.foodsToAvoid      || 'None',                                  mono: false },
   ]
 
   const displayed = showAll ? savedRecipes : savedRecipes.slice(0, 10)
