@@ -25,7 +25,12 @@ export default async function handler(req, res) {
 
   // ── POST — upsert profile on onboarding completion ────────────────────────────
   if (req.method === 'POST') {
-    const { name, sport, goal, training_philosophy, referred_by, role } = req.body || {}
+    const {
+      name, sport, goal, training_philosophy, referred_by, role,
+      weight, target_weight, targetWeight,
+      training_frequency, trainingFrequency,
+      foods_to_avoid, foodsToAvoid,
+    } = req.body || {}
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     const upsertPayload = {
@@ -35,6 +40,16 @@ export default async function handler(req, res) {
       sport: sport || '',
       goal:  goal  || '',
     }
+    // Accept either camelCase (frontend) or snake_case variants for these numeric/text fields.
+    const resolvedWeight           = weight             ?? null
+    const resolvedTargetWeight     = target_weight      ?? targetWeight      ?? null
+    const resolvedTrainingFreq     = training_frequency ?? trainingFrequency ?? null
+    const resolvedFoodsToAvoid     = foods_to_avoid     ?? foodsToAvoid      ?? null
+    if (resolvedWeight           !== null) upsertPayload.weight             = resolvedWeight
+    if (resolvedTargetWeight     !== null) upsertPayload.target_weight      = resolvedTargetWeight
+    if (resolvedTrainingFreq     !== null) upsertPayload.training_frequency = resolvedTrainingFreq
+    if (resolvedFoodsToAvoid     !== null) upsertPayload.foods_to_avoid     = resolvedFoodsToAvoid
+
     // Only include training_philosophy when the caller passes it (explicit null is fine).
     // Onboarding writes null; the first-session capture writes the user's typed answer.
     if (Object.prototype.hasOwnProperty.call(req.body || {}, 'training_philosophy')) {

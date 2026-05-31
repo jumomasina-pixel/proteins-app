@@ -6442,9 +6442,13 @@ function ProfileEditView({ profile, userRole, onSave, savedRecipes = [], savesCa
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            name:  updated.name,
-            sport: updated.primarySport || updated.sport || '',
-            goal:  Array.isArray(updated.goals) ? (updated.goals[0] || '') : (updated.goal || ''),
+            name:               updated.name,
+            sport:              updated.primarySport || updated.sport || '',
+            goal:               Array.isArray(updated.goals) ? (updated.goals[0] || '') : (updated.goal || ''),
+            weight:             updated.weight            ?? null,
+            target_weight:      updated.targetWeight      ?? null,
+            training_frequency: updated.trainingFrequency || null,
+            foods_to_avoid:     updated.foodsToAvoid      || null,
           }),
         })
       }
@@ -6736,6 +6740,9 @@ export default function App() {
   const [plannerInitialSlot, setPlannerInitialSlot] = useState(null)
   const [appToast,           setAppToast]           = useState(null)
   const [coachLogToast,      setCoachLogToast]      = useState(null)
+  const [profileNudgeShown,  setProfileNudgeShown]  = useState(() => {
+    try { return localStorage.getItem('remi_profile_nudge_shown') === 'true' } catch { return false }
+  })
   const [selectedClient,     setSelectedClient]     = useState(null)
   const coachLogTimerRef = useRef(null)
 
@@ -7948,8 +7955,42 @@ export default function App() {
 
   // ── View: Dashboard ──────────────────────────────────────────────────────────
   if (view === 'dashboard') {
+    const showProfileNudge = profile && (!profile.weight || !profile.trainingFrequency) && !profileNudgeShown
     return (
       <>
+        {showProfileNudge && (
+          <div style={{
+            position: 'fixed', top: 12, left: 12, right: 12, zIndex: 200,
+            backgroundColor: '#1A1A1A', borderLeft: '4px solid #00E5A0',
+            borderRadius: 8, padding: 16,
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 6px' }}>
+                REMI&apos;S NOTE
+              </p>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#F0F0F0', margin: '0 0 10px', lineHeight: 1.5 }}>
+                A few gaps in your profile — fill them in so I can fuel you properly.
+              </p>
+              <button
+                onClick={() => setView('profile')}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500, color: '#00E5A0' }}
+              >
+                Update profile →
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                try { localStorage.setItem('remi_profile_nudge_shown', 'true') } catch {}
+                setProfileNudgeShown(true)
+              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: '#888888', fontSize: 20, lineHeight: 1, flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
         <Dashboard
           profile={profile}
           savedRecipes={savedRecipes}
