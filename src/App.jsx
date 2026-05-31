@@ -1003,6 +1003,16 @@ const CHAT_STYLES = `
     50%       { opacity: 0.4; }
   }
   .presence-dot-pulse { animation: presencePulse 2.5s ease-in-out infinite; }
+
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+  .img-shimmer {
+    background: linear-gradient(90deg, #1A1A1A 25%, #242424 50%, #1A1A1A 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
 `
 
 // ── Skeleton card (warm palette) ──────────────────────────────────────────────
@@ -1579,6 +1589,7 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl, initi
   return (
     <div style={{ width: '100%' }}>
       <div
+        className={(!imgUrl || !imgLoaded) ? 'img-shimmer' : undefined}
         style={{
           width: '100%',
           aspectRatio: '16/9',
@@ -2312,7 +2323,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
             {firstName}
           </h1>
           <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#666666', margin: '10px 0 0', lineHeight: 1.5, textAlign: 'center' }}>
-            Fighters. Coaches. Home cooks. All eating properly.
+            Athletes. Fighters. Coaches. Home cooks. All eating properly.
           </p>
           <p className="splash-el splash-el-3" style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 300, color: '#888888', lineHeight: 1.6, margin: '18px 0 0' }}>
             Eat like a chef. Train like an athlete.<br />Live like both.
@@ -2340,7 +2351,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
 
   // Default (no slug / capped roster) — UNCHANGED.
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '80px 24px 48px' }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '48px 24px 40px' }}>
       <style>{SPLASH_STYLES}</style>
 
       {/* Top: logo mark + wordmark group — kept together so space-between layout is unchanged */}
@@ -2364,12 +2375,12 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
       </div>
 
       {/* Middle: tagline */}
-      <div className="splash-el splash-el-2" style={{ textAlign: 'center', maxWidth: 320 }}>
+      <div className="splash-el splash-el-2" style={{ textAlign: 'center', maxWidth: 360 }}>
         <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, fontSize: 16, color: '#888888', lineHeight: 1.65, margin: 0 }}>
           Eat like a chef. Train like an athlete.<br />Live like both.
         </p>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 400, color: '#888888', margin: '8px auto 0', textAlign: 'center', maxWidth: 420, width: '100%' }}>
-          Fighters. Coaches. Home cooks. All eating properly.
+          Athletes. Fighters. Coaches. Home cooks. All eating properly.
         </p>
       </div>
 
@@ -3916,15 +3927,27 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
                     </div>
                   )
                 })() : (
-                  <div style={{ opacity: 0.5 }}>
-                    <div className="day-plan-slots" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-                      {[{ key: 'breakfast', label: 'BREAKFAST' }, { key: 'lunch', label: 'LUNCH' }, { key: 'dinner', label: 'DINNER' }].map(({ key, label }) => (
-                        <div key={key} style={{ backgroundColor: '#111111', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 12, minHeight: 56 }}>
-                          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
-                          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888' }}>Unlock with Pro</span>
-                        </div>
-                      ))}
+                  <div style={{
+                    backgroundColor: '#111111',
+                    border: '0.5px solid rgba(255,255,255,0.08)',
+                    borderRadius: 8,
+                    padding: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}>
+                    <div>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#F0F0F0', margin: 0 }}>
+                        Day Plan
+                      </p>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#888888', margin: '4px 0 0' }}>
+                        Map your meals. Available on Pro.
+                      </p>
                     </div>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      PRO
+                    </span>
                   </div>
                 )}
               </div>
@@ -5331,7 +5354,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
           <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'clamp(2.75rem, 12vw, 3.5rem)', color: '#00E5A0', margin: 0, lineHeight: 1 }}>
             Remi
           </p>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.14em', margin: '10px 0 0', textTransform: 'uppercase' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#666666', letterSpacing: '0.14em', margin: '10px 0 0', textTransform: 'uppercase' }}>
             Personal Chef · Nutritionist · Guide
           </p>
         </div>
@@ -9064,7 +9087,7 @@ export default function App() {
                 <span className="presence-dot-pulse" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#00E5A0', display: 'inline-block' }} />
                 <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#888888' }}>In the kitchen</span>
               </div>
-              {!tier.isPro && (
+              {!tier.isPro && genCount > 0 && (
                 <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 13, color: '#888888', margin: '3px 0 0', lineHeight: 1 }}>
                   {genCount} / 20 generations this month
                 </p>
