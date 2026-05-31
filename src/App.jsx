@@ -3652,7 +3652,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
       )}
 
       <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', padding: '24px 20px 120px' }}>
-        <div style={{ maxWidth: 1140, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1140, margin: '0 auto', width: '100%' }}>
 
           <div className="dash-grid">
 
@@ -3958,7 +3958,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
               </div>
 
               {/* C. BOTTOM ROW */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
 
                 {/* Recent meals — gated: direct + pro tiers only */}
                 <div style={{ ...cardBase, padding: 16 }}>
