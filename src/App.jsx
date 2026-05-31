@@ -3202,9 +3202,10 @@ function CoachStrip({ referredBy, savedRecipes, onLetKnow }) {
       .catch(() => {})
   }, [referredBy])
 
-  if (!referredBy || !coachName) return null
+  const displayName = coachName || (referredBy ? referredBy.charAt(0).toUpperCase() + referredBy.slice(1) : null)
+  if (!referredBy || !displayName) return null
 
-  const firstName    = coachName.split(' ')[0] || coachName
+  const firstName    = displayName.split(' ')[0] || displayName
   const latestDish   = savedRecipes?.length > 0 ? savedRecipes[savedRecipes.length - 1]?.name : null
 
   return (
@@ -3213,7 +3214,7 @@ function CoachStrip({ referredBy, savedRecipes, onLetKnow }) {
         <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#00E5A0', flexShrink: 0 }} />
         <div>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 2px' }}>Your Coach</p>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, color: '#F0F0F0', margin: 0 }}>{coachName}</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: 14, color: '#F0F0F0', margin: 0 }}>{displayName}</p>
         </div>
       </div>
       {latestDish && (
