@@ -1584,7 +1584,7 @@ function CardImageHeader({ dishName, cuisine, onImageResolved, initialUrl, initi
           aspectRatio: '16/9',
           borderRadius: '12px 12px 0 0',
           overflow: 'hidden',
-          backgroundColor: '#2A2A2A',
+          backgroundColor: '#1A1A1A',
           position: 'relative',
         }}
       >
@@ -1694,7 +1694,7 @@ function ShareCardModal({ dish, imgUrl, onClose }) {
         <div className="relative w-full" style={{ height: 260 }}>
           {imgUrl
             ? <img src={imgUrl} alt={dish.name} className="w-full h-full object-cover" />
-            : <div className="w-full h-full" style={{ backgroundColor: '#00E5A0' }} />
+            : <div className="w-full h-full" style={{ backgroundColor: '#1A1A1A' }} />
           }
           {/* Branding chip */}
           <div
@@ -5952,7 +5952,7 @@ function AdminPanel({ onBack }) {
                     fontFamily: 'Inter, sans-serif',
                     fontWeight: selectedRole === r ? 600 : 500,
                     fontSize: 14, cursor: 'pointer', transition: 'all 150ms ease',
-                    backgroundColor: selectedRole === r ? '#00E5A0' : '#242424',
+                    backgroundColor: selectedRole === r ? '#00E5A0' : '#1A1A1A',
                     color: selectedRole === r ? '#0D0D0D' : '#F0F0F0',
                     boxShadow: selectedRole === r ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
                   }}
@@ -5967,7 +5967,7 @@ function AdminPanel({ onBack }) {
               disabled={loading || selectedRole === user.role}
               style={{
                 width: '100%', height: 44, borderRadius: 8,
-                backgroundColor: !loading && selectedRole !== user.role ? '#00E5A0' : '#242424',
+                backgroundColor: !loading && selectedRole !== user.role ? '#00E5A0' : '#1A1A1A',
                 color: !loading && selectedRole !== user.role ? '#0D0D0D' : '#888888',
                 border: !loading && selectedRole !== user.role ? 'none' : '1px solid rgba(255,255,255,0.08)',
                 fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
@@ -6048,7 +6048,7 @@ function AdminPanel({ onBack }) {
                   disabled={resetLoading || !confirmed}
                   style={{
                     width: '100%', height: 48, borderRadius: 8, border: 'none',
-                    backgroundColor: resetLoading || !confirmed ? '#2A1A1A' : '#FF4D4D',
+                    backgroundColor: resetLoading || !confirmed ? 'rgba(255,77,77,0.08)' : '#FF4D4D',
                     color: resetLoading || !confirmed ? '#888888' : '#FFFFFF',
                     fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14,
                     cursor: resetLoading || !confirmed ? 'not-allowed' : 'pointer',
@@ -6139,7 +6139,7 @@ function IntelView({ isPro, onProClick }) {
             <div
               key={i}
               style={{
-                backgroundColor: '#141414',
+                backgroundColor: '#1A1A1A',
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 16,
                 padding: '1.25rem 1.375rem',
