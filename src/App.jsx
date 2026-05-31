@@ -892,7 +892,7 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
       ),
     },
     {
-      id: 'onboarding',
+      id: 'profile',
       label: 'Profile',
       icon: (active) => (
         <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} className="w-5 h-5">
@@ -6260,6 +6260,231 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToD
   )
 }
 
+// ── Profile edit view ────────────────────────────────────────────────────────
+
+function ProfileEditView({ profile, userRole, onSave }) {
+  const [name,              setName]             = useState(profile?.name || '')
+  const [weight,            setWeight]           = useState(profile?.weight != null ? String(profile.weight) : '')
+  const [goals,             setGoals]            = useState(() => {
+    if (Array.isArray(profile?.goals) && profile.goals.length > 0) return profile.goals
+    if (profile?.goal) return [profile.goal]
+    return []
+  })
+  const [targetWeight,      setTargetWeight]     = useState(profile?.targetWeight != null ? String(profile.targetWeight) : '')
+  const [trainingFrequency, setTrainingFrequency] = useState(profile?.trainingFrequency || profile?.trainingFreq || '')
+  const [foodsToAvoid,      setFoodsToAvoid]     = useState(profile?.foodsToAvoid || '')
+  const [kitchenSkill,      setKitchenSkill]     = useState(profile?.kitchenSkill || '')
+  const [saving,            setSaving]           = useState(false)
+  const [saved,             setSaved]            = useState(false)
+
+  const isMaintainOnly = goals.length === 1 && goals.includes('Maintain')
+
+  const GOAL_OPTIONS  = ['Lose fat', 'Build lean muscle', 'Improve performance', 'Eat with more care', 'Maintain']
+  const FREQ_OPTIONS  = ['Rarely', '1–2× a week', '3–4× a week', '5–6× a week', 'Every day']
+  const SKILL_OPTIONS = ['I follow recipes', 'I know my way around', 'I can improvise']
+
+  function toggleGoal(g) {
+    setGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
+  }
+
+  async function handleSave() {
+    if (saving) return
+    setSaving(true)
+    const updated = {
+      ...profile,
+      name:              name.trim() || profile?.name || '',
+      weight:            weight !== '' ? Number(weight) : (profile?.weight ?? null),
+      goals,
+      targetWeight:      isMaintainOnly ? null : (targetWeight !== '' ? Number(targetWeight) : (profile?.targetWeight ?? null)),
+      trainingFrequency,
+      foodsToAvoid,
+      kitchenSkill,
+    }
+    localStorage.setItem('lhc_profile', JSON.stringify(updated))
+    try {
+      const token = (() => { try { return JSON.parse(localStorage.getItem('supabase.auth.token') || 'null')?.access_token ?? null } catch { return null } })()
+      if (token) {
+        await fetch('/api/auth-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            name:  updated.name,
+            sport: updated.primarySport || updated.sport || '',
+            goal:  Array.isArray(updated.goals) ? (updated.goals[0] || '') : (updated.goal || ''),
+          }),
+        })
+      }
+    } catch {}
+    setSaving(false)
+    setSaved(true)
+    onSave(updated)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const t = getUserTier({ role: userRole })
+  const BADGE_STYLES = {
+    free:        { bg: '#1A1A1A', color: '#888888', border: 'rgba(255,255,255,0.08)' },
+    pt_referred: { bg: '#1A1A1A', color: '#888888', border: 'rgba(255,255,255,0.08)' },
+    direct:      { bg: '#1A1A1A', color: '#F0F0F0', border: 'rgba(255,255,255,0.08)' },
+    pro:         { bg: '#00E5A0', color: '#0D0D0D', border: '#00E5A0' },
+    coach:       { bg: '#0D0D0D', color: '#00E5A0', border: '#00E5A0' },
+    fighter:     { bg: '#0D0D0D', color: '#00E5A0', border: '#00E5A0' },
+    admin:       { bg: '#00E5A0', color: '#0D0D0D', border: '#00E5A0' },
+  }
+  const TIER_DESC = {
+    free:        '5 saved recipes · Recipe generation',
+    pt_referred: '20 saved recipes · Recipe generation',
+    direct:      'Unlimited saves · Full dashboard',
+    pro:         'Meal Planner · Intel Hub · Full access',
+    coach:       'Full Pro access · Roster · Client plans',
+    fighter:     'Full Pro access · Weight cut mode',
+    admin:       'Full Pro access · Admin panel',
+  }
+  const bs    = BADGE_STYLES[t.role] || BADGE_STYLES.free
+  const desc  = TIER_DESC[t.role]    || TIER_DESC.free
+  const label = t.role === 'pt_referred' ? 'PT REFERRED' : t.role.toUpperCase()
+
+  const inputBase = {
+    width: '100%', boxSizing: 'border-box',
+    backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8,
+    color: '#F0F0F0', outline: 'none', padding: '14px 16px',
+  }
+
+  const sectionLabel = text => (
+    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>{text}</p>
+  )
+
+  const optionRow = (opt, selected, onClick) => (
+    <button key={opt} onClick={onClick} style={{
+      width: '100%', boxSizing: 'border-box', height: 56, borderRadius: 8,
+      textAlign: 'left', padding: '0 20px',
+      fontFamily: 'Inter, sans-serif', fontWeight: selected ? 600 : 500, fontSize: 16,
+      backgroundColor: selected ? '#00E5A0' : '#1A1A1A',
+      color: selected ? '#0D0D0D' : '#F0F0F0',
+      border: `1px solid ${selected ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
+      cursor: 'pointer', transition: 'background 150ms ease, border-color 150ms ease',
+      touchAction: 'manipulation',
+    }}>{opt}</button>
+  )
+
+  return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0D0D0D', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '56px 0 0', textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: '#F0F0F0', margin: 0, letterSpacing: '0.04em' }}>PROFILE</h1>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 24px 140px', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+
+        {/* Tier badge */}
+        <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '0.5px solid rgba(255,255,255,0.08)' }}>
+          <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: '#F0F0F0', margin: '0 0 10px' }}>
+            {(profile?.name || '').split(' ')[0]}
+          </p>
+          <span style={{ display: 'inline-block', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 4, backgroundColor: bs.bg, color: bs.color, border: `1px solid ${bs.border}` }}>
+            {label}
+          </span>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#888888', margin: '8px 0 0' }}>{desc}</p>
+        </div>
+
+        {/* Name */}
+        <div style={{ marginBottom: 28 }}>
+          {sectionLabel('Name')}
+          <input type="text" value={name} onChange={e => setName(e.target.value)}
+            style={{ ...inputBase, fontFamily: 'Inter, sans-serif', fontSize: 16 }}
+            autoComplete="off" />
+        </div>
+
+        {/* Current weight */}
+        <div style={{ marginBottom: 28 }}>
+          {sectionLabel('Current weight (kg)')}
+          <input type="number" inputMode="decimal" value={weight} onChange={e => setWeight(e.target.value)}
+            style={{ ...inputBase, fontFamily: 'JetBrains Mono, monospace', fontSize: 22 }} />
+        </div>
+
+        {/* Goals */}
+        <div style={{ marginBottom: 28 }}>
+          {sectionLabel('Goals')}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {GOAL_OPTIONS.map(g => {
+              const sel = goals.includes(g)
+              return (
+                <button key={g} onClick={() => toggleGoal(g)} style={{
+                  fontFamily: 'Inter, sans-serif', fontWeight: sel ? 600 : 500, fontSize: 14,
+                  padding: '10px 18px', borderRadius: 8, minHeight: 44,
+                  backgroundColor: sel ? '#00E5A0' : '#1A1A1A',
+                  color: sel ? '#0D0D0D' : '#F0F0F0',
+                  border: `1px solid ${sel ? '#00E5A0' : 'rgba(255,255,255,0.08)'}`,
+                  cursor: 'pointer', transition: 'background 150ms ease, border-color 150ms ease',
+                  touchAction: 'manipulation',
+                }}>{g}</button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Target weight — hidden when Maintain only */}
+        {!isMaintainOnly && (
+          <div style={{ marginBottom: 28 }}>
+            {sectionLabel('Target weight (kg)')}
+            <input type="number" inputMode="decimal" value={targetWeight} onChange={e => setTargetWeight(e.target.value)}
+              style={{ ...inputBase, fontFamily: 'JetBrains Mono, monospace', fontSize: 22 }} />
+          </div>
+        )}
+
+        {/* Training frequency */}
+        <div style={{ marginBottom: 28 }}>
+          {sectionLabel('Training frequency')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {FREQ_OPTIONS.map(opt => optionRow(opt, trainingFrequency === opt, () => setTrainingFrequency(opt)))}
+          </div>
+        </div>
+
+        {/* Foods to avoid */}
+        <div style={{ marginBottom: 28 }}>
+          {sectionLabel('Foods to avoid')}
+          <input type="text" value={foodsToAvoid}
+            onChange={e => setFoodsToAvoid(e.target.value)}
+            placeholder="Allergies, dislikes, non-negotiables"
+            style={{ ...inputBase, fontFamily: 'Inter, sans-serif', fontSize: 16,
+              color: foodsToAvoid ? '#F0F0F0' : '#888888' }} />
+        </div>
+
+        {/* Kitchen skill */}
+        <div style={{ marginBottom: 12 }}>
+          {sectionLabel('Kitchen skill')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {SKILL_OPTIONS.map(opt => optionRow(opt, kitchenSkill === opt, () => setKitchenSkill(opt)))}
+          </div>
+        </div>
+
+        {saved && (
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#00E5A0', margin: '20px 0 0', textAlign: 'center' }}>
+            Saved.
+          </p>
+        )}
+      </div>
+
+      {/* Fixed save button */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        padding: '12px 24px',
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+        backgroundColor: '#0D0D0D', borderTop: '1px solid rgba(255,255,255,0.08)',
+      }}>
+        <button onClick={handleSave} disabled={saving} style={{
+          width: '100%', height: 56, borderRadius: 8,
+          backgroundColor: saving ? 'rgba(0,229,160,0.6)' : '#00E5A0',
+          color: '#0D0D0D', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16,
+          border: 'none', cursor: saving ? 'default' : 'pointer',
+          touchAction: 'manipulation',
+        }}>
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -7753,6 +7978,24 @@ export default function App() {
           else setView(v)
         }} isPro={tier.canUseIntel} />
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
+      </>
+    )
+  }
+
+  // ── View: Profile ────────────────────────────────────────────────────────────
+  if (view === 'profile') {
+    return (
+      <>
+        <ProfileEditView
+          profile={profile}
+          userRole={isAdmin ? 'admin' : userRole}
+          onSave={updated => setProfile(updated)}
+        />
+        <BottomNav activeView="profile" onNavigate={v => {
+          if (v === 'saved') { setSavedBackTo('profile'); setView('saved') }
+          else if (v === 'chat') handleReset()
+          else setView(v)
+        }} isPro={tier.canUseIntel} />
       </>
     )
   }
