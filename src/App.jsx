@@ -672,27 +672,9 @@ const PANTRY_CARDS = [
   { value: 'chilli',          label: 'Chilli'          },
 ]
 
-// ── Fridge stage system ───────────────────────────────────────────────────────
+// ── Dynamic chip architecture ─────────────────────────────────────────────────
 
-const FRIDGE_STAGES = ['protein', 'vegetables', 'carbs', 'extras']
-const FRIDGE_STAGE_LABELS = {
-  protein:    'PROTEINS',
-  vegetables: 'VEGETABLES',
-  carbs:      'CARBS',
-  extras:     'EXTRAS',
-}
-const FRIDGE_INGREDIENTS = {
-  protein:    ['Chicken', 'Beef', 'Salmon', 'Eggs', 'Tuna', 'Lamb', 'Pork', 'Tofu', 'Prawns', 'Turkey'],
-  vegetables: ['Spinach', 'Broccoli', 'Zucchini', 'Capsicum', 'Mushrooms', 'Tomato', 'Onion', 'Garlic', 'Kale', 'Carrot', 'Asparagus', 'Bok Choy', 'Eggplant', 'Corn'],
-  carbs:      ['Rice', 'Pasta', 'Potato', 'Sweet Potato', 'Bread', 'Oats', 'Noodles', 'Quinoa', 'Sourdough', 'Couscous'],
-  extras:     ['Olive Oil', 'Butter', 'Soy Sauce', 'Chilli Flakes', 'Garlic Powder', 'Cumin', 'Paprika', 'Parmesan', 'Lemon', 'Coconut Milk', 'Stock', 'Tamari', 'Balsamic', 'Honey'],
-}
-// Keywords in Remi's response that trigger stage advancement (one-directional only)
-const FRIDGE_ADVANCE_KEYWORDS = {
-  protein:    /\b(protein|meat|fish|eggs)\b/i,
-  vegetables: /\b(vegetable|veg|greens|salad)\b/i,
-  carbs:      /\b(carb|rice|pasta|starch|grain)\b/i,
-}
+const INITIAL_PROTEIN_CHIPS = ['Chicken', 'Beef', 'Salmon', 'Eggs', 'Tuna', 'Lamb', 'Pork', 'Prawns', 'Turkey']
 
 // ── Loading screen facts ──────────────────────────────────────────────────────
 
@@ -1265,34 +1247,18 @@ function HandoffCard({ dish, onOpen, delay = 0 }) {
   )
 }
 
-// ── Fridge tray (sequential ingredient picker) ────────────────────────────────
+// ── Fridge tray (dynamic chip architecture) ───────────────────────────────────
 
 function FridgeTray({
-  fridgeStage,
+  chips,
   allSelected,
   trayExpanded,
   onToggleExpand,
   onToggleIngredient,
-  onSkipStage,
-  onShowAll,
   onFocusInput,
   streaming,
 }) {
-  const stageIdx      = FRIDGE_STAGES.indexOf(fridgeStage)
-  const isAllMode     = fridgeStage === 'all'
-  const stageLabel    = FRIDGE_STAGE_LABELS[fridgeStage] || 'ALL INGREDIENTS'
-  const stageSelected = isAllMode
-    ? Object.values(allSelected).flat()
-    : (allSelected[fridgeStage] || [])
-  const totalSelected = Object.values(allSelected).flat().length
-
-  const allFlat = isAllMode
-    ? Object.entries(FRIDGE_INGREDIENTS).flatMap(([stage, items]) =>
-        items.map(item => ({ item, stage }))
-      )
-    : (FRIDGE_INGREDIENTS[fridgeStage] || []).map(item => ({ item, stage: fridgeStage }))
-
-  const allSelectedFlat = Object.entries(allSelected).flatMap(([, items]) => items)
+  const totalSelected = allSelected.size
 
   const chipStyle = (sel) => ({
     backgroundColor: sel ? '#00E5A0' : '#1A1A1A',
@@ -1329,7 +1295,7 @@ function FridgeTray({
       {/* Header bar — always visible */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={headerLabelStyle}>
-          {stageLabel} · {stageSelected.length} SELECTED
+          FRIDGE · {totalSelected} SELECTED
         </span>
         <button
           onClick={onToggleExpand}
@@ -1340,9 +1306,9 @@ function FridgeTray({
       </div>
 
       {/* Collapsed summary pills — read-only */}
-      {!trayExpanded && allSelectedFlat.length > 0 && (
+      {!trayExpanded && totalSelected > 0 && (
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-          {allSelectedFlat.map(item => (
+          {[...allSelected].map(item => (
             <div
               key={item}
               style={{
@@ -1363,98 +1329,43 @@ function FridgeTray({
       )}
 
       {trayExpanded && (
-        <>
-          {/* Stage progress dots */}
-          {!isAllMode && (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, paddingBottom: 2 }}>
-              {FRIDGE_STAGES.map((stage, i) => {
-                const isActive    = i === stageIdx
-                const isCompleted = i < stageIdx
-                const size        = isActive ? 6 : 4
-                return (
-                  <div
-                    key={stage}
-                    style={{
-                      width:           size,
-                      height:          size,
-                      borderRadius:    '50%',
-                      backgroundColor: (isActive || isCompleted) ? '#00E5A0' : 'rgba(255,255,255,0.2)',
-                      transition:      'all 200ms ease',
-                      flexShrink:      0,
-                    }}
-                  />
-                )
-              })}
-            </div>
-          )}
-
-          {/* Chip row — horizontal scroll (single row) or wrap grid for 'all' mode */}
-          <div
+        <div
+          style={{
+            display:                 'flex',
+            gap:                     8,
+            overflowX:               'auto',
+            flexWrap:                'nowrap',
+            scrollbarWidth:          'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom:           4,
+          }}
+        >
+          {chips.map(item => (
+            <button
+              key={item}
+              onClick={() => !streaming && onToggleIngredient(item)}
+              style={chipStyle(allSelected.has(item))}
+            >
+              {item}
+            </button>
+          ))}
+          <button
+            onClick={onFocusInput}
             style={{
-              display:                   'flex',
-              gap:                       8,
-              overflowX:                 isAllMode ? 'hidden' : 'auto',
-              flexWrap:                  isAllMode ? 'wrap' : 'nowrap',
-              maxHeight:                 isAllMode ? 120 : 'none',
-              overflowY:                 isAllMode ? 'auto' : 'hidden',
-              scrollbarWidth:            'none',
-              WebkitOverflowScrolling:   'touch',
-              paddingBottom:             4,
+              color:           '#888888',
+              backgroundColor: 'transparent',
+              border:          'none',
+              fontFamily:      'Inter, sans-serif',
+              fontSize:        13,
+              cursor:          'pointer',
+              padding:         '10px 4px',
+              whiteSpace:      'nowrap',
+              flexShrink:      0,
             }}
           >
-            {allFlat.map(({ item, stage }) => {
-              const isSel = (allSelected[stage] || []).includes(item)
-              return (
-                <button
-                  key={`${stage}-${item}`}
-                  onClick={() => !streaming && onToggleIngredient(stage, item)}
-                  style={chipStyle(isSel)}
-                >
-                  {item}
-                </button>
-              )
-            })}
-            {/* Something else → inline at end of chip row */}
-            {!isAllMode && (
-              <button
-                onClick={onFocusInput}
-                style={{
-                  color:           '#888888',
-                  backgroundColor: 'transparent',
-                  border:          'none',
-                  fontFamily:      'Inter, sans-serif',
-                  fontSize:        13,
-                  cursor:          'pointer',
-                  padding:         '10px 4px',
-                  whiteSpace:      'nowrap',
-                  flexShrink:      0,
-                }}
-              >
-                Something else →
-              </button>
-            )}
-          </div>
-
-          {/* Skip to next + Show all links */}
-          {!isAllMode && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-              {stageIdx < FRIDGE_STAGES.length - 1 && (
-                <button
-                  onClick={onSkipStage}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888888', fontFamily: 'Inter, sans-serif', fontSize: 13 }}
-                >
-                  Skip to next →
-                </button>
-              )}
-              <button
-                onClick={onShowAll}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888888', fontFamily: 'Inter, sans-serif', fontSize: 13 }}
-              >
-                Show all ingredients
-              </button>
-            </div>
-          )}
-        </>
+            Something else →
+          </button>
+        </div>
       )}
     </div>
   )
@@ -6763,8 +6674,8 @@ export default function App() {
     const p = loadProfileOrEvict()
     return (p?.name && p.trainingPhilosophy == null) ? null : 'proteins'
   })   // 'proteins'|'cuisine'|'time'|null
-  const [fridgeStage,            setFridgeStage]            = useState('protein')
-  const [allSelectedIngredients, setAllSelectedIngredients] = useState({ protein: [], vegetables: [], carbs: [], extras: [] })
+  const [dynamicChips,           setDynamicChips]           = useState(INITIAL_PROTEIN_CHIPS)
+  const [allSelectedIngredients, setAllSelectedIngredients] = useState(new Set())
   const [trayExpanded,           setTrayExpanded]           = useState(true)
   const [profile,        setProfile]        = useState(() => {
     // Never pre-populate profile if there is no active session —
@@ -7202,8 +7113,7 @@ export default function App() {
 
   async function submitMessage(text) {
     if (sendingRef.current) return                // synchronous re-entrancy guard
-    const _chipCount = Object.values(allSelectedIngredients).flat().length
-    if ((!text.trim() && _chipCount === 0) || streaming) return
+    if ((!text.trim() && allSelectedIngredients.size === 0) || streaming) return
 
     // ── Free-tier generation cap (20 / month) ─────────────────────────────────
     if (!tier.isPro) {
@@ -7307,13 +7217,9 @@ export default function App() {
       profileForApi = updatedProfile
     }
 
-    // Augment user message with any chip selections across all fridge stages
-    const _ingredParts = []
-    if (allSelectedIngredients.protein.length > 0)    _ingredParts.push(`I've got: ${allSelectedIngredients.protein.join(', ')}`)
-    if (allSelectedIngredients.vegetables.length > 0) _ingredParts.push(`Vegetables: ${allSelectedIngredients.vegetables.join(', ')}`)
-    if (allSelectedIngredients.carbs.length > 0)      _ingredParts.push(`Carbs: ${allSelectedIngredients.carbs.join(', ')}`)
-    if (allSelectedIngredients.extras.length > 0)     _ingredParts.push(`Extras: ${allSelectedIngredients.extras.join(', ')}`)
-    const _ingredSuffix = _ingredParts.join('. ')
+    // Augment user message with any chip selections
+    const _ingredList   = [...allSelectedIngredients]
+    const _ingredSuffix = _ingredList.length > 0 ? `I've got: ${_ingredList.join(', ')}` : ''
     const augmentedText = _ingredSuffix
       ? (trimmed ? `${trimmed}. ${_ingredSuffix}` : _ingredSuffix)
       : trimmed
@@ -7329,7 +7235,7 @@ export default function App() {
     setError(null)
     setQuickReplyType(null)
     // Clear fridge chip selections — they're now baked into the message
-    setAllSelectedIngredients({ protein: [], vegetables: [], carbs: [], extras: [] })
+    setAllSelectedIngredients(new Set())
 
     abortRef.current = new AbortController()
 
@@ -7418,6 +7324,7 @@ export default function App() {
                   revealBreadcrumb: true,
                 }])
                 setView('reveal')
+                setDynamicChips(INITIAL_PROTEIN_CHIPS)
               } else {
                 console.error('[meals] Generation completed but no dish carried a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
                 setMessages(prev => [...prev, {
@@ -7428,15 +7335,17 @@ export default function App() {
               }
               setQuickReplyType(null)
             } else {
-              setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: accumulated }])
+              // Parse CHIPS line — update dynamic chip tray
+              const chipsLine = accumulated.split('\n').find(l => /^\s*CHIPS:/i.test(l))
+              if (chipsLine) {
+                const parsedChips = chipsLine.replace(/^\s*CHIPS:/i, '').trim().split(',').map(c => c.trim()).filter(Boolean)
+                if (parsedChips.length > 0) setDynamicChips(parsedChips)
+              }
+              // Strip CHIPS line from displayed message — users never see it
+              const displayMsg = accumulated.split('\n').filter(l => !/^\s*CHIPS:/i.test(l)).join('\n').trim()
+              setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: displayMsg }])
               const nextType = detectQuickReplyType(accumulated)
               setQuickReplyType(nextType || 'proteins')
-              // Advance fridge stage based on keywords in Remi's response (one-directional)
-              setFridgeStage(prev => {
-                const idx = FRIDGE_STAGES.indexOf(prev)
-                if (idx < 0 || idx >= FRIDGE_STAGES.length - 1) return prev
-                return FRIDGE_ADVANCE_KEYWORDS[prev]?.test(accumulated) ? FRIDGE_STAGES[idx + 1] : prev
-              })
             }
             break outer
           }
@@ -7470,7 +7379,13 @@ export default function App() {
                 setAwaitingDishes(true)
                 setStreamContent('')
               } else {
-                setStreamContent(accumulated)
+                // Strip CHIPS line from streaming display so it never flashes to the user
+                const displayText = accumulated
+                  .split('\n')
+                  .filter(l => !/^\s*CHIPS:/i.test(l))
+                  .join('\n')
+                  .trimEnd()
+                setStreamContent(displayText)
               }
             }
           }
@@ -7511,6 +7426,7 @@ export default function App() {
               revealBreadcrumb: true,
             }])
             setView('reveal')
+            setDynamicChips(INITIAL_PROTEIN_CHIPS)
           } else {
             console.error('[meals] Salvage parse produced no dish with a complete method. Rejecting.', parsed.map(d => ({ name: d.name, steps: d?.dietician?.cookSteps?.length ?? 0 })))
             setMessages(prev => [...prev, {
@@ -7547,8 +7463,7 @@ export default function App() {
 
   function handleSubmit(e) {
     e?.preventDefault()
-    const _hasChips = Object.values(allSelectedIngredients).flat().length > 0
-    if (input.trim() || _hasChips) submitMessage(input)
+    if (input.trim() || allSelectedIngredients.size > 0) submitMessage(input)
   }
 
   function handleQuickReply(text, data, type) {
@@ -7574,8 +7489,8 @@ export default function App() {
     setError(null)
     setInput('')
     setQuickReplyType('proteins')
-    setFridgeStage('protein')
-    setAllSelectedIngredients({ protein: [], vegetables: [], carbs: [], extras: [] })
+    setDynamicChips(INITIAL_PROTEIN_CHIPS)
+    setAllSelectedIngredients(new Set())
     setTrayExpanded(true)
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
     setView('chat')
@@ -7596,8 +7511,8 @@ export default function App() {
     setError(null)
     setInput(text)
     setQuickReplyType('proteins')
-    setFridgeStage('protein')
-    setAllSelectedIngredients({ protein: [], vegetables: [], carbs: [], extras: [] })
+    setDynamicChips(INITIAL_PROTEIN_CHIPS)
+    setAllSelectedIngredients(new Set())
     setTrayExpanded(true)
     sessionDataRef.current = { proteins: [], cuisine: '', time: '' }
     setView('chat')
@@ -8933,19 +8848,16 @@ export default function App() {
                 />
               ) : (
                 <FridgeTray
-                  fridgeStage={fridgeStage}
+                  chips={dynamicChips}
                   allSelected={allSelectedIngredients}
                   trayExpanded={trayExpanded}
                   onToggleExpand={() => setTrayExpanded(e => !e)}
-                  onToggleIngredient={(stage, item) => setAllSelectedIngredients(prev => {
-                    const cur = prev[stage] || []
-                    return { ...prev, [stage]: cur.includes(item) ? cur.filter(i => i !== item) : [...cur, item] }
+                  onToggleIngredient={(item) => setAllSelectedIngredients(prev => {
+                    const next = new Set(prev)
+                    if (next.has(item)) next.delete(item)
+                    else next.add(item)
+                    return next
                   })}
-                  onSkipStage={() => setFridgeStage(prev => {
-                    const idx = FRIDGE_STAGES.indexOf(prev)
-                    return (idx >= 0 && idx < FRIDGE_STAGES.length - 1) ? FRIDGE_STAGES[idx + 1] : prev
-                  })}
-                  onShowAll={() => setFridgeStage('all')}
                   onFocusInput={() => setTimeout(() => inputRef.current?.focus(), 50)}
                   streaming={streaming}
                 />
@@ -9005,8 +8917,7 @@ export default function App() {
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
-                    const _hasChips = Object.values(allSelectedIngredients).flat().length > 0
-                    if (!streaming && (input.trim() || _hasChips)) submitMessage(input)
+                    if (!streaming && (input.trim() || allSelectedIngredients.size > 0)) submitMessage(input)
                   }
                 }}
                 placeholder="Type here..."
@@ -9041,16 +8952,16 @@ export default function App() {
               ) : (
                 <button
                   type="submit"
-                  disabled={!input.trim() && Object.values(allSelectedIngredients).flat().length === 0}
+                  disabled={!input.trim() && allSelectedIngredients.size === 0}
                   style={{
-                    backgroundColor: (input.trim() || Object.values(allSelectedIngredients).flat().length > 0) ? '#00E5A0' : '#1A1A1A',
-                    color: (input.trim() || Object.values(allSelectedIngredients).flat().length > 0) ? '#0D0D0D' : '#444444',
+                    backgroundColor: (input.trim() || allSelectedIngredients.size > 0) ? '#00E5A0' : '#1A1A1A',
+                    color: (input.trim() || allSelectedIngredients.size > 0) ? '#0D0D0D' : '#444444',
                     width: 44,
                     height: 44,
                     flexShrink: 0,
                     borderRadius: 8,
-                    border: (input.trim() || Object.values(allSelectedIngredients).flat().length > 0) ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                    cursor: (input.trim() || Object.values(allSelectedIngredients).flat().length > 0) ? 'pointer' : 'not-allowed',
+                    border: (input.trim() || allSelectedIngredients.size > 0) ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                    cursor: (input.trim() || allSelectedIngredients.size > 0) ? 'pointer' : 'not-allowed',
                     transition: 'background-color 200ms ease',
                   }}
                   className="flex items-center justify-center active:opacity-80"
