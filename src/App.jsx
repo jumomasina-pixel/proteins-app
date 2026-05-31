@@ -16,6 +16,8 @@ posthog.init('phc_oHAKVKsHMe6nw8gxiuZk5p3oFmDUJtN4YePvVpB5Sztv', {
 
 const PROFILE_VERSION = 7
 
+const MUTED_TEXT = '#AAAAAA'
+
 const ADMIN_EMAILS = ['jumomasina@gmail.com']
 
 const LS_KEYS = ['remi_profile', 'lhc_profile', 'lhc_sessions', 'lhc_streak', 'lhc_stats']
@@ -849,7 +851,7 @@ function InsightsDesktopSidebar() {
 
 function CrownBadge() {
   return (
-    <svg viewBox="0 0 18 14" width="13" height="10" fill="#C9A84C" style={{ display: 'block' }}>
+    <svg aria-hidden="true" viewBox="0 0 18 14" width="13" height="10" fill="#C9A84C" style={{ display: 'block' }}>
       <path d="M9 0L11.5 5L18 3.5L15 10H3L0 3.5L6.5 5L9 0Z"/>
       <rect x="3" y="11" width="12" height="2.5" rx="1"/>
     </svg>
@@ -923,7 +925,7 @@ function BottomNav({ activeView, onNavigate, isPro = false }) {
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors duration-200"
-            style={{ color: active ? '#00E5A0' : '#888888', touchAction: 'manipulation' }}
+            style={{ color: active ? '#00E5A0' : MUTED_TEXT, touchAction: 'manipulation' }}
             aria-label={item.label}
           >
             <div style={{ position: 'relative', display: 'inline-flex' }}>
@@ -1404,7 +1406,7 @@ function QuickReplyRow({ type, onSubmit, onDismiss, onFocusInput }) {
     touchAction:     'manipulation',
   })
 
-  const labelStyle = { fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }
+  const labelStyle = { fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: MUTED_TEXT, letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }
 
   function handleSomethingElse() {
     onDismiss()
@@ -1781,8 +1783,8 @@ const BACK_ARROW = (
 
 function BookmarkIcon({ filled }) {
   return filled
-    ? <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6.75 2.25A.75.75 0 016 3v18a.75.75 0 001.28.53L12 17.31l4.72 4.22A.75.75 0 0018 21V3a.75.75 0 00-.75-.75H6.75z"/></svg>
-    : <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 3H6.75A.75.75 0 006 3.75v16.5a.75.75 0 001.28.53L12 16.81l4.72 4.22A.75.75 0 0018 20.25V3.75A.75.75 0 0017.25 3z"/></svg>
+    ? <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6.75 2.25A.75.75 0 016 3v18a.75.75 0 001.28.53L12 17.31l4.72 4.22A.75.75 0 0018 21V3a.75.75 0 00-.75-.75H6.75z"/></svg>
+    : <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 3H6.75A.75.75 0 006 3.75v16.5a.75.75 0 001.28.53L12 16.81l4.72 4.22A.75.75 0 0018 20.25V3.75A.75.75 0 0017.25 3z"/></svg>
 }
 
 function CookStepsList({ steps, accentColor }) {
@@ -1894,7 +1896,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
             onClick={onNavigateDashboard}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#888888' }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
             Dashboard
@@ -1944,7 +1946,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
                 cursor: 'pointer',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
               Back to dishes
@@ -1971,7 +1973,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
               cursor: 'pointer',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
             Back to dishes
@@ -2019,7 +2021,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
             style={{ width: 44, height: 44, backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', color: '#888888' }}
             aria-label="Share recipe"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
           </button>
@@ -2130,6 +2132,9 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
                   return (
                     <li
                       key={i}
+                      role="checkbox"
+                      aria-checked={checked}
+                      tabIndex={0}
                       className="flex items-center gap-3 text-sm leading-snug cursor-pointer select-none"
                       style={{
                         opacity: checked ? 0.4 : 1,
@@ -2216,7 +2221,7 @@ function DetailView({ dish, onBack, imgUrl, photographer = null, isSaved, onSave
           >
             {isSaved ? (
               <>
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <svg aria-hidden="true" className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6.75 2.25A.75.75 0 016 3v18a.75.75 0 001.28.53L12 17.31l4.72 4.22A.75.75 0 0018 21V3a.75.75 0 00-.75-.75H6.75z"/>
                 </svg>
                 ✓ Saved
@@ -2419,7 +2424,7 @@ function SplashScreen({ onGetStarted, referralCoachName = null, referralCapped =
                   onClick={() => setShowReferralInput(false)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="15 18 9 12 15 6"/>
                   </svg>
                 </button>
@@ -2713,7 +2718,7 @@ function RemiCorner({ profile }) {
           ))}
         </div>
       ) : error ? (
-        <p className="text-xs" style={{ color: '#888' }}>{error}</p>
+        <p className="text-xs" style={{ color: MUTED_TEXT }}>{error}</p>
       ) : tip ? (
         <div>{renderTipMarkdown(tip)}</div>
       ) : null}
@@ -2779,7 +2784,7 @@ function CookbookView({ savedRecipes, onBack, onOpenRecipe, onAddToDayPlan, onSt
         <button
           onClick={onBack}
           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#888888' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
           Dashboard
@@ -2956,7 +2961,7 @@ function CoachRosterView({ slug, onBack, onSelectClient = () => {} }) {
           onClick={onBack}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44 }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
@@ -2987,7 +2992,7 @@ function CoachRosterView({ slug, onBack, onSelectClient = () => {} }) {
 
         {/* Error */}
         {error && (
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', textAlign: 'center', marginTop: 40 }}>{error}</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: MUTED_TEXT, textAlign: 'center', marginTop: 40 }}>{error}</p>
         )}
 
         {/* Empty state */}
@@ -3630,7 +3635,7 @@ function Dashboard({ profile, savedRecipes, sessions, streak, stats, onClose, on
     fontFamily: 'Inter, sans-serif',
     fontSize: 11,
     fontWeight: 500,
-    color: '#888888',
+    color: MUTED_TEXT,
     letterSpacing: '0.12em',
     textTransform: 'uppercase',
     margin: 0,
@@ -4559,7 +4564,7 @@ function Onboarding({ onComplete, onBack, onAlreadyOnboarded, existingProfile = 
   const weeksOutValue = getWeeksOut()
 
   const backChevron = (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
       <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
     </svg>
   )
@@ -4955,6 +4960,9 @@ function GenCapModal({ onClose }) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Generation limit reached"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{
         position: 'fixed', inset: 0,
@@ -5033,6 +5041,9 @@ function ProModal({ onClose }) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Remi Pro upgrade"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}
     >
@@ -5373,6 +5384,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
             onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
             onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             placeholder="Your name"
+            aria-label="Your name"
             autoComplete="name"
             style={IS}
           />
@@ -5388,6 +5400,7 @@ function AuthScreen({ onBack, onAuthSuccess }) {
             onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
             onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             placeholder="you@example.com"
+            aria-label="Email address"
             autoComplete="email"
             inputMode="email"
             style={IS}
@@ -5405,12 +5418,14 @@ function AuthScreen({ onBack, onAuthSuccess }) {
               onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
               onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
               placeholder={mode === 'signup' ? 'Choose a password (min 6 chars)' : 'Password'}
+              aria-label="Password"
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               style={{ ...IS, marginBottom: 0, paddingRight: 52 }}
             />
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888888', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
             >
               {showPassword ? (
@@ -5459,21 +5474,21 @@ function AuthScreen({ onBack, onAuthSuccess }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
           {mode === 'signin' && (
             <>
-              <button onClick={() => switchMode('forgot')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
+              <button onClick={() => switchMode('forgot')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: MUTED_TEXT, cursor: 'pointer', padding: '12px 0' }}>
                 Forgot password?
               </button>
-              <button onClick={() => switchMode('signup')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
+              <button onClick={() => switchMode('signup')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: MUTED_TEXT, cursor: 'pointer', padding: '12px 0' }}>
                 New here?{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Create an account</span>
               </button>
             </>
           )}
           {mode === 'signup' && (
-            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
+            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: MUTED_TEXT, cursor: 'pointer', padding: '12px 0' }}>
               Already have one.{' '}<span style={{ color: '#F0F0F0', fontWeight: 500 }}>Sign in.</span>
             </button>
           )}
           {mode === 'forgot' && (
-            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#888888', cursor: 'pointer', padding: '12px 0' }}>
+            <button onClick={() => switchMode('signin')} style={{ background: 'none', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: 14, color: MUTED_TEXT, cursor: 'pointer', padding: '12px 0' }}>
               ← Back to sign in
             </button>
           )}
@@ -5738,6 +5753,7 @@ function SetPasswordScreen({ accessToken, onSuccess }) {
       <button
         type="button"
         onClick={toggle}
+        aria-label={show ? 'Hide password' : 'Show password'}
         style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888888', padding: 4, display: 'flex', alignItems: 'center', lineHeight: 1 }}
       >
         <EyeIcon show={show} />
@@ -5768,6 +5784,7 @@ function SetPasswordScreen({ accessToken, onSuccess }) {
             onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
             onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             placeholder="New password"
+            aria-label="New password"
             autoComplete="new-password"
             style={IS}
           />
@@ -5783,6 +5800,7 @@ function SetPasswordScreen({ accessToken, onSuccess }) {
             onFocus={e => { e.target.style.borderColor = '#00E5A0' }}
             onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             placeholder="Confirm password"
+            aria-label="Confirm password"
             autoComplete="new-password"
             style={IS}
           />
@@ -6426,7 +6444,7 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToD
             onClick={onNavigateDashboard}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, color: '#888888', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400 }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
             Dashboard
@@ -6437,7 +6455,7 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToD
           aria-label="Back to chat"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, color: '#888888', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500 }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
           Back to chat
@@ -6484,6 +6502,9 @@ function RecipeReveal({ dishes, missingIngredients, onBack, onOpenDish, onAddToD
                 return (
                   <li
                     key={i}
+                    role="checkbox"
+                    aria-checked={checked}
+                    tabIndex={0}
                     onClick={() => toggleCheckedItem(i)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
@@ -6640,7 +6661,7 @@ function ProfileEditView({ profile, userRole, onSave, savedRecipes = [], savesCa
   }
 
   const sectionLabel = text => (
-    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: '#888888', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>{text}</p>
+    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: MUTED_TEXT, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px' }}>{text}</p>
   )
 
   const optionRow = (opt, selected, onClick) => (
@@ -8327,6 +8348,9 @@ export default function App() {
           }
           return (
             <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Log meal slot"
               onClick={() => setDayPlanSlotSheet(null)}
               style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               <div
@@ -8498,7 +8522,7 @@ export default function App() {
           onMouseEnter={e => { e.currentTarget.style.color = '#F0F0F0' }}
           onMouseLeave={e => { e.currentTarget.style.color = '#888888' }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
           Dashboard
@@ -8570,6 +8594,9 @@ export default function App() {
           }
           return (
             <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Log meal slot"
               onClick={() => setDayPlanSlotSheet(null)}
               style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               <div
@@ -8695,6 +8722,9 @@ export default function App() {
           }
           return (
             <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Log meal slot"
               onClick={() => setDayPlanSlotSheet(null)}
               style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               <div
@@ -8805,6 +8835,9 @@ export default function App() {
           }
           return (
             <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Log meal slot"
               onClick={() => setDayPlanSlotSheet(null)}
               style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               <div
@@ -8966,6 +8999,9 @@ export default function App() {
                         return (
                           <li
                             key={i}
+                            role="checkbox"
+                            aria-checked={checked}
+                            tabIndex={0}
                             className="flex items-center gap-3 text-sm leading-snug cursor-pointer select-none"
                             style={{
                               color: '#F0F0F0',
@@ -9074,7 +9110,7 @@ export default function App() {
               onClick={() => setView('dashboard')}
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, color: '#888888' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
               Dashboard
