@@ -179,6 +179,7 @@ function parseDishChunk(chunk) {
 
   const stepsRaw = grab(dietPart,
     /quick\s+cook\s+steps[^:\n]*:\s*([\s\S]+?)(?=\ndietician|$)/i,
+    /^method[^:\n]*:\s*([\s\S]+?)(?=\ndietician|$)/im,
   )
   const cookSteps = stepsRaw
     .split('\n')
@@ -1184,14 +1185,15 @@ function CookingState() {
 //   • AND total step text ≥ 300 chars (rejects 5×"do X" stubs),
 //   • AND average step ≥ 40 chars (rejects "Sear. Flip. Rest. Plate. Eat.").
 function isCompleteMethod(dish) {
-  const steps = dish?.dietician?.cookSteps
-  if (!Array.isArray(steps) || steps.length < 5) return false
-  const cleaned = steps.map(s => (typeof s === 'string' ? s.trim() : '')).filter(Boolean)
-  if (cleaned.length < 5) return false
-  const total = cleaned.reduce((sum, s) => sum + s.length, 0)
-  if (total < 300) return false
-  if (total / cleaned.length < 40) return false
-  return true
+  function ok(steps) {
+    if (!Array.isArray(steps) || steps.length < 5) return false
+    const c = steps.map(s => (typeof s === 'string' ? s.trim() : '')).filter(Boolean)
+    if (c.length < 5) return false
+    const total = c.reduce((sum, s) => sum + s.length, 0)
+    return total >= 300 && total / c.length >= 40
+  }
+  // Both Cheat Day (chef.steps) and Performance Mode (dietician.cookSteps) must pass
+  return ok(dish?.chef?.steps) && ok(dish?.dietician?.cookSteps)
 }
 
 // Lead-in line in Remi's voice presenting the plated dishes.
