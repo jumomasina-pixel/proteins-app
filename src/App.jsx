@@ -125,7 +125,7 @@ function parseDishChunk(chunk) {
   const cuisine    = grab(chefPart, /cuisine\s*style[^:\n]*:\s*([^\n]+)/i)
   const flavour    = grab(chefPart, /flavou?r\s*profile[^:\n]*:\s*([^\n]+)/i)
   const restaurant = grab(chefPart,
-    /how\s+it\s+would[^:\n]*:\s*([\s\S]+?)(?=\nest\.|\n\s*\n|$)/i,
+    /how\s+it\s+would[^:\n]*:\s*([\s\S]+?)(?=\nest\.|\n\s*\n|\nchef.{0,5}s?\s*method|\n\s*method\s*:|\n\s*\d+[.)]\s|$)/i,
     /how\s+it\s+would[^:\n]*:\s*([^\n]+)/i,
   )
   const chefCal = grabNum(chefPart,
@@ -134,6 +134,7 @@ function parseDishChunk(chunk) {
   )
   const chefStepsRaw = grab(chefPart,
     /chef.{0,5}s?\s*method[^:\n]*:\s*([\s\S]+?)(?=\nest\.|$)/i,
+    /^method[^:\n]*:\s*([\s\S]+?)(?=\nest\.|$)/im,
   )
   const chefSteps = chefStepsRaw
     .split('\n')
