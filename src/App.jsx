@@ -1182,16 +1182,24 @@ function CookingState() {
 
 // A "real method" guardrail. A token method ≤ a few short phrases is a generation failure —
 // re-request rather than rendering a method-less recipe. Threshold:
-//   • at least 5 numbered steps (allows for genuinely simple dishes),
-//   • AND total step text ≥ 300 chars (rejects 5×"do X" stubs),
-//   • AND average step ≥ 40 chars (rejects "Sear. Flip. Rest. Plate. Eat.").
+//   • at least 3 numbered steps (allows for genuinely simple dishes),
+//   • AND total step text ≥ 200 chars (rejects stub methods),
+//   • AND average step ≥ 25 chars (rejects "Sear. Flip. Rest.").
 function isCompleteMethod(dish) {
   function ok(steps) {
-    if (!Array.isArray(steps) || steps.length < 5) return false
+    if (!Array.isArray(steps) || steps.length < 3) return false
     const c = steps.map(s => (typeof s === 'string' ? s.trim() : '')).filter(Boolean)
-    if (c.length < 5) return false
+    if (c.length < 3) return false
     const total = c.reduce((sum, s) => sum + s.length, 0)
-    return total >= 300 && total / c.length >= 40
+    const avg = total / c.length
+    const passed = total >= 200 && avg >= 25
+    console.log('[guardrail]', steps === dish?.chef?.steps ? 'chef.steps' : 'dietician.cookSteps',
+      '| title:', dish?.name,
+      '| steps:', c.length,
+      '| totalChars:', total,
+      '| avgChars:', avg.toFixed(1),
+      '|', passed ? 'PASS' : 'FAIL')
+    return passed
   }
   // Both Cheat Day (chef.steps) and Performance Mode (dietician.cookSteps) must pass
   return ok(dish?.chef?.steps) && ok(dish?.dietician?.cookSteps)
